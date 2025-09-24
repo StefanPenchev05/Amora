@@ -1,0 +1,8 @@
+**/*_test.go
+build/
+dist/
+tmp/
+*.env
+*.env.*
+node_modules/
+*.log
