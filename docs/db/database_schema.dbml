@@ -142,7 +142,7 @@ Table RelationshipInvites {
 
   Indexes {
     (invitee_id, status, created_at) [name: 'idx_relinv_by_invitee_status_created']  // More selective with timestamp
-    (inviter_id, invitee_id)         [name: 'idx_relinv_pair', unique: true]        // Prevent duplicate invites
+    (inviter_id, invitee_id)         [name: 'idx_relinv_pair', unique]        // Prevent duplicate invites
     (status, created_at)             [name: 'idx_relinv_status_created']            // For admin queries
   }
 }
@@ -162,7 +162,7 @@ Table Relationship {
   anniversary_at   date
   ended_at         timestamp
 
-  avatar_photo_id  uuid      // ref > Photos.id when you add Photos
+  avatar_photo_id  uuid      // ref > Photos.id when I add Photos
   banner_photo_id  uuid
 
   created_by       uuid      [ref: > Users.id]
@@ -170,17 +170,11 @@ Table Relationship {
   updated_at       timestamp [not null, default: `now()`]
   last_activity_at timestamp
 
-  // Optional denormalized counters (maintain in app logic)
-  posts_count     int [not null, default: 0, check: "posts_count >= 0"]
-  notes_count     int [not null, default: 0, check: "notes_count >= 0"]
-  photos_count    int [not null, default: 0, check: "photos_count >= 0"]
+  posts_count     int [not null, default: 0, note: "Must be >= 0"]
+  notes_count     int [not null, default: 0, note: "Must be >= 0"]
+  photos_count    int [not null, default: 0, note: "Must be >= 0"]
 
   deleted_at      timestamp
-  
-  // Constraints
-  constraint partner_different check: "partner_a_id != partner_b_id"
-  constraint partner_order check: "partner_a_id < partner_b_id"
-  constraint valid_ended_at check: "ended_at IS NULL OR ended_at >= started_at"
 }
 
 Table CalendarEvents {
@@ -206,9 +200,9 @@ Table CalendarEvents {
   created_at       timestamp [not null, default: `now()`]
   updated_at       timestamp [not null, default: `now()`]
 
-  // Constraints
-  constraint valid_time_range check: "end_at >= start_at"
-  constraint valid_rrule_until check: "rrule_until IS NULL OR rrule_until >= start_at"
+  // Note: Add these constraints in SQL migration:
+  // - end_at >= start_at
+  // - rrule_until IS NULL OR rrule_until >= start_at
 
   Indexes {
     (relationship_id, start_at, end_at)    [name: 'idx_events_relationship_timerange']  // Better for range queries
@@ -271,10 +265,10 @@ Table WallPostMedia {
   kind             media_kind [not null, default: 'image']
   storage_key      varchar [not null]
   mime_type        varchar  [not null]
-  width            int [check: "width IS NULL OR width > 0"]
-  height           int [check: "height IS NULL OR height > 0"]
-  duration_sec     int [check: "duration_sec IS NULL OR duration_sec >= 0"]
-  position         int  [not null, default: 0, check: "position >= 0"]
+  width            int [note: "Must be > 0 if not null"]
+  height           int [note: "Must be > 0 if not null"]
+  duration_sec     int [note: "Must be >= 0 if not null"]
+  position         int  [not null, default: 0, note: "Must be >= 0"]
   created_at       timestamp [not null, default: `now()`]
 
   Indexes { (post_id, position) }
@@ -340,7 +334,7 @@ Table MoodCheck {
   relationship_id  uuid      [not null, ref: > Relationship.id]
   user_id          uuid      [not null, ref: > Users.id]
 
-  score            int       [not null, note: "1..5 (1=very low, 5=very high)", check: "score >= 1 AND score <= 5"]
+  score            int       [not null, note: "1-5 range (1=very low, 5=very high). Add CHECK constraint in SQL"]
   note             varchar   
   created_at       timestamp [not null, default: `now()`]
 
