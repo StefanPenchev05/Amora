@@ -27,4 +27,4 @@ jobs:
               run: go mod download
             - name: Build backend
               working-directory: ./backend
-              run: go build ./cmd/app
+              run: go build ./cmd/api/
