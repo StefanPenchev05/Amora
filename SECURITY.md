@@ -9,7 +9,7 @@ All reported vulnerabilities will be reviewed and addressed as part of ongoing d
 
 If you discover a security vulnerability in this project, please report it responsibly.
 
-- **Where to report:** Open an issue on the repository or contact us directly at [security@yourdomain.com](mailto:security@yourdomain.com).  
+- **Where to report:** Please report security vulnerabilities **privately** by contacting us directly at [security@yourdomain.com](mailto:security@yourdomain.com).  
 - **Response time:** We aim to respond to initial reports within **48 hours**.  
 - **Updates:** You can expect progress updates at least **once every 7 days** until the issue is resolved.  
 - **Expectations:**  
