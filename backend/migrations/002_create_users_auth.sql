@@ -61,4 +61,4 @@ CREATE TABLE `Refresh_Tokens` (
 ALTER TABLE `Credentials` ADD FOREIGN KEY (`user_id`) REFERENCES `Users` (`id`);
 ALTER TABLE `Profile` ADD FOREIGN KEY (`user_id`) REFERENCES `Users` (`id`);
 ALTER TABLE `Sessions` ADD FOREIGN KEY (`user_id`) REFERENCES `Users` (`id`);
-ALTER TABLE `Refresh_Tokens` ADD FOREIGN KEY (`user_id`) REFERENCES `Users` (`id`);
+ALTER TABLE `Refresh_Tokens` ADD FOREIGN KEY (`session_id`) REFERENCES `Sessions` (`id`);
