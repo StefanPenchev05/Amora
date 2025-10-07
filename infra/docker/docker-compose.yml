@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    container_name: backend
+    ports: 
+      - "8080:8080"
+    env_file:
+      - ../../backend/.env.local
+    volumes:
+      - ../../backend:/app
+    depends_on:
+      - db
+  
+  db:
+    image: mysql:8
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: appdb
+    ports:
+      - "3306:3306"
