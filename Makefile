@@ -22,6 +22,10 @@ IMAGE ?= $(REGISTRY)/amora:$(VERSION)
 help:
 	@printf "$(BLUE)Usage: make <target>$(RESET)\n"
 	@printf "\n"
+	@printf "$(YELLOW)Setup:$(RESET)\n"
+	@printf "  $(GREEN)make be/install$(RESET)     - install Go dependencies\n"
+	@printf "  $(GREEN)make fe/install$(RESET)     - install Node.js dependencies\n"
+	@printf "\n"
 	@printf "$(YELLOW)Dev:$(RESET)\n"
 	@printf "  $(GREEN)make be/run$(RESET)         - run backend locally\n"
 	@printf "  $(GREEN)make fe/dev$(RESET)         - run frontend dev server\n"
@@ -45,8 +49,17 @@ help:
 	@printf "  $(GREEN)make clean$(RESET)          - clean build artifacts\n"
 
 
+# ----- Root passthroughs -----
+
+setup:
+	$(MAKE) -C backend install
+	$(MAKE) -C frontend install
+
 # ----- Backend passthroughs -----
-.PHONY: be/build be/run be/test be/fmt be/clean
+.PHONY: be/install be/build be/run be/test be/fmt be/clean
+
+be/install:
+	$(MAKE) -C backend install
 
 be/build:
 	$(MAKE) -C backend build
@@ -62,3 +75,24 @@ be/fmt:
 
 be/clean:
 	$(MAKE) -C backend clean
+
+# ----- Frontend commands -----
+.PHONY: fe/install fe/dev fe/build fe/lint
+
+fe/install:
+	@printf "$(YELLOW)📦 Installing Node.js dependencies...$(RESET)\n"
+	@cd $(FRONTEND_DIR) && npm install
+	@printf "$(GREEN)✅ Frontend dependencies installed!$(RESET)\n"
+
+fe/dev:
+	@printf "$(YELLOW)🎨 Starting frontend dev server...$(RESET)\n"
+	@cd $(FRONTEND_DIR) && npm run dev
+
+fe/build:
+	@printf "$(YELLOW)🏗️  Building frontend for production...$(RESET)\n"
+	@cd $(FRONTEND_DIR) && npm run build
+	@printf "$(GREEN)✅ Frontend build complete!$(RESET)\n"
+
+fe/lint:
+	@printf "$(YELLOW)🔍 Linting frontend code...$(RESET)\n"
+	@cd $(FRONTEND_DIR) && npm run lint

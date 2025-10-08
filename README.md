@@ -3,6 +3,20 @@
 **Amora** is a private web application designed to bring couples closer and give deeper meaning to their relationship.  
 It helps partners stay connected by sharing calendars, moods, love notes, and memories — while celebrating milestones and uplifting each other with affirmations and achievements.  
 
+## 📖 Table of Contents
+- [💭 Where Does the Idea Come From?](#where-does-the-idea-come-from)
+- [⚙️ Tech Stack (Main Versions)](#️-tech-stack-main-versions)  
+- [📂 Project Structure](#-project-structure)
+- [🛠️ Quick Start with Makefile](#️-quick-start-with-makefile)
+  - [Makefile Structure](#makefile-structure)
+  - [Prerequisites](#prerequisites)
+  - [Common Commands](#common-commands)
+  - [Getting Started](#getting-started)
+- [🌳 Branching Rules](#-branching-rules)
+- [🛡️ Security Guidelines](#️-security-guidelines)
+- [🚀 Project Status](#-project-status)
+- [📜 License](#-license)
+
 ---
 
 ## Where Does the Idea Come From?  
@@ -34,6 +48,67 @@ It later grew into a broader vision: a platform for all couples who want to stre
 /infra → Docker, configs, deployment scripts
 
 📖 Full documentation can be found in the [`/docs`](./docs) folder.  
+
+---
+
+## 🛠️ Quick Start with Makefile  
+
+This project includes **Makefiles** to simplify development. No need to remember complex commands!  
+
+### **Makefile Structure**
+- **Root Makefile** (`./Makefile`) - Main commands that coordinate backend/frontend
+- **Backend Makefile** (`./backend/Makefile`) - Go-specific build and test commands
+- **Frontend Makefile** (`./frontend/Makefile`) - Node.js-specific build and dev commands
+
+The root Makefile acts as a **coordinator**, passing commands to the appropriate subdirectory Makefiles.
+
+### **Prerequisites**  
+- **Go** (v1.22+)  
+- **Node.js** (v18+)  
+- **Make** (usually pre-installed on macOS/Linux)  
+
+### **Common Commands**  
+```bash
+# See all available commands
+make help
+
+# Setup & Installation
+make be/install     # Install Go dependencies
+make fe/install     # Install Node.js dependencies
+
+# Development
+make be/run         # Start backend server
+make fe/dev         # Start frontend dev server  
+
+# Building
+make be/build       # Build Go binary
+make fe/build       # Build frontend for production
+
+# Code Quality
+make be/test        # Run backend tests
+make be/fmt         # Format Go code
+make fe/lint        # Lint frontend code
+
+# Cleanup
+make clean          # Remove build artifacts
+```
+
+### **Getting Started**  
+```bash
+# 1. Clone the repository
+git clone https://github.com/StefanPenchev05/viki.git
+cd viki
+
+# 2. Start backend
+make be/run
+
+# 3. In another terminal, start frontend  
+make fe/dev
+
+# 4. Open http://localhost:3000 in your browser
+```
+
+> **Windows users:** Use WSL2 or Git Bash for Make support.
 
 ---
 

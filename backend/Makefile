@@ -25,7 +25,13 @@ $(BINARY): $(SRC)
 	@CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o $@ $(MAIN)
 	@printf "$(GREEN)✅ Binary built successfully: $(BINARY)$(RESET)\n"
 
-.PHONY: build run test fmt clean
+.PHONY: install build run test fmt clean
+
+install:
+	@printf "$(CYAN)📦 Installing Go dependencies...$(RESET)\n"
+	@go mod download
+	@go mod tidy
+	@printf "$(GREEN)✅ Go dependencies installed and tidied!$(RESET)\n"
 
 build: $(BINARY)
 	@printf "$(GREEN)🎉 Build completed! Ready to deploy.$(RESET)\n"
