@@ -9,6 +9,10 @@ RED := \033[31m
 CYAN := \033[36m
 RESET := \033[0m
 
+# Directories
+BACKEND_DIR := backend
+FRONTEND_DIR := frontend
+
 # ---------- Versioning (git describe) ----------
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 # For now it is only the gh, later it will be switch to hosting platform
@@ -59,40 +63,40 @@ setup:
 .PHONY: be/install be/build be/run be/test be/fmt be/clean
 
 be/install:
-	$(MAKE) -C backend install
+	$(MAKE) -C $(BACKEND_DIR) install
 
 be/build:
-	$(MAKE) -C backend build
+	$(MAKE) -C $(BACKEND_DIR) build
 
 be/run:
-	$(MAKE) -C backend run
+	$(MAKE) -C $(BACKEND_DIR) run
 
 be/test:
-	$(MAKE) -C backend test
+	$(MAKE) -C $(BACKEND_DIR) test
 
 be/fmt:
-	$(MAKE) -C backend fmt
+	$(MAKE) -C $(BACKEND_DIR) fmt
 
 be/clean:
-	$(MAKE) -C backend clean
+	$(MAKE) -C $(BACKEND_DIR) clean
 
-# ----- Frontend commands -----
-.PHONY: fe/install fe/dev fe/build fe/lint
+# ----- Frontend passthroughs -----
+.PHONY: fe/install fe/dev fe/build fe/lint fe/preview fe/clean
 
 fe/install:
-	@printf "$(YELLOW)📦 Installing Node.js dependencies...$(RESET)\n"
-	@cd $(FRONTEND_DIR) && npm install
-	@printf "$(GREEN)✅ Frontend dependencies installed!$(RESET)\n"
+	$(MAKE) -C $(FRONTEND_DIR) install
 
 fe/dev:
-	@printf "$(YELLOW)🎨 Starting frontend dev server...$(RESET)\n"
-	@cd $(FRONTEND_DIR) && npm run dev
+	$(MAKE) -C $(FRONTEND_DIR) dev
 
 fe/build:
-	@printf "$(YELLOW)🏗️  Building frontend for production...$(RESET)\n"
-	@cd $(FRONTEND_DIR) && npm run build
-	@printf "$(GREEN)✅ Frontend build complete!$(RESET)\n"
+	$(MAKE) -C $(FRONTEND_DIR) build
 
 fe/lint:
-	@printf "$(YELLOW)🔍 Linting frontend code...$(RESET)\n"
-	@cd $(FRONTEND_DIR) && npm run lint
+	$(MAKE) -C $(FRONTEND_DIR) lint
+
+fe/preview:
+	$(MAKE) -C $(FRONTEND_DIR) preview
+
+fe/clean:
+	$(MAKE) -C $(FRONTEND_DIR) clean
