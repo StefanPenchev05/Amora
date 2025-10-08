@@ -1,4 +1,4 @@
-module github.com/StefanPenchev05/viki/backend
+module github.com/StefanPenchev05/Amora/backend
 
 go 1.24.3
 

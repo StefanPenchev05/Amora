@@ -22,3 +22,50 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# OS
+.DB_Store
+Thumbs.db
+
+#IDE
+.vscode/
+idea/
+*.swp
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.development
+.env.staging
+.env.production
+.env.test
+
+# Build artifacts
+dist/
+build/
+bin/
+tmp/
+out/
+target/
+
+# Dependencies
+node_modules/
+vendor/
+.pnp
+.pnp.js
+
+# Testing output
+coverage/
+*.coverprofile
+*.out
+.nyc_output/
+junit.xml
+test-results/
+coverage.xml
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
