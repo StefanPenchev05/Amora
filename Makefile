@@ -54,6 +54,8 @@ help:
 	@printf "  $(GREEN)make clean$(RESET)          - clean build artifacts\n"
 	@printf "  $(GREEN)make check-versions$(RESET) - display tool versions\n"
 	@printf "  $(GREEN)make system-info$(RESET)    - display system information\n"
+	@printf "  $(GREEN)make docker-up$(RESET)      - start Docker Compose services\n"
+	@printf "  $(GREEN)make docker-down$(RESET)    - stop Docker Compose services\n"
 
 
 # ----- Root passthroughs -----
@@ -111,7 +113,7 @@ fe/clean:
 	$(MAKE) -C $(FRONTEND_DIR) clean
 
 # ----- Infrastructure passthroughs -----
-.PHONY: check-versions system-info docker-clean
+.PHONY: check-versions system-info docker-clean docker-up docker-down
 
 check-versions:
 	$(MAKE) -C $(INFRA_DIR) check-versions
@@ -121,3 +123,9 @@ system-info:
 
 docker-clean:
 	$(MAKE) -C $(INFRA_DIR) docker-clean
+
+docker-up:
+	$(MAKE) -C $(INFRA_DIR) docker-up
+
+docker-down:
+	$(MAKE) -C $(INFRA_DIR) docker-down

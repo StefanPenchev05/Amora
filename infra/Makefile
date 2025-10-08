@@ -9,7 +9,10 @@ RED := \033[31m
 CYAN := \033[36m
 RESET := \033[0m
 
-.PHONY: check-versions clean docker-clean system-info
+# Docker directory
+DOCKER_DIR := docker
+
+.PHONY: check-versions clean docker-clean system-info docker-up docker-down
 
 check-versions:
 	@printf "$(BLUE)🔍 Development Tool Versions$(RESET)\n"
@@ -66,3 +69,13 @@ docker-clean:
 	@printf "$(CYAN)Removing unused networks...$(RESET)\n"
 	@docker network prune -f 2>/dev/null || printf "$(RED)Docker not available$(RESET)\n"
 	@printf "$(GREEN)✅ Deep Docker cleanup complete!$(RESET)\n"
+
+docker-up:
+	@printf "$(YELLOW)🚀 Starting Docker Compose services...$(RESET)\n"
+	@cd $(DOCKER_DIR) && docker compose up -d
+	@printf "$(GREEN)✅ Docker Compose services started!$(RESET)\n"
+
+docker-down:
+	@printf "$(YELLOW)🛑 Stopping Docker Compose services...$(RESET)\n"
+	@cd $(DOCKER_DIR) && docker compose down
+	@printf "$(GREEN)✅ Docker Compose services stopped!$(RESET)\n"
