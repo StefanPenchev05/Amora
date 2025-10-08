@@ -12,6 +12,7 @@ RESET := \033[0m
 # Directories
 BACKEND_DIR := backend
 FRONTEND_DIR := frontend
+INFRA_DIR := infra
 
 # ---------- Versioning (git describe) ----------
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -22,7 +23,7 @@ IMAGE ?= $(REGISTRY)/amora:$(VERSION)
 .DEFAULT_GOAL := help
 
 
-.PHONY: help
+.PHONY: help setup clean
 help:
 	@printf "$(BLUE)Usage: make <target>$(RESET)\n"
 	@printf "\n"
@@ -51,13 +52,21 @@ help:
 	@printf "\n"
 	@printf "$(YELLOW)Meta:$(RESET)\n"
 	@printf "  $(GREEN)make clean$(RESET)          - clean build artifacts\n"
+	@printf "  $(GREEN)make check-versions$(RESET) - display tool versions\n"
+	@printf "  $(GREEN)make system-info$(RESET)    - display system information\n"
 
 
 # ----- Root passthroughs -----
-
 setup:
 	$(MAKE) -C backend install
 	$(MAKE) -C frontend install
+
+clean:
+	@printf "$(YELLOW)🧹 Cleaning all build artifacts...$(RESET)\n"
+	$(MAKE) -C $(BACKEND_DIR) clean
+	$(MAKE) -C $(FRONTEND_DIR) clean
+	$(MAKE) -C $(INFRA_DIR) clean
+	@printf "$(GREEN)✅ All artifacts cleaned!$(RESET)\n"
 
 # ----- Backend passthroughs -----
 .PHONY: be/install be/build be/run be/test be/fmt be/clean
@@ -100,3 +109,15 @@ fe/preview:
 
 fe/clean:
 	$(MAKE) -C $(FRONTEND_DIR) clean
+
+# ----- Infrastructure passthroughs -----
+.PHONY: check-versions system-info docker-clean
+
+check-versions:
+	$(MAKE) -C $(INFRA_DIR) check-versions
+
+system-info:
+	$(MAKE) -C $(INFRA_DIR) system-info
+
+docker-clean:
+	$(MAKE) -C $(INFRA_DIR) docker-clean
