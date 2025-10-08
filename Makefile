@@ -11,7 +11,7 @@ RESET := \033[0m
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 # For now it is only the gh, later it will be switch to hosting platform
 REGISTRY ?= ghcr.io/stefanpenchev05
-IMAGE ?= $(REGISTRY)/viki:$(VERSION)
+IMAGE ?= $(REGISTRY)/amora:$(VERSION)
 
 .DEFAULT_GOAL := help
 

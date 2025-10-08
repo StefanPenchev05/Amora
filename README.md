@@ -1,12 +1,12 @@
-# 💕 Viki  
+# 💕 Amora  
 
-**Viki** is a private web application designed to bring couples closer and give deeper meaning to their relationship.  
+**Amora** is a private web application designed to bring couples closer and give deeper meaning to their relationship.  
 It helps partners stay connected by sharing calendars, moods, love notes, and memories — while celebrating milestones and uplifting each other with affirmations and achievements.  
 
 ---
 
 ## Where Does the Idea Come From?  
-The idea for **Viki** started as a personal project — a Christmas gift to create a meaningful digital space for my partner.  
+The idea for **Amora** started as a personal project — a Christmas gift to create a meaningful digital space for my partner.  
 It later grew into a broader vision: a platform for all couples who want to strengthen their bond, stay organized together, and celebrate the small and big moments of their shared journey.  
 
 ---

@@ -1,4 +1,4 @@
-## Directory Structure of Viki
+## Directory Structure of Amora
 
 ```
 src/
