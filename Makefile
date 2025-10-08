@@ -5,6 +5,8 @@ SHELL := /bin/bash
 BLUE := \033[34m
 GREEN := \033[32m
 YELLOW := \033[33m
+RED := \033[31m
+CYAN := \033[36m
 RESET := \033[0m
 
 # ---------- Versioning (git describe) ----------
@@ -44,5 +46,19 @@ help:
 
 
 # ----- Backend passthroughs -----
+.PHONY: be/build be/run be/test be/fmt be/clean
 
+be/build:
+	$(MAKE) -C backend build
 
+be/run:
+	$(MAKE) -C backend run
+
+be/test:
+	$(MAKE) -C backend test
+
+be/fmt:
+	$(MAKE) -C backend fmt
+
+be/clean:
+	$(MAKE) -C backend clean
