@@ -96,8 +96,8 @@ make clean          # Remove build artifacts
 ### **Getting Started**  
 ```bash
 # 1. Clone the repository
-git clone https://github.com/StefanPenchev05/viki.git
-cd viki
+git clone https://github.com/StefanPenchev05/Amora.git
+cd Amora
 
 # 2. Start backend
 make be/run
