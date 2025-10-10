@@ -9,7 +9,7 @@ RED := \033[31m
 CYAN := \033[36m
 RESET := \033[0m
 
-.PHONY: install dev build test lint clean start-ios start-android
+.PHONY: install dev build build-dev build-ios build-android test lint clean start-ios start-android setup-eas
 
 install:
 	@printf "$(CYAN)📦 Installing mobile dependencies...$(RESET)\n"
@@ -31,8 +31,29 @@ start-android:
 
 build:
 	@printf "$(CYAN)🏗️ Building mobile app for production...$(RESET)\n"
-	@npx expo build
-	@printf "$(GREEN)✅ Mobile build complete!$(RESET)\n"
+	@printf "$(BLUE)📱 Creating optimized bundle...$(RESET)\n"
+	@npx expo export --platform all
+	@printf "$(GREEN)✅ Mobile build complete! Check dist/ folder$(RESET)\n"
+
+build-dev:
+	@printf "$(CYAN)📦 Creating development build...$(RESET)\n"
+	@npx expo export --dev
+	@printf "$(GREEN)✅ Development build complete!$(RESET)\n"
+
+build-ios:
+	@printf "$(CYAN)🍎 Building for iOS (requires EAS Build)...$(RESET)\n"
+	@npx eas build --platform ios --non-interactive 2>/dev/null || \
+	printf "$(YELLOW)⚠️  Run 'make setup-eas' to configure EAS Build first$(RESET)\n"
+
+build-android:
+	@printf "$(CYAN)🤖 Building for Android (requires EAS Build)...$(RESET)\n"
+	@npx eas build --platform android --non-interactive 2>/dev/null || \
+	printf "$(YELLOW)⚠️  Run 'make setup-eas' to configure EAS Build first$(RESET)\n"
+
+setup-eas:
+	@printf "$(CYAN)⚙️  Setting up EAS Build...$(RESET)\n"
+	@npx eas build:configure
+	@printf "$(GREEN)✅ EAS Build configured! Now you can use build-ios/build-android$(RESET)\n"
 
 test:
 	@printf "$(CYAN)🧪 Running mobile tests...$(RESET)\n"

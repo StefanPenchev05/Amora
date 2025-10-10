@@ -123,7 +123,7 @@ fe/clean:
 	$(MAKE) -C $(FRONTEND_DIR) clean
 
 # ----- Mobile passthroughs -----
-.PHONY: mb/install mb/dev mb/build mb/test mb/lint mb/clean mb/ios mb/android
+.PHONY: mb/install mb/dev mb/build mb/build-dev mb/build-ios mb/build-android mb/setup-eas mb/test mb/lint mb/clean mb/ios mb/android
 
 mb/install:
 	$(MAKE) -C $(MOBILE_DIR) install
@@ -133,6 +133,18 @@ mb/dev:
 
 mb/build:
 	$(MAKE) -C $(MOBILE_DIR) build
+
+mb/build-dev:
+	$(MAKE) -C $(MOBILE_DIR) build-dev
+
+mb/build-ios:
+	$(MAKE) -C $(MOBILE_DIR) build-ios
+
+mb/build-android:
+	$(MAKE) -C $(MOBILE_DIR) build-android
+
+mb/setup-eas:
+	$(MAKE) -C $(MOBILE_DIR) setup-eas
 
 mb/test:
 	$(MAKE) -C $(MOBILE_DIR) test
