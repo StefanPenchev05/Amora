@@ -27,6 +27,7 @@ It later grew into a broader vision: a platform for all couples who want to stre
 
 ## ⚙️ Tech Stack (Main Versions)  
 - **Frontend:** React (v18) + TypeScript + Vite  
+- **Mobile:** React Native + TypeScript + Expo  
 - **Backend:** Go (v1.22+) + Chi/Fiber (HTTP framework)  
 
 - **Database:** MySQL (v14.14)  
@@ -39,7 +40,9 @@ It later grew into a broader vision: a platform for all couples who want to stre
 ---
 
 ## 📂 Project Structure  
-/frontend → React + TypeScript app
+/apps/frontend → React + TypeScript web app
+
+/apps/mobile → React Native + Expo mobile app
 
 /backend → Go services (API, DB)
 
@@ -75,19 +78,24 @@ make help
 # Setup & Installation
 make be/install     # Install Go dependencies
 make fe/install     # Install Node.js dependencies
+make mb/install     # Install mobile dependencies
 
 # Development
 make be/run         # Start backend server
-make fe/dev         # Start frontend dev server  
+make fe/dev         # Start frontend dev server
+make mb/dev         # Start mobile expo server
 
 # Building
 make be/build       # Build Go binary
 make fe/build       # Build frontend for production
+make mb/build       # Build mobile app
 
 # Code Quality
 make be/test        # Run backend tests
 make be/fmt         # Format Go code
 make fe/lint        # Lint frontend code
+make mb/test        # Run mobile tests
+make mb/lint        # Lint mobile code
 
 # Cleanup
 make clean          # Remove build artifacts
@@ -99,13 +107,21 @@ make clean          # Remove build artifacts
 git clone https://github.com/StefanPenchev05/Amora.git
 cd Amora
 
-# 2. Start backend
+# 2. Install all dependencies
+make setup
+
+# 3. Start backend
 make be/run
 
-# 3. In another terminal, start frontend  
+# 4. In another terminal, start web frontend  
 make fe/dev
 
-# 4. Open http://localhost:3000 in your browser
+# 5. In another terminal, start mobile app
+make mb/dev
+
+# 6. Open applications:
+#    - Web: http://localhost:5173
+#    - Mobile: Expo DevTools will guide you to simulator/device
 ```
 
 > **Windows users:** Use WSL2 or Git Bash for Make support.

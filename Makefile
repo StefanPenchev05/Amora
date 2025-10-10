@@ -12,6 +12,7 @@ RESET := \033[0m
 # Directories
 BACKEND_DIR := backend
 FRONTEND_DIR := apps/frontend
+MOBILE_DIR := apps/mobile
 INFRA_DIR := infra
 
 # ---------- Versioning (git describe) ----------
@@ -30,19 +31,24 @@ help:
 	@printf "$(YELLOW)Setup:$(RESET)\n"
 	@printf "  $(GREEN)make be/install$(RESET)     - install Go dependencies\n"
 	@printf "  $(GREEN)make fe/install$(RESET)     - install Node.js dependencies\n"
+	@printf "  $(GREEN)make mb/install$(RESET)     - install mobile dependencies\n"
 	@printf "\n"
 	@printf "$(YELLOW)Dev:$(RESET)\n"
 	@printf "  $(GREEN)make be/run$(RESET)         - run backend locally\n"
 	@printf "  $(GREEN)make fe/dev$(RESET)         - run frontend dev server\n"
+	@printf "  $(GREEN)make mb/dev$(RESET)         - start mobile expo server\n"
 	@printf "\n"
 	@printf "$(YELLOW)Build:$(RESET)\n"
 	@printf "  $(GREEN)make be/build$(RESET)       - build Go binary\n"
 	@printf "  $(GREEN)make fe/build$(RESET)       - build frontend static files\n"
+	@printf "  $(GREEN)make mb/build$(RESET)       - build mobile app\n"
 	@printf "\n"
 	@printf "$(YELLOW)Tests & Quality:$(RESET)\n"
 	@printf "  $(GREEN)make be/test$(RESET)        - run Go tests\n"
 	@printf "  $(GREEN)make be/fmt$(RESET)         - format Go\n"
 	@printf "  $(GREEN)make fe/lint$(RESET)        - lint frontend\n"
+	@printf "  $(GREEN)make mb/test$(RESET)        - run mobile tests\n"
+	@printf "  $(GREEN)make mb/lint$(RESET)        - lint mobile code\n"
 	@printf "\n"
 	@printf "$(YELLOW)Docker:$(RESET)\n"
 	@printf "  $(GREEN)make dk/build$(RESET)       - build multi-service images\n"
@@ -60,13 +66,17 @@ help:
 
 # ----- Root passthroughs -----
 setup:
-	$(MAKE) -C backend install
-	$(MAKE) -C frontend install
+	@printf "$(CYAN)🚀 Setting up all project dependencies...$(RESET)\n"
+	$(MAKE) -C $(BACKEND_DIR) install
+	$(MAKE) -C $(FRONTEND_DIR) install
+	$(MAKE) -C $(MOBILE_DIR) install
+	@printf "$(GREEN)✅ All dependencies installed!$(RESET)\n"
 
 clean:
 	@printf "$(YELLOW)🧹 Cleaning all build artifacts...$(RESET)\n"
 	$(MAKE) -C $(BACKEND_DIR) clean
 	$(MAKE) -C $(FRONTEND_DIR) clean
+	$(MAKE) -C $(MOBILE_DIR) clean
 	$(MAKE) -C $(INFRA_DIR) clean
 	@printf "$(GREEN)✅ All artifacts cleaned!$(RESET)\n"
 
@@ -111,6 +121,33 @@ fe/preview:
 
 fe/clean:
 	$(MAKE) -C $(FRONTEND_DIR) clean
+
+# ----- Mobile passthroughs -----
+.PHONY: mb/install mb/dev mb/build mb/test mb/lint mb/clean mb/ios mb/android
+
+mb/install:
+	$(MAKE) -C $(MOBILE_DIR) install
+
+mb/dev:
+	$(MAKE) -C $(MOBILE_DIR) dev
+
+mb/build:
+	$(MAKE) -C $(MOBILE_DIR) build
+
+mb/test:
+	$(MAKE) -C $(MOBILE_DIR) test
+
+mb/lint:
+	$(MAKE) -C $(MOBILE_DIR) lint
+
+mb/clean:
+	$(MAKE) -C $(MOBILE_DIR) clean
+
+mb/ios:
+	$(MAKE) -C $(MOBILE_DIR) start-ios
+
+mb/android:
+	$(MAKE) -C $(MOBILE_DIR) start-android
 
 # ----- Infrastructure passthroughs -----
 .PHONY: check-versions system-info docker-clean docker-up docker-down
