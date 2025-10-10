@@ -1,6 +1,6 @@
 module github.com/StefanPenchev05/Amora/backend
 
-go 1.24.3
+go 1.22
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
