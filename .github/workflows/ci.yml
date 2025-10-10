@@ -70,7 +70,7 @@ jobs:
               run: npx expo export --platform web
               
             - name: Upload mobile build artifacts
-              uses: actions/upload-artifact@v3
+              uses: actions/upload-artifact@v4
               with:
                 name: mobile-build
                 path: ./apps/mobile/dist/
