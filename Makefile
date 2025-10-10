@@ -11,7 +11,7 @@ RESET := \033[0m
 
 # Directories
 BACKEND_DIR := backend
-FRONTEND_DIR := frontend
+FRONTEND_DIR := apps/frontend
 INFRA_DIR := infra
 
 # ---------- Versioning (git describe) ----------
