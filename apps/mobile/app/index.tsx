@@ -11,9 +11,9 @@ export default function Page() {
 
       <Pressable
         style={styles.button}
-        onPress={() => router.push("/(tabs)/home")}
+        onPress={() => router.push("/(tabs)/designTutorial")}
       >
-        <Text style={styles.buttonText} >Enter App</Text>
+        <Text style={styles.buttonText}> Design Tutorial </Text>
       </Pressable>
     </View>
   );
