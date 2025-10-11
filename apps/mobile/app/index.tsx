@@ -1,12 +1,20 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 
 export default function Page() {
+  const router = useRouter();
+
   return (
     <View style={styles.container}>
-      <View style={styles.main}>
-        <Text style={styles.title}>Hello World</Text>
-        <Text style={styles.subtitle}>This is the first page of your app.</Text>
-      </View>
+      <Text style={styles.title}>Wellcome to Amora</Text>
+      <Text style={styles.subtitle}>Bringing couples closer together</Text>
+
+      <Pressable
+        style={styles.button}
+        onPress={() => router.push("/(tabs)/designTutorial")}
+      >
+        <Text style={styles.buttonText}> Design Tutorial </Text>
+      </Pressable>
     </View>
   );
 }
@@ -14,21 +22,32 @@ export default function Page() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
-    padding: 24,
-  },
-  main: {
-    flex: 1,
     justifyContent: "center",
-    maxWidth: 960,
-    marginHorizontal: "auto",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    padding: 20,
   },
   title: {
-    fontSize: 64,
+    fontSize: 32,
     fontWeight: "bold",
+    color: "#333",
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 36,
-    color: "#38434D",
+    fontSize: 18,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 40,
+  },
+  button: {
+    backgroundColor: "#f4511e",
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
   },
 });
