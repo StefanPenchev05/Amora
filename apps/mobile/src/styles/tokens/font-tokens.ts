@@ -8,7 +8,7 @@ export const fontFamilies = {
   // System fonts
   system: Platform.select({
     ios: "System",
-    android: "Robot",
+    android: "Roboto",
     default: "System",
   }),
 
