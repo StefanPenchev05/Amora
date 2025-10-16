@@ -1,3 +1,5 @@
+import { SecureStoreOptions } from "expo-secure-store";
+
 /**
  * Defines a contract for secure key-value storage in the app.
  * Implementations should ensure encryption and OS-level protection
@@ -7,15 +9,16 @@ export interface ISecureStorageRepository {
    * Saves a value for given key
    * @param key Unique key name
    * @param value Any type if specified, otherwise the type is string
+   * @param options An SecureStoreOptions object.
    */
-  setItem<T>(key: string, value: T | string): Promise<void>;
+  setItem<T>(key: string, value: T | string, options: SecureStoreOptions | undefined): Promise<void>;
 
   /**
    * Retrieve a stored value for a given key.
    * @param key Unique key name
    * @returns The stored value or null if not found
    */
-  getItem<T>(key: string): Promise<T | string | null>;
+  getItem<T>(key: string, options: SecureStoreOptions | undefined): Promise<T | string | undefined>;
 
   /**
    * Deletes the stored value
