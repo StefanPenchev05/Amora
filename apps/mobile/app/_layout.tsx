@@ -4,7 +4,6 @@ import { ErrorBoundary } from "@presentation/components/common/ErrorBoundary";
 
 export default function RootLayout() {
 
-
   return (
     <ErrorBoundary>
       <Stack

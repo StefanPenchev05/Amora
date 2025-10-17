@@ -1,13 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
 
 export default function Page() {
   const router = useRouter();
-
-    useEffect(() => {
-      throw new Error("Just testing the error boundry")
-    }, [])
 
   return (
     <View style={styles.container}>
