@@ -62,16 +62,12 @@ export class SecureStorageRepository implements ISecureStorageRepository {
   }
 
   async updateItem<T>(key: string, newValue: T | string): Promise<void> {
-    if (!key || typeof key !== "string") {
-      throw new Error("SecureStorage: key must be non-empty string");
-    }
-
     try {
       await this.deleteItem(key);
       await this.setItem(key, newValue);
-    } catch {
+    } catch (error) {
       throw new Error(
-        `SecureStore: updating key: ${key} new value: ${newValue} was unsuccessful`
+        `SecureStore: updating key: ${key} new value: ${newValue} was unsuccessful\nReason: ${error}`
       );
     }
   }
