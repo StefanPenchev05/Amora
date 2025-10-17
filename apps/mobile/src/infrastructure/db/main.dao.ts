@@ -57,4 +57,38 @@ export const MainDAO = {
       m.createdAt
     );
   },
+
+  listPosts(limit = 30, cursor?: string): Post[] {
+    const cur = cursor ?? new Date().toISOString();
+    const rows = mainDb.getAllSync<any>(
+      `SELECT * FROM posts WHERE created_at < ? ORDER BY created_at DESC LIMIT ?;`,
+      cur,
+      limit
+    );
+
+    return rows.map((r) => ({
+      id: r.id,
+      authorId: r.author_id,
+      relationshipId: r.relationship_id,
+      content: r.content,
+      privacyLevel: r.privacy_level,
+      postType: r.post_type,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+      syncStatus: r.sync_status,
+      lastSyncedAt: r.last_synced_at,
+    }));
+  },
+
+  deletePost(id: string) {
+    mainDb.runSync(`DELETE FROM posts WHERE id = ?;`, id);
+  },
+
+  purgeAll() {
+    mainDb.withTransactionSync(() => {
+      mainDb.execSync(`DELETE FROM media_files;`);
+      mainDb.execSync(`DELETE FROM posts;`);
+      mainDb.execSync(`DELETE FROM users;`);
+    });
+  },
 };
