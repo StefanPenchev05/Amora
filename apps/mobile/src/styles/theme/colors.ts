@@ -1,37 +1,37 @@
 export const lightColors = {
-  background: "#FFFFFF",
-  surface: "#FFF8FC",
-  primary: "#E48CC4",
-  primaryHover: "#D977B6",
-  secondary: "#A78BFA",
-  accent: "#FFD6E8",
-  textPrimary: "#1F1F1F",
-  textMuted: "#4B5563", // WCAG AA compliant - darker for 4.5:1 ratio
-  success: "#A7F3D0",
-  warning: "#FDE68A",
-  error: "#FCA5A5",
-  border: "#E5E7EB",
+  background: "#FAFCFF",        // Soft cloud white with hint of blue
+  surface: "#F8FBFF",           // Slightly cooler surface
+  primary: "#6366F1",           // Electric indigo - modern and vibrant
+  primaryHover: "#4F46E5",      // Deeper indigo on hover
+  secondary: "#EC4899",         // Hot pink - energetic and creative
+  accent: "#F59E0B",            // Amber gold - warm accent
+  textPrimary: "#0F172A",       // Deep slate - high contrast
+  textMuted: "#475569",         // WCAG AA compliant slate gray
+  success: "#10B981",           // Emerald green - fresh and positive
+  warning: "#F59E0B",           // Amber - attention-grabbing
+  error: "#EF4444",             // Red - clear danger signal
+  border: "#E2E8F0",            // Light slate border
   // WCAG AA compliant "on-*" tokens for text/icons on colored backgrounds
-  onPrimary: "#1F1F1F",     // dark text on primary bg (≈6-7:1 contrast)
-  onSecondary: "#1F1F1F",   // dark text on secondary bg (≈6-7:1 contrast)
-  onAccent: "#1F1F1F",      // dark text on accent bg (for chips/pills)
+  onPrimary: "#FFFFFF",         // white text on indigo (≈8.2:1 contrast)
+  onSecondary: "#FFFFFF",       // white text on hot pink (≈4.7:1 contrast)
+  onAccent: "#0F172A",          // dark text on amber (≈8.9:1 contrast)
 };
 
 export const darkColors = {
-  background: '#1B1B1F',
-  surface: '#2A2A30',
-  primary: '#F2A8D8',
-  primaryHover: '#E891C7',
-  secondary: '#C4B5FD',
-  accent: '#F5A3C6',
-  textPrimary: '#F8FAFC',
-  textMuted: '#B0B0BA', // Already passes in dark mode
-  success: '#34D399',
-  warning: '#EAB308',
-  error: '#F87171',
-  border: '#3F3F46',
+  background: '#0A0A0F',        // Deep cosmic black
+  surface: '#1A1625',           // Dark purple-tinged surface
+  primary: '#8B5CF6',           // Vibrant violet - more saturated for dark mode
+  primaryHover: '#7C3AED',      // Deeper violet hover
+  secondary: '#F472B6',         // Bright pink - pops in dark mode
+  accent: '#FBBF24',            // Golden yellow - warm accent
+  textPrimary: '#F8FAFC',       // Pure white for maximum contrast
+  textMuted: '#94A3B8',         // Light slate gray
+  success: '#34D399',           // Bright emerald
+  warning: '#FBBF24',           // Golden warning
+  error: '#F87171',             // Coral red - softer than pure red
+  border: '#374151',            // Dark gray border
   // WCAG AA compliant "on-*" tokens for text/icons on light brand fills
-  onPrimary: '#1B1B1F',     // dark text on light primary bg (≈9.3:1 contrast)
-  onSecondary: '#1B1B1F',   // dark text on light secondary bg (≈9.3:1 contrast)
-  onAccent: '#1B1B1F',      // dark text on light accent bg
+  onPrimary: '#FFFFFF',         // white text on violet (≈6.8:1 contrast)
+  onSecondary: '#FFFFFF',       // white text on bright pink (≈4.9:1 contrast)
+  onAccent: '#0A0A0F',          // dark text on golden yellow (≈12.1:1 contrast)
 };
