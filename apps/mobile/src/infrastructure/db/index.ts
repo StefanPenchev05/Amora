@@ -2,11 +2,11 @@ import * as SQLite from "expo-sqlite";
 
 export const mainDb = SQLite.openDatabaseSync("main.db");
 
-function createMigrationsTabel(db: SQLite.SQLiteDatabase) {
+function createMigrationsTable(db: SQLite.SQLiteDatabase) {
   db.execSync(`
         CREATE TABLE IF NOT EXISTS _migrations(
             id INTEGER PRIMARY KEY,
-            name TEXT NOT NULL
+            name TEXT NOT NULL,
             applied_at INTEGER NOT NULL
         )
     `);
@@ -21,11 +21,7 @@ function hasMigrations(db: SQLite.SQLiteDatabase, name: string) {
   return !!row?.id;
 }
 
-function appliyMigrations(
-  db: SQLite.SQLiteDatabase,
-  name: string,
-  sql: string
-) {
+function applyMigrations(db: SQLite.SQLiteDatabase, name: string, sql: string) {
   if (hasMigrations(db, name)) return;
   db.withTransactionSync(() => {
     db.execSync(sql);
@@ -39,7 +35,7 @@ function appliyMigrations(
 
 export function initMainDB() {
   mainDb.execSync("PRAGMA journal_mode= WAL");
-  createMigrationsTabel(mainDb);
+  createMigrationsTable(mainDb);
 
   const createUsersTable = `
         CREATE TABLE IF NOT EXISTS users (
@@ -88,7 +84,7 @@ export function initMainDB() {
     );
   `;
 
-  appliyMigrations(
+  applyMigrations(
     mainDb,
     "001_users_post_media",
     `
@@ -100,5 +96,5 @@ export function initMainDB() {
 }
 
 export function initAllDbs() {
-    initMainDB();
+  initMainDB();
 }

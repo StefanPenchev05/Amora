@@ -20,7 +20,7 @@ export class SecureStorageRepository implements ISecureStorageRepository {
     } else if (
       typeof value === "boolean" ||
       typeof value === "function" ||
-      typeof value == "symbol"
+      typeof value === "symbol"
     ) {
       throw new Error(
         `SecureStorage: cannot store value of type ${typeof value} for key ${key}`

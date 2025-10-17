@@ -1,7 +1,7 @@
 import { mainDb } from ".";
-import type { User } from "@/src/domain/entities/user";
-import type { Post } from "@/src/domain/entities/post";
-import type { MediaFile } from "@/src/domain/entities/media-file";
+import type { User } from "@domain/entities/user";
+import type { Post } from "@domain/entities/post";
+import type { MediaFile } from "@domain/entities/media-file";
 
 export const MainDAO = {
   upsertUser(u: User) {
