@@ -1,4 +1,4 @@
-import { RegisterCommnad, LoginCommand } from "../commands";
+import { RegisterCommand, LoginCommand } from "../commands";
 
 /**
  * Authentication Repository Interface
@@ -106,5 +106,5 @@ export interface IAuthRepository {
    * }
    * ```
    */
-  register(command: RegisterCommnad): Promise<void>;
+  register(command: RegisterCommand): Promise<void>;
 }

@@ -1,2 +1,2 @@
 export type { LoginCommand } from "./LoginCommand";
-export type { RegisterCommnad } from "./RegisterCommand";
+export type { RegisterCommand } from "./RegisterCommand";

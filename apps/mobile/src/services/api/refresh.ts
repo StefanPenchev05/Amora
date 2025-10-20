@@ -1,7 +1,6 @@
 import { Env } from "@/config/env";
 import { TokenService } from "../auth/token.service";
 
-const maxRetries: number = 3;
 let refreshing: Promise<string | null> | null = null;
 
 // expected shape: { token: { accessToken, refreshToken? } }

@@ -163,7 +163,7 @@ export type Address = {
  * };
  * ```
  */
-export type RegisterCommnad = {
+export type RegisterCommand = {
   /** Authentication credentials (required) */
   credentials: Credentials;
   
