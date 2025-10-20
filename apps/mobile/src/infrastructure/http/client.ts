@@ -111,7 +111,7 @@ export async function httpFetch<TResponse, TBody = unknown>(
     const res = await fetch(url, {
       method,
       headers: finalHeaders,
-      body: body != null ? JSON.stringify(body) : undefined,
+      body: body ? JSON.stringify(body) : undefined,
       signal: withTimeout(signal, timeoutMs),
     });
 
@@ -142,7 +142,7 @@ export async function httpFetch<TResponse, TBody = unknown>(
 
     // Retry once with fresh token (override Authorization explicitly)
     const retryHeaders: HttpHeaders = {
-      ...(headers ?? {}),
+      ...(headers),
       Authorization: `Bearer ${newAccess}`,
     };
     return httpFetch<TResponse>(path, {
