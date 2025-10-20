@@ -53,6 +53,7 @@ export type HttpRequestOptions<TBody = unknown> = {
     headers?: HttpHeaders;
     auth?: boolean;         // attach token automatically
     timeoutMs?: number;
+    _retry?: boolean;
     signal?: AbortSignal;
 }
 

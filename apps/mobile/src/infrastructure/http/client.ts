@@ -2,8 +2,14 @@ import { Env } from "@/config/env";
 import { HttpHeaders, HttpRequestOptions, HttpResponse } from "./types";
 import { SecureStorageRepository } from "../repositories/SecureStorageRepository";
 import { parseJSON, withTimeout } from "./utils";
+import { getFreshAccessToken } from "@/src/services/api/refresh";
 
 const secureStorage = new SecureStorageRepository();
+
+let onAuthFailure: (() => void) | null = null;
+export function setOnAuthFailure(handler: () => void) {
+  onAuthFailure = handler;
+}
 
 /**
  * Attaches Bearer token authentication header to requests
@@ -23,14 +29,13 @@ const secureStorage = new SecureStorageRepository();
  * // Result: { "Content-Type": "application/json", "Authorization": "Bearer <token>" }
  * ```
  */
-async function attachAuthHeader(headers?: HttpHeaders, auth?: boolean) {
+async function attachAuthHeader(headers: HttpHeaders = {}, auth?: boolean) {
   // Skip auth processing if not requested
-  if (!auth) return headers;
-  if (!headers) throw new Error("Client: Missing header request");
+  if (!auth) return { ...headers };
   const token = await secureStorage.getItem<string>("access_token");
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  return headers;
+  return token
+    ? { ...headers, Authorization: `Bearer ${token}` }
+    : { ...headers };
 }
 
 /**
@@ -85,38 +90,69 @@ export async function httpFetch<TResponse, TBody = unknown>(
   path: string,
   httpOptions: HttpRequestOptions
 ): Promise<HttpResponse<TResponse>> {
+  const {
+    method = "GET",
+    headers,
+    body,
+    auth,
+    timeoutMs,
+    signal,
+    _retry,
+  } = httpOptions;
+
   const url = path.startsWith("http") ? path : `${Env.API_URL}${path}`;
   const finalHeaders: HttpHeaders = {
     "Content-Type": "application/json",
     Accept: "application/json",
-    ...(await attachAuthHeader(httpOptions.headers, httpOptions.auth)),
+    ...(await attachAuthHeader(headers, auth)),
   };
-
-  const controller = new AbortController();
-  const signal = withTimeout(controller.signal, httpOptions.timeoutMs);
 
   try {
     const res = await fetch(url, {
-      method: httpOptions.method,
+      method,
       headers: finalHeaders,
-      body: httpOptions.body ? JSON.stringify(httpOptions.body) : undefined,
-      signal,
+      body: body != null ? JSON.stringify(body) : undefined,
+      signal: withTimeout(signal, timeoutMs),
     });
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      return {
-        ok: false,
-        status: res.status,
-        error: errorText || res.statusText,
-      };
+    if (res.status !== 401) {
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        return {
+          ok: false,
+          status: res.status,
+          error: errText || res.statusText,
+        };
+      }
+      const data = await parseJSON<TResponse>(res);
+      return { ok: true, status: res.status, data };
     }
 
-    const data = await parseJSON<TResponse>(res);
-    return { ok: true, status: res.status, data };
+    // 401 handling
+    if (!auth || _retry) {
+      if (auth && onAuthFailure) onAuthFailure();
+      return { ok: false, status: 401, error: "Unauthorized" };
+    }
+
+    const newAccess = await getFreshAccessToken();
+    if (!newAccess) {
+      if (auth && onAuthFailure) onAuthFailure();
+      return { ok: false, status: 401, error: "Unauthorized" };
+    }
+
+    // Retry once with fresh token (override Authorization explicitly)
+    const retryHeaders: HttpHeaders = {
+      ...(headers ?? {}),
+      Authorization: `Bearer ${newAccess}`,
+    };
+    return httpFetch<TResponse>(path, {
+      ...httpOptions,
+      headers: retryHeaders,
+      _retry: true,
+    });
   } catch (err: any) {
-    if (err.name === "AbortError")
-      return { ok: false, status: 0, error: "Request time out" };
-    return { ok: false, status: 0, error: err.message ?? "Network error" };
+    if (err?.name === "AbortError")
+      return { ok: false, status: 0, error: "Request timed out" };
+    return { ok: false, status: 0, error: err?.message ?? "Network error" };
   }
 }
