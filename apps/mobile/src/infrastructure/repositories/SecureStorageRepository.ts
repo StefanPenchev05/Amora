@@ -36,7 +36,7 @@ export class SecureStorageRepository implements ISecureStorageRepository {
 
   async getItem<T>(
     key: string,
-    options: SecureStore.SecureStoreOptions | undefined
+    options?: SecureStore.SecureStoreOptions
   ): Promise<T | string | undefined> {
     if (!key || typeof key !== "string") {
       throw new Error("SecureStorage: key must be non-empty string");
