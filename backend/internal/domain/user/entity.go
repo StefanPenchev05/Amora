@@ -23,23 +23,6 @@ type User struct {
 	events []DomainEvent
 }
 
-func validateName(name, fieldName string) error {
-	if name == "" {
-		return errors.New(fieldName + " is required")
-	}
-	if len(name) > 50 {
-		return errors.New(fieldName + " too long (max 50 characters)")
-	}
-	return nil
-}
-
-func validateBio(bio string) error {
-	if len(bio) > 500 {
-		return errors.New("bio too long (max 500 characters)")
-	}
-	return nil
-}
-
 // NewUser creates a new user with validation
 func NewUser(email, username, firstName, lastName string) (*User, error) {
 	emailVO, err := NewEmail(email)
@@ -85,67 +68,37 @@ func NewUser(email, username, firstName, lastName string) (*User, error) {
 	return user, nil
 }
 
+// Core business methods
+func (u *User) ChangePassword(currentPassword, newPassword string) error {
+	// Check if currentPassword match the passwordHash
+	if !u.Credentials.PasswordHash.Verify(currentPassword) {
+		return errors.New("current password is incorrect")
+	}
+
+	newHash, err := NewPasswordHashed(newPassword)
+	if err != nil {
+		return err
+	}
+
+	u.Credentials.PasswordHash = newHash
+	u.UpdatedAt = time.Now()
+	return nil
+}
+
+func (u *User) VerifyEmail() {
+	u.Credentials.EmailVerified = true
+	u.UpdatedAt = time.Now()
+	u.raiseEvent(NewUserEmailVerifiedEvent(u.ID, u.Credentials.Email.String()))
+}
+
 func (u *User) raiseEvent(event DomainEvent) {
 	u.events = append(u.events, event)
 }
 
-// UpdateProfile updates user profile with validation
-func (u *User) UpdateProfile(firstName, lastName, bio string, gender Gender) error {
-	if err := validateName(firstName, firstNameField); err != nil {
-		return err
-	}
-	if err := validateName(lastName, lastNameField); err != nil {
-		return err
-	}
-	if err := validateBio(bio); err != nil {
-		return err
-	}
-	if err := validateGender(gender); err != nil {
-		return err
-	}
-
-	u.Profile.FirstName = firstName
-	u.Profile.LastName = lastName
-	if bio != "" {
-		u.Profile.Bio = &bio
-	}
-	u.Profile.Gender = gender
-	u.UpdatedAt = time.Now()
-
-	return nil
+func (u *User) GetEvents() []DomainEvent {
+	return u.events
 }
 
-func validateGender(gender Gender) error {
-	switch gender {
-	case GenderFemale, GenderMale, GenderSomethingElse, GenderPreferNotToSay, "":
-		return nil
-	default:
-		return errors.New("invalid gender")
-	}
-}
-
-// Child entities which are part of the aggregate root
-type Credentials struct {
-	UserID        string
-	Email         Email
-	Username      Username
-	PasswordHash  PasswordHash
-	EmailVerified bool
-	MfaEnabled    bool
-	MfaSecret     *string
-	LastLoginAt   *time.Time
-}
-
-type Profile struct {
-	UserID         string
-	FirstName      string
-	LastName       string
-	Gender         Gender
-	DateOfBirth    *time.Time
-	Bio            *string
-	DisplayName    *string
-	AvatarPhotoID  *string
-	RelationshipID *string
-	Locale         string
-	Timezone       string
+func (u *User) ClearEvents() {
+	u.events = make([]DomainEvent, 0)
 }

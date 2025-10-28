@@ -76,7 +76,24 @@ func NewUserLoggedInEvent(userID, email, username, ipAddress, userAgent string) 
 	}
 }
 
+type UserEmailVerifiedEvent struct {
+	BaseEvent
+}
+
 func (e UserLoggedInEvent) GetEventData() interface{} { return e }
+
+func NewUserEmailVerifiedEvent(userID, email string) *UserEmailVerifiedEvent {
+	return &UserEmailVerifiedEvent{
+		BaseEvent: BaseEvent{
+			EventID:     generateEventID(),
+			EventType:   fmt.Sprintf("%s.email_verified", email),
+			AggregateID: userID,
+			OccurredAt:  time.Now(),
+		},
+	}
+}
+
+func (e UserEmailVerifiedEvent) GetEventData() interface{} { return e }
 
 // Helper Functions
 func generateEventID() string {
