@@ -22,6 +22,11 @@ func NewRouter(middlewares ...Middleware) Router {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	// Apply custom middlewares immediately
+	for _, mw := range middlewares {
+		r.Use(mw.Handle)
+	}
+
 	return &ChiRouter{
 		mux:         r,
 		middlewares: middlewares,
@@ -29,9 +34,7 @@ func NewRouter(middlewares ...Middleware) Router {
 }
 
 func (cr *ChiRouter) Handler() http.Handler {
-	for _, mw := range cr.middlewares {
-		cr.mux.Use(mw.Handle)
-	}
+	// Middlewares are already applied in NewRouter
 	return cr.mux
 }
 
