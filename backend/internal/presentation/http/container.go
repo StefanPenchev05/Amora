@@ -19,7 +19,7 @@ func NewContainer(cfg *config.Config) *Container {
 func (c *Container) BuildServer() httpInfra.HTTPServer {
 	// Build router with routes
 	router := c.buildRouter()
-	
+
 	// Build server with router
 	return httpInfra.NewServer(c.config, router)
 }
@@ -32,10 +32,10 @@ func (c *Container) buildRouter() httpInfra.Router {
 
 	// Build router with middleware
 	router := httpInfra.NewRouter(corsMiddleware)
-	
+
 	// Register route groups
 	c.registerRoutes(router)
-	
+
 	return router
 }
 

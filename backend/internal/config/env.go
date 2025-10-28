@@ -5,6 +5,8 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 // DBConfig holds database configurations
@@ -53,6 +55,16 @@ func (e ConfigError) Error() string {
 
 func Load() (*Config, error) {
 	config := &Config{}
+
+	// If a local env file exists (useful for local development), load it.
+	if _, err := os.Stat(".env.local"); err == nil {
+		if err := godotenv.Load(".env.local"); err != nil {
+			return nil, &ConfigError{
+				Field:   "env_file",
+				Message: fmt.Sprintf("failed to load .env.local: %v", err),
+			}
+		}
+	}
 
 	// Environment
 	config.Environment = getEnvWithDefualt("APP_ENV", "development")
@@ -140,7 +152,7 @@ func loadJWTConfig(jwtConfig *JWTConfig) error {
 	}
 	jwtConfig.AccessTTL = ttlAccessDuration
 
-	ttlRefreshDuration, err := parseDuration("ACCESS_TTL", "15m")
+	ttlRefreshDuration, err := parseDuration("REFRESH_TTL", "24h")
 	if err != nil {
 		return err
 	}
@@ -246,7 +258,7 @@ func (c *Config) IsProduction() bool {
 }
 
 func getEnvWithDefualt(key, defualtValue string) string {
-	if value := os.Getenv(key); value != " " {
+	if value := os.Getenv(key); value != "" {
 		return value
 	}
 

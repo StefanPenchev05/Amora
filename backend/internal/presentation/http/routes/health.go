@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
 	httpInfra "github.com/StefanPenchev05/Amora/backend/internal/infrastructure/http"
+	"github.com/go-chi/chi/v5"
 )
 
 // HealthRoutes - simple health check route group
