@@ -18,7 +18,7 @@ type BaseEvent struct {
 	EventID     string    `json:"event_id"`
 	EventType   string    `json:"event_type"`
 	AggregateID string    `json:"aggregate_id"`
-	OccurredAt  time.Time `json:"occured_at"`
+	OccurredAt  time.Time `json:"occurred_at"`
 }
 
 func (e BaseEvent) GetEventID() string       { return e.EventID }
@@ -86,7 +86,7 @@ func NewUserEmailVerifiedEvent(userID, email string) *UserEmailVerifiedEvent {
 	return &UserEmailVerifiedEvent{
 		BaseEvent: BaseEvent{
 			EventID:     generateEventID(),
-			EventType:   fmt.Sprintf("%s.email_verified", email),
+			EventType:   "email.email_verified",
 			AggregateID: userID,
 			OccurredAt:  time.Now(),
 		},

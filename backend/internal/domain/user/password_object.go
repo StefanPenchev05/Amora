@@ -56,12 +56,12 @@ func validatePassword(password string) error {
 	return nil
 }
 
-func NewPasswordHashed(passwrod string) (PasswordHash, error) {
-	if err := validatePassword(passwrod); err != nil {
+func NewPasswordHashed(password string) (PasswordHash, error) {
+	if err := validatePassword(password); err != nil {
 		return PasswordHash{}, err
 	}
 
-	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(passwrod), bcrypt.DefaultCost)
+	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return PasswordHash{}, errors.New("failed to hash password")
 	}

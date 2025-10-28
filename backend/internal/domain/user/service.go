@@ -56,7 +56,7 @@ func (s *UserService) GenerateUniqueUsername(ctx context.Context, firstName, las
 	base := s.createBaseUsername(firstName, lastName)
 
 	// Try the base username
-	if available, err := s.IsUsernameAvailable(ctx, base); err != nil && available {
+	if available, err := s.IsUsernameAvailable(ctx, base); err == nil && available {
 		return base, nil
 	}
 
@@ -152,7 +152,7 @@ func (s *UserService) createBaseUsername(firstName, lastName string) string {
 	firstName = strings.ToLower(strings.TrimSpace(firstName))
 	lastName = strings.ToLower(strings.TrimSpace(lastName))
 
-	// Remove non-alpanumeric characters
+	// Remove non-alphanumeric characters
 	firstName = s.cleanForUsername(firstName)
 	lastName = s.cleanForUsername(lastName)
 

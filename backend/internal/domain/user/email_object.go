@@ -14,7 +14,7 @@ func NewEmail(email string) (Email, error) {
 	email = strings.TrimSpace(strings.ToLower(email))
 
 	if email == "" {
-		return Email{}, errors.New("Email is required")
+		return Email{}, errors.New("email is required")
 	}
 
 	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)

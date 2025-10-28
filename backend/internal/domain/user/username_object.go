@@ -17,11 +17,11 @@ func NewUsername(username string) (Username, error) {
 	}
 
 	if len(username) < 3 {
-		return Username{}, errors.New("username msut be at least 3 characters")
+		return Username{}, errors.New("username must be at least 3 characters")
 	}
 
 	if len(username) > 30 {
-		return Username{}, errors.New("useraname too long (max 30 characters)")
+		return Username{}, errors.New("username too long (max 30 characters)")
 	}
 
 	usernameRegex := regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
