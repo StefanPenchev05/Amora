@@ -43,7 +43,7 @@ func (uc *CreateUserCase) Execute(ctx context.Context, req dto.CreateUserRequest
 
 	events := newUser.GetEvents()
 	if err := uc.eventPublisher.PublishEvents(ctx, events...); err != nil {
-		fmt.Errorf("failed to register the event: %w", err)
+		return nil, fmt.Errorf("failed to register the event: %w", err)
 	}
 
 	newUser.ClearEvents()
