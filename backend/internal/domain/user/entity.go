@@ -1,6 +1,14 @@
 package user
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+const (
+	firstNameField = "first name"
+	lastNameField  = "last name"
+)
 
 // User is aggregate root for the user bounded context
 type User struct {
@@ -12,7 +20,98 @@ type User struct {
 	Profile     Profile
 }
 
-// Child entities which are part of the aggrefate root
+func validateName(name, fieldName string) error {
+	if name == "" {
+		return errors.New(fieldName + " is required")
+	}
+	if len(name) > 50 {
+		return errors.New(fieldName + " too long (max 50 characters)")
+	}
+	return nil
+}
+
+func validateBio(bio string) error {
+	if len(bio) > 500 {
+		return errors.New("bio too long (max 500 characters)")
+	}
+	return nil
+}
+
+// NewUser creates a new user with validation
+func NewUser(email, username, firstName, lastName string) (*User, error) {
+	emailVO, err := NewEmail(email)
+	if err != nil {
+		return nil, err
+	}
+
+	usernameVO, err := NewUsername(username)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := validateName(firstName, firstNameField); err != nil {
+		return nil, err
+	}
+	if err := validateName(lastName, lastNameField); err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+	return &User{
+		// ID will be set by the database/repository layer
+		CreatedAt: now,
+		UpdatedAt: now,
+		Credentials: Credentials{
+			Email:         emailVO,
+			Username:      usernameVO,
+			EmailVerified: false,
+			MfaEnabled:    false,
+		},
+		Profile: Profile{
+			FirstName: firstName,
+			LastName:  lastName,
+			Locale:    "en",
+			Timezone:  "UTC",
+		},
+	}, nil
+}
+
+// UpdateProfile updates user profile with validation
+func (u *User) UpdateProfile(firstName, lastName, bio string, gender Gender) error {
+	if err := validateName(firstName, firstNameField); err != nil {
+		return err
+	}
+	if err := validateName(lastName, lastNameField); err != nil {
+		return err
+	}
+	if err := validateBio(bio); err != nil {
+		return err
+	}
+	if err := validateGender(gender); err != nil {
+		return err
+	}
+
+	u.Profile.FirstName = firstName
+	u.Profile.LastName = lastName
+	if bio != "" {
+		u.Profile.Bio = &bio
+	}
+	u.Profile.Gender = gender
+	u.UpdatedAt = time.Now()
+
+	return nil
+}
+
+func validateGender(gender Gender) error {
+	switch gender {
+	case GenderFemale, GenderMale, GenderSomethingElse, GenderPreferNotToSay, "":
+		return nil
+	default:
+		return errors.New("invalid gender")
+	}
+}
+
+// Child entities which are part of the aggregate root
 type Credentials struct {
 	UserID        string
 	Email         Email
