@@ -18,6 +18,9 @@ type User struct {
 
 	Credentials Credentials
 	Profile     Profile
+
+	// Events stored in memory
+	events []DomainEvent
 }
 
 func validateName(name, fieldName string) error {
@@ -57,7 +60,7 @@ func NewUser(email, username, firstName, lastName string) (*User, error) {
 	}
 
 	now := time.Now()
-	return &User{
+	user := &User{
 		// ID will be set by the database/repository layer
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -73,7 +76,17 @@ func NewUser(email, username, firstName, lastName string) (*User, error) {
 			Locale:    "en",
 			Timezone:  "UTC",
 		},
-	}, nil
+		events: make([]DomainEvent, 0),
+	}
+
+	// Raise domain event
+	user.raiseEvent(NewUserCreatedEvent("", email, username, firstName, lastName))
+
+	return user, nil
+}
+
+func (u *User) raiseEvent(event DomainEvent) {
+	u.events = append(u.events, event)
 }
 
 // UpdateProfile updates user profile with validation
