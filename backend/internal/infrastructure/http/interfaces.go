@@ -3,6 +3,8 @@ package http
 import (
 	"context"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 )
 
 // Server interface - resposibility
@@ -15,6 +17,8 @@ type HTTPServer interface {
 type Router interface {
 	Handler() http.Handler
 	RegisterRoutes(routeGroupe ...RouteGroup)
+	Mount(path string, handler http.Handler)
+	Route(pattern string, fn func(chi.Router))
 }
 
 // Route group interface which allows extending routes
