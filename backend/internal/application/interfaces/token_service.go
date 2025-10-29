@@ -40,4 +40,7 @@ type TokenClaims struct {
 
 	// Scope defines the permissions granted by this token
 	Scope string `json:"scope"`
+
+	// Token Type
+	Type string `json:"type"`
 }

@@ -32,7 +32,6 @@ func (ur *UserRepository) Create(ctx context.Context, domainUser *user.User) err
 	// Create user with all associations in a transaction
 	if err := ur.db.WithContext(ctx).Create(userModel).Error; err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
-
 	}
 
 	return nil
@@ -195,7 +194,7 @@ func (r *UserRepository) modelToDomain(userModel *models.User) (*user.User, erro
 		return nil, fmt.Errorf("invalid username in database: %w", err)
 	}
 
-	passwordHash, err := user.NewPasswordHashed(userModel.Credentials.Password)
+	passwordHash, err := user.NewPasswordHashFromString(userModel.Credentials.Password)
 	if err != nil {
 		return nil, fmt.Errorf("invalid password hash in database: %w", err)
 	}
