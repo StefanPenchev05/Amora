@@ -41,14 +41,14 @@ type UserProfile struct {
 	CreatedAt     string  `json:"created_at"`
 }
 
-// AuthBootstrap contains intial data needed by the client application
+// AuthBootstrap contains initial data needed by the client application
 type AuthBootstrap struct {
 	Permissions []string               `json:"permissions"`
 	Settings    map[string]interface{} `json:"settings"`
 	Features    []string               `json:"features"`
 }
 
-// Helper function to convert domain user to prfile
+// Helper function to convert domain user to profile
 func NewUserProfile(domainUser *domainUser.User) UserProfile {
 	profile := UserProfile{
 		Email:         domainUser.Credentials.Email.String(),

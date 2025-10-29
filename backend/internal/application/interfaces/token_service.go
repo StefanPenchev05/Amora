@@ -29,15 +29,15 @@ type TokenClaims struct {
 	// IssuedAt is the Unix timestamp when the token was signed/created
 	IssuedAt int64 `json:"iat"`
 
-	// Issuer identifies who issued the toke
+	// Issuer identifies who issued the token
 	Issuer string `json:"iss"`
 
 	// Audience identifies the intended recipients of the token
 	Audience string `json:"aud"`
 
-	// Role defiens the user's role
+	// Role defines the user's role
 	Role string `json:"role"`
 
-	// Scope defiens the permissions granted by this token
+	// Scope defines the permissions granted by this token
 	Scope string `json:"scope"`
 }
