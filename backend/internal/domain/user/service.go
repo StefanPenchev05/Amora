@@ -72,7 +72,7 @@ func (s *UserService) GenerateUniqueUsername(ctx context.Context, firstName, las
 }
 
 // ValidateUserForCreation performs comprehensive validation before user creation
-func (s *UserService) ValidateUserForCreation(ctx context.Context, email, username string) error {
+func (s *UserService) ValidateUserForCreation(ctx context.Context, email, username, password string) error {
 	// Check if email is available
 	emailAvailable, err := s.IsEmailAvailable(ctx, email)
 	if err != nil {
@@ -89,6 +89,12 @@ func (s *UserService) ValidateUserForCreation(ctx context.Context, email, userna
 	}
 	if !usernameAvailable {
 		return errors.New("username is already taken")
+	}
+
+	// Check the score of the password
+	passswordScore, suggestions := s.ValidatePasswordStrength(password)
+	if passswordScore < 4 {
+		return fmt.Errorf("weak password %v", suggestions)
 	}
 
 	return nil

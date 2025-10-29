@@ -84,7 +84,6 @@ func (uc *AuthenticateUserCase) Execute(ctx context.Context, req dto.Authenticat
 		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
-	// Handle Domain Events
 	events := foundUser.GetEvents()
 	if len(events) > 0 {
 		if err := uc.eventPublisher.PublishEvents(ctx, events...); err != nil {
@@ -109,7 +108,6 @@ func (uc *AuthenticateUserCase) Execute(ctx context.Context, req dto.Authenticat
 	// Get token expiration from JWT service
 	expiresIn := uc.jwtService.GetAccessTokenExpiration()
 
-	// Log successful authentication
 	uc.logger.Info("User authenticated successfully",
 		"user_id", foundUser.ID,
 		"email", foundUser.Credentials.Email.String(),
@@ -117,12 +115,11 @@ func (uc *AuthenticateUserCase) Execute(ctx context.Context, req dto.Authenticat
 		"user_agent", req.UserAgent,
 	)
 
-	// Return the response
 	return &dto.AuthenticateUserResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		TokenType:    "Bearer",       // Fixed typo
-		ExpiresIn:    int(expiresIn), // Fixed field name
+		TokenType:    "Bearer",
+		ExpiresIn:    int(expiresIn),
 		User:         userProfile,
 		Bootstrap:    bootstrap,
 	}, nil

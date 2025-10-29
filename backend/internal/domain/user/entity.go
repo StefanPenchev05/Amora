@@ -25,7 +25,7 @@ type User struct {
 }
 
 // NewUser creates a new user with validation
-func NewUser(email, username, firstName, lastName string) (*User, error) {
+func NewUser(email, username, firstName, lastName, password string) (*User, error) {
 	emailVO, err := NewEmail(email)
 	if err != nil {
 		return nil, err
@@ -43,6 +43,11 @@ func NewUser(email, username, firstName, lastName string) (*User, error) {
 		return nil, err
 	}
 
+	passwordHash, err := NewPasswordHashed(password)
+	if err != nil {
+		return nil, err
+	}
+
 	now := time.Now()
 	user := &User{
 		// ID will be set by the database/repository layer
@@ -53,6 +58,7 @@ func NewUser(email, username, firstName, lastName string) (*User, error) {
 			Username:      usernameVO,
 			EmailVerified: false,
 			MfaEnabled:    false,
+			PasswordHash:  passwordHash,
 		},
 		Profile: Profile{
 			FirstName: firstName,
