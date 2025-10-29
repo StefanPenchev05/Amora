@@ -2,6 +2,7 @@ package user
 
 import (
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -24,7 +25,7 @@ type User struct {
 }
 
 // NewUser creates a new user with validation
-func NewUser(email, username, firstName, lastName string) (*User, error) {
+func NewUser(email, username, firstName, lastName, password string) (*User, error) {
 	emailVO, err := NewEmail(email)
 	if err != nil {
 		return nil, err
@@ -42,6 +43,11 @@ func NewUser(email, username, firstName, lastName string) (*User, error) {
 		return nil, err
 	}
 
+	passwordHash, err := NewPasswordHashed(password)
+	if err != nil {
+		return nil, err
+	}
+
 	now := time.Now()
 	user := &User{
 		// ID will be set by the database/repository layer
@@ -52,6 +58,7 @@ func NewUser(email, username, firstName, lastName string) (*User, error) {
 			Username:      usernameVO,
 			EmailVerified: false,
 			MfaEnabled:    false,
+			PasswordHash:  passwordHash,
 		},
 		Profile: Profile{
 			FirstName: firstName,
@@ -89,6 +96,22 @@ func (u *User) VerifyEmail() {
 	u.Credentials.EmailVerified = true
 	u.UpdatedAt = time.Now()
 	u.raiseEvent(NewUserEmailVerifiedEvent(u.ID, u.Credentials.Email.String()))
+}
+
+func (u *User) IsEmailVerified() bool {
+	return u.Credentials.EmailVerified
+}
+
+func (u *User) GetFullName() string {
+	return fmt.Sprintf("%s %s", u.Profile.FirstName, u.Profile.LastName)
+}
+
+// Events
+func (u *User) RecordLogin(ipAddress, userAgent string) {
+	now := time.Now()
+	u.Credentials.LastLoginAt = &now
+	u.UpdatedAt = now
+	u.raiseEvent(NewUserLoggedInEvent(u.ID, u.Credentials.Email.String(), u.Credentials.Username.String(), ipAddress, userAgent))
 }
 
 func (u *User) raiseEvent(event DomainEvent) {

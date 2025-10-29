@@ -8,3 +8,11 @@ type CreateUserRequest struct {
 	LastName  string `json:"last_name" validate:"required,max=50"`
 	Password  string `json:"password" validate:"required,min=8"`
 }
+
+// AuthenticateRequest represents the login input
+type AuthenticateUserRequest struct {
+	EmailOrUsername string `json:"email_or_username" validate:"required"`
+	Password        string `json:"password" validate:"required"`
+	IPAddress       string `json:"ip_address,omitempty"`
+	UserAgent       string `json:"user_agent,omitempty"`
+}
