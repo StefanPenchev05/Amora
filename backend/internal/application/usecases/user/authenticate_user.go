@@ -131,14 +131,14 @@ func (uc *AuthenticateUserCase) Execute(ctx context.Context, req dto.Authenticat
 func (uc *AuthenticateUserCase) findUserByEmailOrUsername(ctx context.Context, emailOrUsername string) (*user.User, error) {
 	// Try to find by email
 	if email, emailErr := user.NewEmail(emailOrUsername); emailErr == nil {
-		if foundUser, err := uc.userRepo.GetByEmail(ctx, email); err != nil {
+		if foundUser, err := uc.userRepo.GetByEmail(ctx, email); err == nil {
 			return foundUser, nil
 		}
 	}
 
 	// If not found by email, try the username
 	if username, usernameErr := user.NewUsername(emailOrUsername); usernameErr == nil {
-		if foundUser, err := uc.userRepo.GetByUsername(ctx, username); err != nil {
+		if foundUser, err := uc.userRepo.GetByUsername(ctx, username); err == nil {
 			return foundUser, nil
 		}
 	}
