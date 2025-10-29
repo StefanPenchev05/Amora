@@ -76,11 +76,11 @@ func NewUserLoggedInEvent(userID, email, username, ipAddress, userAgent string) 
 	}
 }
 
+func (e UserLoggedInEvent) GetEventData() interface{} { return e }
+
 type UserEmailVerifiedEvent struct {
 	BaseEvent
 }
-
-func (e UserLoggedInEvent) GetEventData() interface{} { return e }
 
 func NewUserEmailVerifiedEvent(userID, email string) *UserEmailVerifiedEvent {
 	return &UserEmailVerifiedEvent{

@@ -2,6 +2,7 @@ package user
 
 import (
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -89,6 +90,22 @@ func (u *User) VerifyEmail() {
 	u.Credentials.EmailVerified = true
 	u.UpdatedAt = time.Now()
 	u.raiseEvent(NewUserEmailVerifiedEvent(u.ID, u.Credentials.Email.String()))
+}
+
+func (u *User) IsEmailVerified() bool {
+	return u.Credentials.EmailVerified
+}
+
+func (u *User) GetFullName() string {
+	return fmt.Sprintf("%s %s", u.Profile.FirstName, u.Profile.LastName)
+}
+
+// Events
+func (u *User) RecordLogin(ipAddress, userAgent string) {
+	now := time.Now()
+	u.Credentials.LastLoginAt = &now
+	u.UpdatedAt = now
+	u.raiseEvent(NewUserLoggedInEvent(u.ID, u.Credentials.Email.String(), u.Credentials.Username.String(), ipAddress, userAgent))
 }
 
 func (u *User) raiseEvent(event DomainEvent) {
