@@ -2,10 +2,20 @@ package interfaces
 
 // JWTService interface for token operations
 type JWTService interface {
+	// GenerateAccessToken creates a short-lived access token for the given user ID.
 	GenerateAccessToken(userID string) (string, error)
+
+	// GenerateRefreshToken creates a long-lived refresh token for the given user ID.
 	GenerateRefreshToken(userID string) (string, error)
+
+	// ValidateToken verifies and parses a JWT token string.
 	ValidateToken(token string) (*TokenClaims, error)
+
+	// RefreshAccessToken generates a new access token using a valid refresh token.
 	RefreshAccessToken(refreshToken string) (string, error)
+
+	// GetAccessTokenExpiration returns the expiration time in seconds for access tokens.
+	GetAccessTokenExpiration() int64
 }
 
 // TokenClaims represents JWT token claims

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	dto "github.com/StefanPenchev05/Amora/backend/internal/application/dto/user"
 	"github.com/StefanPenchev05/Amora/backend/internal/application/interfaces"
@@ -15,6 +16,7 @@ type AuthenticateUserCase struct {
 	userService    *user.UserService
 	jwtService     interfaces.JWTService
 	eventPublisher interfaces.EventPublisher
+	logger         *slog.Logger
 }
 
 func NewAuthenticateUserCase(
@@ -22,12 +24,14 @@ func NewAuthenticateUserCase(
 	userService *user.UserService,
 	jwtService interfaces.JWTService,
 	eventPublisher interfaces.EventPublisher,
+	logger *slog.Logger,
 ) *AuthenticateUserCase {
 	return &AuthenticateUserCase{
 		userRepo:       userRepo,
 		userService:    userService,
 		jwtService:     jwtService,
 		eventPublisher: eventPublisher,
+		logger:         logger,
 	}
 }
 
@@ -35,52 +39,90 @@ func (uc *AuthenticateUserCase) Execute(ctx context.Context, req dto.Authenticat
 	// Find the user by email or username, if not found return error
 	foundUser, err := uc.findUserByEmailOrUsername(ctx, req.EmailOrUsername)
 	if err != nil {
+		uc.logger.Warn("Authentication failed - user not found",
+			"email_or_username", req.EmailOrUsername,
+			"ip_address", req.IPAddress,
+		)
 		return nil, errors.New("invalid credentials")
 	}
 
 	// Verify password
 	if !foundUser.Credentials.PasswordHash.Verify(req.Password) {
+		uc.logger.Warn("Authentication failed - invalid password",
+			"user_id", foundUser.ID,
+			"email", foundUser.Credentials.Email.String(),
+			"ip_address", req.IPAddress,
+		)
 		return nil, errors.New("invalid credentials")
 	}
 
 	// Record Login
 	foundUser.RecordLogin(req.IPAddress, req.UserAgent)
 	if err := uc.userRepo.Update(ctx, foundUser); err != nil {
-		// TODO: Add logger for errors
+		uc.logger.Error("Failed to update user login record",
+			"user_id", foundUser.ID,
+			"error", err.Error(),
+		)
 	}
 
-	// Generate JWT token
+	// Generate JWT tokens
 	accessToken, err := uc.jwtService.GenerateAccessToken(foundUser.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate access token %w", err)
+		uc.logger.Error("Failed to generate access token",
+			"user_id", foundUser.ID,
+			"error", err.Error(),
+		)
+		return nil, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
 	refreshToken, err := uc.jwtService.GenerateRefreshToken(foundUser.ID)
 	if err != nil {
+		uc.logger.Error("Failed to generate refresh token",
+			"user_id", foundUser.ID,
+			"error", err.Error(),
+		)
 		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
-	//
-
-	// Domain Events
+	// Handle Domain Events
 	events := foundUser.GetEvents()
 	if len(events) > 0 {
 		if err := uc.eventPublisher.PublishEvents(ctx, events...); err != nil {
-			// TODO: Add proper logging
-			// Don't fail authentication if event publishing fails
+			uc.logger.Error("Failed to publish domain events",
+				"user_id", foundUser.ID,
+				"event_count", len(events),
+				"error", err.Error(),
+			)
+		} else {
+			uc.logger.Debug("Successfully published domain events",
+				"user_id", foundUser.ID,
+				"event_count", len(events),
+			)
 		}
 	}
 	foundUser.ClearEvents()
 
+	// Build response
 	userProfile := dto.NewUserProfile(foundUser)
 	bootstrap := dto.NewAuthBootstrap(foundUser)
+
+	// Get token expiration from JWT service
+	expiresIn := uc.jwtService.GetAccessTokenExpiration()
+
+	// Log successful authentication
+	uc.logger.Info("User authenticated successfully",
+		"user_id", foundUser.ID,
+		"email", foundUser.Credentials.Email.String(),
+		"ip_address", req.IPAddress,
+		"user_agent", req.UserAgent,
+	)
 
 	// Return the response
 	return &dto.AuthenticateUserResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		TokenType:    "Bareer",
-		ExpiresAt:    900, // 15 minutes
+		TokenType:    "Bearer",       // Fixed typo
+		ExpiresIn:    int(expiresIn), // Fixed field name
 		User:         userProfile,
 		Bootstrap:    bootstrap,
 	}, nil

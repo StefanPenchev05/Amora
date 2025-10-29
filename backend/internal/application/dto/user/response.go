@@ -18,7 +18,7 @@ type CreateUserResponse struct {
 type AuthenticateUserResponse struct {
 	AccessToken  string         `json:"access_token"`
 	RefreshToken string         `json:"refresh_token,omitempty"`
-	ExpiresAt    int            `json:"exp"`
+	ExpiresIn    int            `json:"exp"`
 	TokenType    string         `json:"token_type"`
 	User         UserProfile    `json:"user,omitempty"`
 	Bootstrap    *AuthBootstrap `json:"bootstrap,omitempty"`
