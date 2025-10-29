@@ -30,6 +30,12 @@ func (c *Container) buildRouter() httpInfra.Router {
 		"http://localhost:3000",
 	})
 
+	// Build structured logger
+	// loggerOptions := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+	// 	Level: slog.LevelInfo,
+	// }))
+	// loggerMiddlewar := middleware.LoggingMiddleware(loggerOptions)
+
 	// Build router with middleware
 	router := httpInfra.NewRouter(corsMiddleware)
 
