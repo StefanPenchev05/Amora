@@ -19,13 +19,6 @@ type DBConfig struct {
 	DSN      string
 }
 
-// JWTConfig holds JWT-related configuration
-type JWTConfig struct {
-	Secret     string
-	AccessTTL  time.Duration
-	RefreshTTL time.Duration
-}
-
 // ServerConfig holds server configuration
 type ServerConfig struct {
 	Port         string
@@ -152,24 +145,32 @@ func loadJWTConfig(jwtConfig *JWTConfig) error {
 	}
 	jwtConfig.AccessTTL = ttlAccessDuration
 
-	ttlRefreshDuration, err := parseDuration("REFRESH_TTL", "24h")
+	ttlRefreshDuration, err := parseDuration("REFRESH_TTL", "720h")
 	if err != nil {
 		return err
 	}
 	jwtConfig.RefreshTTL = ttlRefreshDuration
 
-	jwtConfig.Secret = os.Getenv("JWT_SECRET")
-	if jwtConfig.Secret == "" {
+	jwtConfig.AccessSecret = os.Getenv("JWT_SECRET")
+	if jwtConfig.AccessSecret == "" {
 		return &ConfigError{
-			Field:   "JWT_SECRET",
+			Field:   "JWT_ACCESS_SECRET",
 			Message: "JWT secret is required",
 		}
 	}
 
-	if len(jwtConfig.Secret) < 32 {
+	if len(jwtConfig.AccessSecret) < 32 {
 		return ConfigError{
 			Field:   "JWT_SECRET",
 			Message: "JWT secret must be at least 32 characters long",
+		}
+	}
+
+	jwtConfig.RefreshSecret = os.Getenv("JWT_REFRESH_SECRET")
+	if jwtConfig.RefreshSecret == "" {
+		return &ConfigError{
+			Field:   "JWT_REFRESH_SECRET",
+			Message: "JWT Refresh secret is required",
 		}
 	}
 
