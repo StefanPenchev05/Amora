@@ -69,6 +69,14 @@ func NewPasswordHashed(password string) (PasswordHash, error) {
 	return PasswordHash{hash: string(hashedBytes)}, nil
 }
 
+func NewPasswordHashFromString(hash string) (PasswordHash, error) {
+	if strings.TrimSpace(hash) == "" {
+		return PasswordHash{}, errors.New("password hash cannot be empty")
+	}
+
+	return PasswordHash{hash: hash}, nil
+}
+
 func (p PasswordHash) Verify(other string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(p.hash), []byte(other))
 	return err == nil

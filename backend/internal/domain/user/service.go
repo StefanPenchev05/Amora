@@ -92,8 +92,8 @@ func (s *UserService) ValidateUserForCreation(ctx context.Context, email, userna
 	}
 
 	// Check the score of the password
-	passswordScore, suggestions := s.ValidatePasswordStrength(password)
-	if passswordScore < 4 {
+	passwordScore, suggestions := s.ValidatePasswordStrength(password)
+	if passwordScore < 4 {
 		return fmt.Errorf("weak password %v", suggestions)
 	}
 

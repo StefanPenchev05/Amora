@@ -9,23 +9,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// DBConfig holds database configurations
-type DBConfig struct {
-	User     string
-	Password string
-	Host     string
-	Port     string
-	Name     string
-	DSN      string
-}
-
-// JWTConfig holds JWT-related configuration
-type JWTConfig struct {
-	Secret     string
-	AccessTTL  time.Duration
-	RefreshTTL time.Duration
-}
-
 // ServerConfig holds server configuration
 type ServerConfig struct {
 	Port         string
@@ -109,71 +92,6 @@ func Load() (*Config, error) {
 	}
 
 	return config, nil
-}
-
-func loadDatabaseConfig(dbConfig *DBConfig) error {
-	var missing []string
-
-	dbConfig.User = os.Getenv("DB_USER")
-	if dbConfig.User == "" {
-		missing = append(missing, "DB_USER")
-	}
-
-	dbConfig.Password = os.Getenv("DB_PASS")
-	if dbConfig.Password == "" {
-		missing = append(missing, "DB_PASS")
-	}
-
-	dbConfig.Host = getEnvWithDefualt("DB_HOST", "localhost")
-	dbConfig.Port = getEnvWithDefualt("DB_PORT", "3306")
-	dbConfig.Name = os.Getenv("DB_NAME")
-	if dbConfig.Name == "" {
-		missing = append(missing, "DB_NAME")
-	}
-
-	if len(missing) > 0 {
-		return &ConfigError{
-			Field:   "database",
-			Message: fmt.Sprintf("missing required environment variables: %v", missing),
-		}
-	}
-
-	// Build DSN
-	dbConfig.DSN = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		dbConfig.User, dbConfig.Password, dbConfig.Host, dbConfig.Port, dbConfig.Name)
-
-	return nil
-}
-
-func loadJWTConfig(jwtConfig *JWTConfig) error {
-	ttlAccessDuration, err := parseDuration("ACCESS_TTL", "15m")
-	if err != nil {
-		return err
-	}
-	jwtConfig.AccessTTL = ttlAccessDuration
-
-	ttlRefreshDuration, err := parseDuration("REFRESH_TTL", "24h")
-	if err != nil {
-		return err
-	}
-	jwtConfig.RefreshTTL = ttlRefreshDuration
-
-	jwtConfig.Secret = os.Getenv("JWT_SECRET")
-	if jwtConfig.Secret == "" {
-		return &ConfigError{
-			Field:   "JWT_SECRET",
-			Message: "JWT secret is required",
-		}
-	}
-
-	if len(jwtConfig.Secret) < 32 {
-		return ConfigError{
-			Field:   "JWT_SECRET",
-			Message: "JWT secret must be at least 32 characters long",
-		}
-	}
-
-	return nil
 }
 
 // Validate performs comprehensive configuration validation
