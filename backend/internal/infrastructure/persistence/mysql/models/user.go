@@ -31,7 +31,7 @@ type Profile struct {
 
 	FirstName      string     `gorm:"column:first_name;size:100;not null" json:"first_name"`
 	LastName       string     `gorm:"column:last_name;size:100;not null" json:"last_name"`
-	Gender         Gender     `gorm:"type:genders;not null;default:prefer_not_to_say" json:"gender"`
+	Gender         Gender     `gorm:"type:varchar(20);not null;default:'prefer_not_to_say'" json:"gender"`
 	DateOfBirth    *time.Time `gorm:"column:date_of_birth;type:date" json:"date_of_birth,omitempty"`
 	Bio            *string    `gorm:"column:bio;size:500" json:"bio,omitempty"`
 	DisplayName    *string    `gorm:"column:display_name;size:100;index" json:"display_name,omitempty"`
@@ -45,8 +45,8 @@ type Session struct {
 	UserID       string     `gorm:"type:char(36);not null;column:user_id;index:idx_sessions_user_active;index:idx_sessions_user_revoked" json:"user_id"`
 	UserAgent    *string    `gorm:"column:user_agent;size:512" json:"user_agent,omitempty"`
 	IPAddress    *string    `gorm:"column:ip_address;size:45;index" json:"ip_address,omitempty"`
-	CreatedAt    time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"created_at"`
-	LastUsedAt   time.Time  `gorm:"column:last_used_at;not null;default:CURRENT_TIMESTAMP;index:idx_sessions_user_active;index:idx_sessions_cleanup" json:"last_used_at"`
+	CreatedAt    time.Time  `gorm:"column:created_at;not null;autoCreateTime" json:"created_at"`
+	LastUsedAt   time.Time  `gorm:"column:last_used_at;not null;autoCreateTime;index:idx_sessions_user_active;index:idx_sessions_cleanup" json:"last_used_at"`
 	RevokedAt    *time.Time `gorm:"column:revoked_at;index:idx_sessions_user_revoked" json:"revoked_at,omitempty"`
 	TokenVersion int        `gorm:"column:token_version;not null;default:0" json:"token_version"`
 
@@ -61,7 +61,7 @@ type RefreshToken struct {
 	FamilyID  string     `gorm:"type:char(36);not null;column:family_id;default:(uuid())" json:"family_id"`
 	TokenHash string     `gorm:"column:token_hash;size:255;not null;index" json:"-"`
 	ExpiresAt time.Time  `gorm:"column:expires_at;not null" json:"expires_at"`
-	CreatedAt time.Time  `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"created_at"`
+	CreatedAt time.Time  `gorm:"column:created_at;not null;autoCreateTime" json:"created_at"`
 	RotatedAt *time.Time `gorm:"column:rotated_at" json:"rotated_at,omitempty"`
 	RevokedAt *time.Time `gorm:"column:revoked_at" json:"revoked_at,omitempty"`
 	Reason    *string    `gorm:"column:reason;size:255" json:"reason,omitempty"`

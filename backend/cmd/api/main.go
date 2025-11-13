@@ -3,12 +3,15 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/StefanPenchev05/Amora/backend/internal/config"
+	"github.com/StefanPenchev05/Amora/backend/internal/container"
+	"github.com/StefanPenchev05/Amora/backend/internal/infrastructure/persistence/mysql"
 	httpPresentation "github.com/StefanPenchev05/Amora/backend/internal/presentation/http"
 )
 
@@ -19,15 +22,34 @@ func main() {
 		log.Fatal("Failed to load config:", err)
 	}
 
-	// Build dependencies
-	container := httpPresentation.NewContainer(cfg)
-	server := container.BuildServer()
+	// Setup logger
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+
+	// Connect to db
+	db, err := mysql.NewGormConnection(cfg.Database.DSN)
+	if err != nil {
+		logger.Error("Failed to connect to database", "error", err)
+		log.Printf("Full error: %+v", err)
+
+		os.Exit(1)
+	}
+	logger.Info("Database connected successfully")
+
+	// Create DI container (business logic dependecies)
+	appContainer := container.NewContainer(cfg, db, logger)
+
+	// Create HTTP container (presentaion layer)
+	httpContainer := httpPresentation.NewHTTPContainer(cfg, appContainer, logger)
+	server := httpContainer.BuildServer()
 
 	// Start server in a goroutine
 	go func() {
 		log.Printf("Server starting on port %s", cfg.Server.Port)
 		if err := server.Start(); err != nil {
 			log.Fatal("Server failed to start:", err)
+			os.Exit(1)
 		}
 	}()
 
