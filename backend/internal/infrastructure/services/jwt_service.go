@@ -18,7 +18,7 @@ type JWTServiceImpl struct {
 	audience           string
 }
 
-func NewJWTServiceImpl(
+func NewJWTService(
 	accessSecret string,
 	refreshSecret string,
 	accessTokenExpiry time.Duration,

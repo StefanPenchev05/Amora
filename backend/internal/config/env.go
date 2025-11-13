@@ -138,45 +138,6 @@ func loadDatabaseConfig(dbConfig *DBConfig) error {
 	return nil
 }
 
-func loadJWTConfig(jwtConfig *JWTConfig) error {
-	ttlAccessDuration, err := parseDuration("ACCESS_TTL", "15m")
-	if err != nil {
-		return err
-	}
-	jwtConfig.AccessTTL = ttlAccessDuration
-
-	ttlRefreshDuration, err := parseDuration("REFRESH_TTL", "720h")
-	if err != nil {
-		return err
-	}
-	jwtConfig.RefreshTTL = ttlRefreshDuration
-
-	jwtConfig.AccessSecret = os.Getenv("JWT_SECRET")
-	if jwtConfig.AccessSecret == "" {
-		return &ConfigError{
-			Field:   "JWT_ACCESS_SECRET",
-			Message: "JWT secret is required",
-		}
-	}
-
-	if len(jwtConfig.AccessSecret) < 32 {
-		return ConfigError{
-			Field:   "JWT_SECRET",
-			Message: "JWT secret must be at least 32 characters long",
-		}
-	}
-
-	jwtConfig.RefreshSecret = os.Getenv("JWT_REFRESH_SECRET")
-	if jwtConfig.RefreshSecret == "" {
-		return &ConfigError{
-			Field:   "JWT_REFRESH_SECRET",
-			Message: "JWT Refresh secret is required",
-		}
-	}
-
-	return nil
-}
-
 // Validate performs comprehensive configuration validation
 func (c *Config) Validate() error {
 	// Validate environment
