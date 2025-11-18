@@ -24,6 +24,13 @@ type AuthenticateUserResponse struct {
 	Bootstrap    *AuthBootstrap `json:"bootstrap,omitempty"`
 }
 
+// AuthBootstrap contains initial data needed by the client application
+type AuthBootstrap struct {
+	Permissions []string               `json:"permissions"`
+	Settings    map[string]interface{} `json:"settings"`
+	Features    []string               `json:"features"`
+}
+
 // Wrapper for UserProfile
 type UserProfile struct {
 	Email         string  `json:"email"`
@@ -39,13 +46,6 @@ type UserProfile struct {
 	Locale        string  `json:"locale"`
 	Timezone      string  `json:"timezone"`
 	CreatedAt     string  `json:"created_at"`
-}
-
-// AuthBootstrap contains initial data needed by the client application
-type AuthBootstrap struct {
-	Permissions []string               `json:"permissions"`
-	Settings    map[string]interface{} `json:"settings"`
-	Features    []string               `json:"features"`
 }
 
 // Helper function to convert domain user to profile
@@ -96,4 +96,15 @@ func NewAuthBootstrap(domainUser *domainUser.User) *AuthBootstrap {
 		Settings:    settings,
 		Features:    features,
 	}
+}
+
+type ErrorResponse struct {
+	Error   string                 `json:"error"`
+	Message string                 `json:"message"`
+	Details map[string]interface{} `json:"details,omitempty"`
+}
+
+type ValidationErrorResponse struct {
+	Error  string            `json:"error"`
+	Fields map[string]string `json:"fields"`
 }

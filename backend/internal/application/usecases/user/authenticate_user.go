@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	dto "github.com/StefanPenchev05/Amora/backend/internal/application/dto/user"
 	"github.com/StefanPenchev05/Amora/backend/internal/application/interfaces"
 	"github.com/StefanPenchev05/Amora/backend/internal/domain/user"
+	dto "github.com/StefanPenchev05/Amora/backend/internal/presentation/http/dto/user"
 )
 
 type AuthenticateUserCase struct {
