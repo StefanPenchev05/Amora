@@ -60,22 +60,8 @@ func (uc *CreateUserCase) Execute(ctx context.Context, req dto.CreateUserRequest
 		return nil, fmt.Errorf("failed to save user: %w", err)
 	}
 
-	events := newUser.GetEvents()
-	if len(events) > 0 {
-		if err := uc.eventPublisher.PublishEvents(ctx, events...); err != nil {
-			uc.logger.Error("Failed to publish domain events",
-				"user_id", newUser.ID,
-				"event_count", len(events),
-				"error", err.Error(),
-			)
-		} else {
-			uc.logger.Debug("Successfully published domain events",
-				"user_id", newUser.ID,
-				"event_count", len(events),
-			)
-		}
-	}
-	newUser.ClearEvents()
+	// TODO: Publish domain events when domain events are implemented
+	// For now, skip event publishing to avoid nil pointer errors
 
 	uc.logger.Info("User created successfully",
 		"user_id", newUser.ID,

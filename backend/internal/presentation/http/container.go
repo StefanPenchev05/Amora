@@ -7,6 +7,7 @@ import (
 	"github.com/StefanPenchev05/Amora/backend/internal/container"
 	httpInfra "github.com/StefanPenchev05/Amora/backend/internal/infrastructure/http"
 	"github.com/StefanPenchev05/Amora/backend/internal/infrastructure/http/middleware"
+	"github.com/StefanPenchev05/Amora/backend/internal/presentation/http/handlers"
 	"github.com/StefanPenchev05/Amora/backend/internal/presentation/http/routes"
 )
 
@@ -52,4 +53,13 @@ func (c *HTTPContainer) registerRoutes(router httpInfra.Router) {
 	// Register health routes
 	healthRoutes := routes.NewHealthRoutes()
 	router.RegisterRoutes(healthRoutes)
+
+	// Register auth routes
+	authHandler := c.buildAuthHandler()
+	authRoutes := routes.NewAuthRoutes(authHandler)
+	router.RegisterRoutes(authRoutes)
+}
+
+func (c *HTTPContainer) buildAuthHandler() *handlers.AuthHandler {
+	return handlers.NewAuthHandler(c.dependecyContainer, c.logger)
 }
