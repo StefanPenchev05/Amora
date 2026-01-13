@@ -1,58 +1,30 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import { Ionicons } from "@expo/vector-icons";
 
+/**
+ * Auth tabs layout
+ * 
+ * Tab bar is hidden for auth screens (register/login).
+ * This provides a clean, focused authentication experience.
+ */
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#f4511e",
-        headerStyle: {
-          backgroundColor: "#f4511e",
-        },
-        headerTintColor: "#fff",
-        headerTitleStyle: {
-          fontWeight: "bold",
-        },
+        headerShown: false,
+        tabBarStyle: { display: "none" }, // Hide tab bar for auth flow
       }}
     >
       <Tabs.Screen
-        name="home"
+        name="register"
         options={{
-          title: "Home",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "home" : "home-outline"}
-              size={24}
-              color={color}
-            />
-          ),
+          title: "Create Account",
         }}
       />
       <Tabs.Screen
-        name="calendar"
+        name="login"
         options={{
-          title: "Calendar",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "calendar" : "calendar-outline"}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "person" : "person-outline"}
-              size={24}
-              color={color}
-            />
-          ),
+          title: "Sign In",
         }}
       />
     </Tabs>

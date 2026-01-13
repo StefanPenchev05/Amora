@@ -7,6 +7,7 @@ import (
 	"github.com/StefanPenchev05/Amora/backend/internal/container"
 	httpInfra "github.com/StefanPenchev05/Amora/backend/internal/infrastructure/http"
 	"github.com/StefanPenchev05/Amora/backend/internal/infrastructure/http/middleware"
+	"github.com/StefanPenchev05/Amora/backend/internal/presentation/http/handlers"
 	"github.com/StefanPenchev05/Amora/backend/internal/presentation/http/routes"
 )
 
@@ -52,4 +53,33 @@ func (c *HTTPContainer) registerRoutes(router httpInfra.Router) {
 	// Register health routes
 	healthRoutes := routes.NewHealthRoutes()
 	router.RegisterRoutes(healthRoutes)
+
+	// Register auth routes
+	authHandler := c.buildAuthHandler()
+	authRoutes := routes.NewAuthRoutes(authHandler)
+	router.RegisterRoutes(authRoutes)
+
+	// Register app routes (events, moods, notes, memories, expenses)
+	appRoutes := c.buildAppRoutes()
+	router.RegisterRoutes(appRoutes)
+}
+
+func (c *HTTPContainer) buildAuthHandler() *handlers.AuthHandler {
+	return handlers.NewAuthHandler(c.dependecyContainer, c.logger)
+}
+
+func (c *HTTPContainer) buildAppRoutes() *routes.AppRoutes {
+	// Get DB connection from container
+	db := c.dependecyContainer.GetDB()
+	jwtService := c.dependecyContainer.GetJWTService()
+
+	// Build handlers
+	eventHandler := handlers.NewEventHandler(db, c.logger)
+	moodHandler := handlers.NewMoodHandler(db, c.logger)
+	noteHandler := handlers.NewNoteHandler(db, c.logger)
+	memoryHandler := handlers.NewMemoryHandler(db, c.logger)
+	expenseHandler := handlers.NewExpenseHandler(db, c.logger)
+	authMiddleware := middleware.NewAuthMiddleware(jwtService)
+
+	return routes.NewAppRoutes(eventHandler, moodHandler, noteHandler, memoryHandler, expenseHandler, authMiddleware)
 }
