@@ -35,7 +35,7 @@ type Profile struct {
 	DateOfBirth    *time.Time `gorm:"column:date_of_birth;type:date" json:"date_of_birth,omitempty"`
 	Bio            *string    `gorm:"column:bio;size:500" json:"bio,omitempty"`
 	DisplayName    *string    `gorm:"column:display_name;size:100;index" json:"display_name,omitempty"`
-	AvatarPhotoID  *string    `gorm:"column:avatar_photo_id;type:char(36)" json:"avatar_photo_id,omitempty"`
+	AvatarPhotoID  *string    `gorm:"column:avatar_photo_id;type:varchar(255)" json:"avatar_photo_id,omitempty"`
 	RelationshipID *string    `gorm:"column:relationship_id;type:char(36);index" json:"relationship_id,omitempty"`
 	Locale         string     `gorm:"column:locale;size:10;not null;default:'en'" json:"locale"`
 	Timezone       string     `gorm:"column:timezone;size:50;not null;default:'UTC'" json:"timezone"`

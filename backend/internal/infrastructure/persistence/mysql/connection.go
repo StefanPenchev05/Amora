@@ -94,6 +94,21 @@ func autoMigrate(db *gorm.DB) error {
 		}
 	}
 
+	// Ensure avatar_photo_id can store filenames like '<uuid>.jpg'.
+	if err := widenAvatarPhotoIDColumn(db); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func widenAvatarPhotoIDColumn(db *gorm.DB) error {
+	// MySQL: GORM AutoMigrate doesn't always widen existing column types.
+	// We store filenames (uuid + extension), so the column must be wider than CHAR(36).
+	res := db.Exec("ALTER TABLE profiles MODIFY COLUMN avatar_photo_id VARCHAR(255) NULL")
+	if res.Error != nil {
+		return fmt.Errorf("failed to widen profiles.avatar_photo_id: %w", res.Error)
+	}
 	return nil
 }
 

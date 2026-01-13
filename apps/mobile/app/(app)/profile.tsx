@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 
 import Screen from '../../src/components/layout/Screen';
 import AppHeader from '../../src/components/layout/AppHeader';
@@ -20,6 +21,7 @@ import { withOpacity } from '../../src/components/form/color';
 import { lightTheme } from '../../src/styles/theme';
 import { useTheme } from '../../src/providers/theme';
 import { authService } from '../../src/services/api/auth';
+import { profileService } from '../../src/services/api/profile';
 import { relationshipService, type RelationshipStatusResponse } from '../../src/services/api/relationship';
 import { eventService } from '../../src/services/api/events';
 import { memoryService } from '../../src/services/api/memories';
@@ -106,12 +108,20 @@ export default function ProfileScreen() {
   const [userName, setUserName] = useState<string>('');
   const [userEmail, setUserEmail] = useState<string>('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [updatingAvatar, setUpdatingAvatar] = useState(false);
   const [stats, setStats] = useState({ memories: 0, events: 0, notes: 0, expenses: 0 });
   const [relationship, setRelationship] = useState<RelationshipStatusResponse | null>(null);
 
   useEffect(() => {
     loadSettings();
   }, []);
+
+  const resolveAvatarUrl = (raw: string): string => {
+    if (raw.startsWith('http')) return raw;
+    const base = Env.API_URL.replace(/\/$/, '');
+    const path = raw.startsWith('/') ? raw : `/${raw}`;
+    return `${base}${path}`;
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -128,16 +138,11 @@ export default function ProfileScreen() {
         setUserName(displayName);
         setUserEmail(user?.email || '');
 
-
         const rawAvatar = user?.avatar_url ?? null;
         if (!rawAvatar) {
           setAvatarUrl(null);
-        } else if (rawAvatar.startsWith('http')) {
-          setAvatarUrl(rawAvatar);
         } else {
-          const base = Env.API_URL.replace(/\/$/, '');
-          const path = rawAvatar.startsWith('/') ? rawAvatar : `/${rawAvatar}`;
-          setAvatarUrl(`${base}${path}`);
+          setAvatarUrl(resolveAvatarUrl(rawAvatar));
         }
 
         const [events, memories, notes, expenses] = await Promise.all([
@@ -249,6 +254,46 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const handleChangeAvatar = async () => {
+    if (updatingAvatar) return;
+
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please allow photo access to choose an avatar.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.9,
+    });
+
+    if (result.canceled) return;
+    const asset = result.assets?.[0];
+    if (!asset?.uri) return;
+
+    const type = asset.mimeType ?? 'image/jpeg';
+    const name = asset.fileName ?? `avatar.${type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg'}`;
+
+    setUpdatingAvatar(true);
+    try {
+      const res = await profileService.updateAvatar({ uri: asset.uri, name, type });
+      if (res.avatar_url) {
+        setAvatarUrl(resolveAvatarUrl(res.avatar_url));
+        await authService.updateCurrentUser({
+          avatar_url: res.avatar_url,
+          avatar_photo_id: res.avatar_photo_id ?? null,
+        });
+      }
+    } catch (error) {
+      Alert.alert('Update failed', error instanceof Error ? error.message : 'Please try again');
+    } finally {
+      setUpdatingAvatar(false);
+    }
+  };
+
   return (
     <Screen scroll contentStyle={styles.content}>
       <AppHeader theme={theme} title="Profile" onBack={() => router.replace('/(app)/dashboard')} />
@@ -267,11 +312,15 @@ export default function ProfileScreen() {
             </View>
 
             <Pressable
-              onPress={() => Alert.alert('Edit profile', 'Coming soon')}
+              onPress={handleChangeAvatar}
               hitSlop={10}
               style={({ pressed }) => [styles.avatarEditBtn, pressed && styles.avatarEditBtnPressed]}
             >
-              <Ionicons name="create" size={16} color={theme.colors.textPrimary} />
+              {updatingAvatar ? (
+                <ActivityIndicator size="small" color={theme.colors.textPrimary} />
+              ) : (
+                <Ionicons name="camera" size={16} color={theme.colors.textPrimary} />
+              )}
             </Pressable>
           </View>
 

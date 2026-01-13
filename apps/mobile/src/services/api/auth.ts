@@ -115,6 +115,14 @@ export const authService = {
     }
   },
 
+  async updateCurrentUser(patch: Partial<AuthResponse['user']>): Promise<AuthResponse['user'] | null> {
+    const current = await this.getCurrentUser();
+    if (!current) return null;
+    const next = { ...current, ...patch };
+    await AsyncStorage.setItem(CURRENT_USER_KEY, JSON.stringify(next));
+    return next;
+  },
+
   async isAuthenticated(): Promise<boolean> {
     const token = await apiClient.getToken();
     return !!token;
