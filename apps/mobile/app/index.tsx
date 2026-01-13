@@ -1,125 +1,215 @@
-import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
-import { useRouter } from "expo-router";
-import { LinearGradient } from 'expo-linear-gradient';
+import React, { useMemo } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+
+import Screen from '../src/components/layout/Screen';
+import Card from '../src/components/ui/Card';
+import { Button } from '../src/components/Button';
+import { withOpacity } from '../src/components/form/color';
+import { useTheme } from '../src/providers/theme';
+import { lightTheme } from '../src/styles/theme';
 
 export default function Page() {
   const router = useRouter();
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   return (
-    <LinearGradient
-      colors={['#FFE5E5', '#FFF0F5', '#FFFFFF']}
-      style={styles.container}
-    >
-      {/* Logo */}
-      <View style={styles.logoContainer}>
-        <Text style={styles.logo}>💕</Text>
+    <Screen scroll variant="gradient" contentStyle={styles.content}>
+      <View style={styles.hero}>
+        <View style={styles.logoCircle}>
+          <View style={styles.logoGlow} />
+          <Text style={styles.logoEmoji}>💕</Text>
+        </View>
+
+        <Text style={styles.title}>Amora</Text>
+        <Text style={styles.subtitle}>
+          Share moments, track moods, and celebrate your love.
+        </Text>
       </View>
 
-      {/* Title */}
-      <Text style={styles.title}>Welcome to Amora</Text>
-      <Text style={styles.subtitle}>
-        Bringing couples closer together{'\n'}
-        Share moments, track moods, and celebrate your love
-      </Text>
+      <Card theme={theme} style={styles.featureCard}>
+        <FeatureRow
+          icon="sparkles"
+          title="Daily connection"
+          desc="A gentle prompt to stay close."
+          theme={theme}
+        />
+        <View style={styles.divider} />
+        <FeatureRow
+          icon="happy"
+          title="Mood check-ins"
+          desc="Understand patterns, support each other."
+          theme={theme}
+        />
+        <View style={styles.divider} />
+        <FeatureRow
+          icon="images"
+          title="Memories"
+          desc="Capture the little wins together."
+          theme={theme}
+        />
+      </Card>
 
-      {/* Get Started Button */}
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => router.push("/(tabs)/register")}
-        activeOpacity={0.8}
-      >
-        <LinearGradient
-          colors={['#FF6B9D', '#FF8FAB']}
-          style={styles.buttonGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
+      <View style={styles.ctaStack}>
+        <Button title="Create account" variant="primary" onPress={() => router.push('/(tabs)/register')} />
+
+        <Pressable
+          onPress={() => router.push('/(tabs)/login')}
+          style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}
         >
-          <Text style={styles.buttonText}>Get Started</Text>
-        </LinearGradient>
-      </TouchableOpacity>
-
-      {/* Login Link */}
-      <View style={styles.loginContainer}>
-        <Text style={styles.loginText}>Already have an account? </Text>
-        <TouchableOpacity onPress={() => router.push("/(tabs)/login")}>
-          <Text style={styles.loginLink}>Log In</Text>
-        </TouchableOpacity>
+          <Ionicons name="log-in-outline" size={18} color={theme.colors.textPrimary} />
+          <Text style={styles.secondaryBtnText}>I already have an account</Text>
+        </Pressable>
       </View>
-    </LinearGradient>
+
+      <Text style={styles.footerNote}>
+        By continuing you agree to our Terms & Privacy Policy.
+      </Text>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  logoContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  logo: {
-    fontSize: 60,
-  },
-  title: {
-    fontSize: 36,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 12,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-    marginBottom: 48,
-    lineHeight: 24,
-    paddingHorizontal: 20,
-  },
-  button: {
-    width: '100%',
-    maxWidth: 320,
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 24,
-    shadowColor: '#FF6B9D',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  buttonGradient: {
-    paddingVertical: 18,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  loginContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loginText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  loginLink: {
-    fontSize: 14,
-    color: '#FF6B9D',
-    fontWeight: 'bold',
-  },
-});
+function FeatureRow(props: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  desc: string;
+  theme: typeof lightTheme;
+}) {
+  const { icon, title, desc, theme } = props;
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
+  return (
+    <View style={styles.featureRow}>
+      <View style={styles.featureIcon}>
+        <Ionicons name={icon} size={18} color={theme.colors.primary} />
+      </View>
+      <View style={styles.featureText}>
+        <Text style={styles.featureTitle}>{title}</Text>
+        <Text style={styles.featureDesc}>{desc}</Text>
+      </View>
+    </View>
+  );
+}
+
+const createStyles = (theme: typeof lightTheme) =>
+  StyleSheet.create({
+    content: {
+      paddingTop: theme.spacing[6],
+      paddingBottom: theme.spacing[8],
+      gap: theme.spacing[4],
+    },
+    hero: {
+      alignItems: 'center',
+      paddingTop: theme.spacing[3],
+      gap: theme.spacing[2],
+    },
+    logoCircle: {
+      width: 92,
+      height: 92,
+      borderRadius: 46,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: withOpacity(theme.colors.border, 0.9),
+      overflow: 'hidden',
+      ...theme.shadow.md,
+    },
+    logoGlow: {
+      position: 'absolute',
+      inset: -30,
+      backgroundColor: withOpacity(theme.colors.primary, 0.12),
+    },
+    logoEmoji: {
+      fontSize: 44,
+    },
+    title: {
+      fontSize: theme.typography.fontSize['3xl'],
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.textPrimary,
+      letterSpacing: -0.3,
+    },
+    subtitle: {
+      textAlign: 'center',
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.regular,
+      color: theme.colors.textMuted,
+      paddingHorizontal: theme.spacing[6],
+      lineHeight: Math.round(
+        theme.typography.fontSize.base * theme.typography.lineHeight.relaxed,
+      ),
+    },
+    featureCard: {
+      padding: theme.spacing[5],
+      gap: theme.spacing[4],
+    },
+    featureRow: {
+      flexDirection: 'row',
+      gap: theme.spacing[3],
+      alignItems: 'flex-start',
+    },
+    featureIcon: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: withOpacity(theme.colors.primary, 0.1),
+      borderWidth: 1,
+      borderColor: withOpacity(theme.colors.border, 0.9),
+    },
+    featureText: {
+      flex: 1,
+      gap: 2,
+    },
+    featureTitle: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.textPrimary,
+    },
+    featureDesc: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.regular,
+      color: theme.colors.textMuted,
+      lineHeight: Math.round(
+        theme.typography.fontSize.sm * theme.typography.lineHeight.relaxed,
+      ),
+    },
+    divider: {
+      height: 1,
+      backgroundColor: withOpacity(theme.colors.border, 0.9),
+    },
+    ctaStack: {
+      gap: theme.spacing[3],
+    },
+    secondaryBtn: {
+      height: 52,
+      borderRadius: theme.radius.lg,
+      borderWidth: 1,
+      borderColor: withOpacity(theme.colors.border, 0.9),
+      backgroundColor: theme.colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+      gap: theme.spacing[2],
+      ...theme.shadow.sm,
+    },
+    secondaryBtnText: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+    },
+    pressed: {
+      opacity: 0.92,
+      transform: [{ scale: 0.99 }],
+    },
+    footerNote: {
+      textAlign: 'center',
+      fontSize: theme.typography.fontSize.xs,
+      fontFamily: theme.typography.fontFamily.regular,
+      color: theme.colors.textMuted,
+      paddingHorizontal: theme.spacing[6],
+    },
+  });
