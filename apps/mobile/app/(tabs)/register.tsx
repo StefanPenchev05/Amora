@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { authService } from '../../src/services/api/auth';
+import * as ImagePicker from 'expo-image-picker';
+import { authService, RegisterAvatar } from '../../src/services/api/auth';
 import Screen from '../../src/components/layout/Screen';
 import Card from '../../src/components/ui/Card';
 import AuthTextField from '../../src/components/form/AuthTextField';
@@ -25,6 +26,31 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [avatar, setAvatar] = useState<RegisterAvatar | null>(null);
+
+  const pickAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please allow photo access to choose an avatar.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.9,
+    });
+
+    if (result.canceled) return;
+    const asset = result.assets?.[0];
+    if (!asset?.uri) return;
+
+    const type = asset.mimeType ?? 'image/jpeg';
+    const name = asset.fileName ?? `avatar.${type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg'}`;
+
+    setAvatar({ uri: asset.uri, name, type });
+  };
 
   const handleRegister = async () => {
     if (!firstName.trim() || !lastName.trim() || !username.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
@@ -49,13 +75,19 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      await authService.register({
+      const payload = {
         username: username.trim(),
         email: email.trim(),
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         password: password.trim(),
-      });
+      };
+
+      if (avatar) {
+        await authService.registerWithAvatar(payload, avatar);
+      } else {
+        await authService.register(payload);
+      }
 
       Alert.alert('Account created', 'You can now log in.', [
         { text: 'OK', onPress: () => router.replace('/(tabs)/login') },
@@ -99,6 +131,31 @@ export default function RegisterScreen() {
       </View>
 
       <Card theme={theme} style={styles.card}>
+        <View style={styles.avatarRow}>
+          <Pressable
+            onPress={pickAvatar}
+            hitSlop={10}
+            style={({ pressed }) => [styles.avatarCircle, pressed && styles.pressed]}
+          >
+            {avatar ? (
+              <Image source={{ uri: avatar.uri }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Ionicons name="camera-outline" size={18} color={theme.colors.textMuted} />
+              </View>
+            )}
+          </Pressable>
+          <View style={{ flex: 1, gap: theme.spacing[1] }}>
+            <Text style={styles.avatarTitle}>Profile photo (optional)</Text>
+            <Text style={styles.avatarSubtitle}>Tap to choose an avatar.</Text>
+            {avatar ? (
+              <Pressable onPress={() => setAvatar(null)} hitSlop={10}>
+                <Text style={styles.avatarRemove}>Remove photo</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+
         <View style={styles.nameRow}>
           <View style={{ flex: 1 }}>
             <AuthTextField
@@ -273,6 +330,51 @@ const createStyles = (theme: typeof lightTheme) =>
     card: {
       padding: theme.spacing[5],
       gap: theme.spacing[4],
+    },
+    avatarRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing[3],
+    },
+    avatarCircle: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: theme.colors.background,
+      borderWidth: 1,
+      borderColor: withOpacity(theme.colors.border, 0.9),
+      overflow: 'hidden',
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...theme.shadow.xs,
+    },
+    avatarPlaceholder: {
+      width: '100%',
+      height: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: withOpacity(theme.colors.primary, 0.06),
+    },
+    avatarImage: {
+      width: '100%',
+      height: '100%',
+      resizeMode: 'cover',
+    },
+    avatarTitle: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+    },
+    avatarSubtitle: {
+      fontSize: theme.typography.fontSize.xs,
+      fontFamily: theme.typography.fontFamily.regular,
+      color: theme.colors.textMuted,
+    },
+    avatarRemove: {
+      fontSize: theme.typography.fontSize.xs,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+      textDecorationLine: 'underline',
     },
     nameRow: {
       flexDirection: 'row',

@@ -6,14 +6,14 @@ import (
 
 // CreateUserResponse represents the output after user creation
 type CreateUserResponse struct {
-	ID        string `json:"id"`
-	Email     string `json:"email"`
-	Username  string `json:"username"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
+	ID            string  `json:"id"`
+	Email         string  `json:"email"`
+	Username      string  `json:"username"`
+	FirstName     string  `json:"first_name"`
+	LastName      string  `json:"last_name"`
 	AvatarPhotoID *string `json:"avatar_photo_id,omitempty"`
 	AvatarURL     *string `json:"avatar_url,omitempty"`
-	CreatedAt string `json:"created_at"`
+	CreatedAt     string  `json:"created_at"`
 }
 
 // AuthenticateUserResponse represents the output after login

@@ -74,13 +74,13 @@ func (uc *CreateUserCase) Execute(ctx context.Context, req dto.CreateUserRequest
 	)
 
 	return &dto.CreateUserResponse{
-		ID:        newUser.ID,
-		Email:     newUser.Credentials.Email.String(),
-		Username:  newUser.Credentials.Username.String(),
-		FirstName: newUser.Profile.FirstName,
-		LastName:  newUser.Profile.LastName,
+		ID:            newUser.ID,
+		Email:         newUser.Credentials.Email.String(),
+		Username:      newUser.Credentials.Username.String(),
+		FirstName:     newUser.Profile.FirstName,
+		LastName:      newUser.Profile.LastName,
 		AvatarPhotoID: newUser.Profile.AvatarPhotoID,
 		AvatarURL:     dto.AvatarURLFromPhotoID(newUser.Profile.AvatarPhotoID),
-		CreatedAt: newUser.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		CreatedAt:     newUser.CreatedAt.Format("2006-01-02T15:04:05Z"),
 	}, nil
 }

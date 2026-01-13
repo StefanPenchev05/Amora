@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Pressable,
   StyleSheet,
   Switch,
@@ -24,6 +25,7 @@ import { eventService } from '../../src/services/api/events';
 import { memoryService } from '../../src/services/api/memories';
 import { noteService } from '../../src/services/api/notes';
 import { expenseService } from '../../src/services/api/expenses';
+import { Env } from '../../config/env';
 
 type Theme = typeof lightTheme;
 
@@ -103,6 +105,7 @@ export default function ProfileScreen() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [userName, setUserName] = useState<string>('');
   const [userEmail, setUserEmail] = useState<string>('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [stats, setStats] = useState({ memories: 0, events: 0, notes: 0, expenses: 0 });
   const [relationship, setRelationship] = useState<RelationshipStatusResponse | null>(null);
 
@@ -124,6 +127,18 @@ export default function ProfileScreen() {
           '';
         setUserName(displayName);
         setUserEmail(user?.email || '');
+
+
+        const rawAvatar = user?.avatar_url ?? null;
+        if (!rawAvatar) {
+          setAvatarUrl(null);
+        } else if (rawAvatar.startsWith('http')) {
+          setAvatarUrl(rawAvatar);
+        } else {
+          const base = Env.API_URL.replace(/\/$/, '');
+          const path = rawAvatar.startsWith('/') ? rawAvatar : `/${rawAvatar}`;
+          setAvatarUrl(`${base}${path}`);
+        }
 
         const [events, memories, notes, expenses] = await Promise.all([
           eventService.getAll(),
@@ -243,7 +258,11 @@ export default function ProfileScreen() {
           <View style={styles.profileAvatarWrap}>
             <View style={styles.avatarRing}>
               <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{getInitials(userName || 'U')}</Text>
+                {avatarUrl ? (
+                  <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+                ) : (
+                  <Text style={styles.avatarText}>{getInitials(userName || 'U')}</Text>
+                )}
               </View>
             </View>
 
@@ -570,6 +589,12 @@ const createStyles = (theme: typeof lightTheme) =>
           backgroundColor: theme.colors.surface,
           borderWidth: 1,
           borderColor: withOpacity(theme.colors.border, 0.9),
+        },
+        avatarImage: {
+          width: '100%',
+          height: '100%',
+          borderRadius: 33,
+          resizeMode: 'cover',
         },
         avatarText: {
           fontSize: theme.typography.fontSize.xl,

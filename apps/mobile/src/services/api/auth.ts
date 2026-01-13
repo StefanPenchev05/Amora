@@ -24,6 +24,8 @@ export interface AuthResponse {
     first_name: string;
     last_name: string;
     relationship_id?: string;
+    avatar_photo_id?: string | null;
+    avatar_url?: string | null;
   };
   access_token: string;
   refresh_token: string;
@@ -37,8 +39,16 @@ export interface RegisterResponse {
   username: string;
   first_name: string;
   last_name: string;
+  avatar_photo_id?: string | null;
+  avatar_url?: string | null;
   created_at: string;
 }
+
+export type RegisterAvatar = {
+  uri: string;
+  name: string;
+  type: string;
+};
 
 export const authService = {
   async login(data: LoginRequest): Promise<AuthResponse> {
@@ -60,6 +70,27 @@ export const authService = {
     try {
       console.log('Registering user...', { email: data.email, username: data.username });
       await apiClient.post<RegisterResponse>('/auth/register', data);
+      console.log('Registration successful');
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    }
+  },
+
+  async registerWithAvatar(data: RegisterRequest, avatar: RegisterAvatar): Promise<void> {
+    try {
+      const form = new FormData();
+      form.append('username', data.username);
+      form.append('email', data.email);
+      form.append('first_name', data.first_name);
+      form.append('last_name', data.last_name);
+      form.append('password', data.password);
+
+      // React Native's FormData expects a file-like object with uri/name/type.
+      form.append('avatar', avatar as any);
+
+      console.log('Registering user with avatar...', { email: data.email, username: data.username });
+      await apiClient.post<RegisterResponse>('/auth/register', form);
       console.log('Registration successful');
     } catch (error) {
       console.error('Registration error:', error);
