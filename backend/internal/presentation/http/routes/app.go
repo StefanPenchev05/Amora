@@ -49,7 +49,9 @@ func (a *AppRoutes) RegisterRoutes(router httpInfra.Router) {
 		// Relationship routes
 		r.Get("/relationship", a.relationshipHandler.GetStatus)
 		r.Post("/relationship/invite", a.relationshipHandler.CreateInvite)
+		r.Post("/relationship/invite/regenerate", a.relationshipHandler.RegenerateInvite)
 		r.Post("/relationship/accept", a.relationshipHandler.AcceptInvite)
+		r.Post("/relationship/breakup", a.relationshipHandler.BreakUp)
 
 		// Event routes
 		r.Post("/events", a.eventHandler.CreateEvent)

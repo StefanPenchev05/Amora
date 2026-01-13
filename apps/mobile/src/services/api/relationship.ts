@@ -6,6 +6,8 @@ export type RelationshipStatusResponse = {
   relationship_id?: string;
   status: RelationshipStatus;
   invite_code?: string;
+  connected_since?: string;
+  days_connected?: number;
   partner?: {
     user_id: string;
     email: string;
@@ -23,7 +25,15 @@ export const relationshipService = {
     return apiClient.post<RelationshipStatusResponse>('/api/relationship/invite', {});
   },
 
+  async regenerateInvite(): Promise<RelationshipStatusResponse> {
+    return apiClient.post<RelationshipStatusResponse>('/api/relationship/invite/regenerate', {});
+  },
+
   async acceptInvite(code: string): Promise<RelationshipStatusResponse> {
     return apiClient.post<RelationshipStatusResponse>('/api/relationship/accept', { code });
+  },
+
+  async breakUp(): Promise<RelationshipStatusResponse> {
+    return apiClient.post<RelationshipStatusResponse>('/api/relationship/breakup', {});
   },
 };
