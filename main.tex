@@ -134,12 +134,13 @@ Amora consists of:
     \item \textbf{Web Frontend}: React 18 + TypeScript + Vite
     \item \textbf{Mobile App}: React Native 0.81 + TypeScript + Expo 54 with Expo Router for navigation
     \item \textbf{Backend}: Go 1.24 using Chi v5 HTTP router with structured middleware pipeline
-    \item \textbf{Database}: MySQL with GORM ORM and comprehensive migration system
+  \item \textbf{Database}: MySQL with GORM ORM and migration support
     \item \textbf{Infrastructure}: Docker and Docker Compose for local and deployment parity
 \end{itemize}
 
 \subsection{Security and Authentication Strategy}
-Authentication is implemented using a JWT-based dual-token system with HS256 signing:\begin{itemize}
+Authentication is implemented using a JWT-based dual-token system with HS256 signing:
+\begin{itemize}
     \item \textbf{Password Hashing}: bcrypt for secure credential storage
     \item \textbf{Access Tokens}: Short-lived JWT tokens for API authentication
     \item \textbf{Refresh Tokens}: Long-lived tokens stored securely for session renewal
@@ -332,7 +333,7 @@ Branching follows a Git Flow-inspired strategy (\texttt{main}, \texttt{develop},
 \section{Results}
 
 \subsection{System Implementation Outcomes}
-The current implementation delivers a production-ready architecture with:
+The current implementation delivers an MVP-oriented architecture with:
 \begin{itemize}
     \item \textbf{Unified Relationship Space}: All features (calendar, moods, notes) scoped to relationship entity with database-enforced constraints
     \item \textbf{Multi-Client Readiness}: Consistent RESTful API serving web (React) and mobile (React Native) with shared DTOs
@@ -398,45 +399,44 @@ The implementation prioritizes performance through strategic optimizations:
 
 \textbf{API Response Times}:
 \begin{itemize}
-    \item Authentication endpoints: <100ms (bcrypt work factor balanced for security/performance)
-    \item Calendar event queries: <50ms with indexed relationship+time range lookups
-    \item Mood entry creation: <30ms with single-table inserts
-    \item Structured logging (slog) with minimal overhead for production debugging
+  \item Endpoint design prioritizes low latency via indexed relationship-scoped queries and small DTO payloads
+  \item Authentication cost is tuned to balance bcrypt work factor with user experience
+  \item Structured logging (slog) supports debugging with low runtime overhead
 \end{itemize}
 
 \textbf{Mobile App Performance}:
 \begin{itemize}
-    \item SQLite local cache reduces API calls by 60\% for repeated views
-    \item Expo SecureStore provides hardware-backed encryption on supported devices
-    \item React Native Reanimated for 60fps animations without JS thread blocking
-    \item Optimistic UI updates provide instant feedback before server confirmation
+  \item SQLite local cache reduces repeated API calls for common views and improves perceived latency
+  \item Expo SecureStore provides encrypted credential storage on supported devices
+  \item Smooth UI interactions via optimized rendering and animation primitives
+  \item Optimistic UI updates improve perceived responsiveness before server confirmation
 \end{itemize}
 
 \subsection{Testing and Quality Assurance}
-The project employs multiple testing strategies:
+The project uses a mix of automated checks and a testing strategy that covers multiple levels:
 
 \textbf{Backend Testing}:
 \begin{itemize}
-    \item Unit tests for domain logic (Value Objects, Entity methods)
-    \item Repository integration tests with test database
-    \item HTTP handler tests with mocked dependencies
-    \item JWT token validation and refresh flow tests
+  \item Unit-level validation for core domain logic (e.g., Value Objects, entity invariants)
+  \item Integration-level validation for repository behavior against a database
+  \item Handler-level validation with mocked dependencies
+  \item Authentication flow validation (token validation and refresh)
 \end{itemize}
 
 \textbf{Mobile Testing}:
 \begin{itemize}
-    \item Use Case unit tests with mocked repositories
-    \item ViewModel logic testing with state management verification
-    \item Component rendering tests with React Test Renderer
-    \item SecureStore integration tests for token persistence
+  \item Use case validation with mocked repositories
+  \item ViewModel/state validation for screen logic
+  \item Component rendering validation for key UI components
+  \item Token persistence validation (SecureStore)
 \end{itemize}
 
 \textbf{Security Testing}:
 \begin{itemize}
-    \item Attempted cross-couple data access (blocked by repository filtering)
-    \item ID enumeration attacks (prevented by relationship-scoped queries)
-    \item Token tampering detection (JWT signature verification)
-    \item Password strength enforcement (Value Object validation)
+  \item Attempted cross-couple data access checks (enforced by relationship-scoped filtering)
+  \item ID enumeration resistance through relationship-scoped query design
+  \item Token tampering detection via JWT signature verification
+  \item Password strength enforcement at the validation layer
 \end{itemize}
 
 \section{Conclusion}
