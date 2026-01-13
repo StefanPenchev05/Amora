@@ -24,6 +24,14 @@ type AuthenticateUserResponse struct {
 	Bootstrap    *AuthBootstrap `json:"bootstrap,omitempty"`
 }
 
+// RefreshTokenResponse represents the output after refreshing an access token.
+type RefreshTokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token,omitempty"`
+	ExpiresIn    int    `json:"exp"`
+	TokenType    string `json:"token_type"`
+}
+
 // AuthBootstrap contains initial data needed by the client application
 type AuthBootstrap struct {
 	Permissions []string               `json:"permissions"`
@@ -33,37 +41,39 @@ type AuthBootstrap struct {
 
 // Wrapper for UserProfile
 type UserProfile struct {
-	Email         string  `json:"email"`
-	Username      string  `json:"username"`
-	FirstName     string  `json:"first_name"`
-	LastName      string  `json:"last_name"`
-	FullName      string  `json:"full_name"`
-	Bio           *string `json:"bio"`
-	Gender        string  `json:"gender"`
-	IsVerified    bool    `json:"is_verified"`
-	MfaEnabled    bool    `json:"mfa_enabled"`
-	AvatarPhotoID *string `json:"avatar_photo_id"`
-	Locale        string  `json:"locale"`
-	Timezone      string  `json:"timezone"`
-	CreatedAt     string  `json:"created_at"`
+	Email          string  `json:"email"`
+	Username       string  `json:"username"`
+	FirstName      string  `json:"first_name"`
+	LastName       string  `json:"last_name"`
+	FullName       string  `json:"full_name"`
+	Bio            *string `json:"bio"`
+	Gender         string  `json:"gender"`
+	IsVerified     bool    `json:"is_verified"`
+	MfaEnabled     bool    `json:"mfa_enabled"`
+	AvatarPhotoID  *string `json:"avatar_photo_id"`
+	RelationshipID *string `json:"relationship_id,omitempty"`
+	Locale         string  `json:"locale"`
+	Timezone       string  `json:"timezone"`
+	CreatedAt      string  `json:"created_at"`
 }
 
 // Helper function to convert domain user to profile
 func NewUserProfile(domainUser *domainUser.User) UserProfile {
 	profile := UserProfile{
-		Email:         domainUser.Credentials.Email.String(),
-		Username:      domainUser.Credentials.Username.String(),
-		FirstName:     domainUser.Profile.FirstName,
-		LastName:      domainUser.Profile.LastName,
-		FullName:      domainUser.GetFullName(),
-		Bio:           domainUser.Profile.Bio,
-		Gender:        domainUser.Profile.Gender.String(),
-		IsVerified:    domainUser.IsEmailVerified(),
-		MfaEnabled:    domainUser.Credentials.MfaEnabled,
-		AvatarPhotoID: domainUser.Profile.AvatarPhotoID,
-		Locale:        domainUser.Profile.Locale,
-		Timezone:      domainUser.Profile.Timezone,
-		CreatedAt:     domainUser.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		Email:          domainUser.Credentials.Email.String(),
+		Username:       domainUser.Credentials.Username.String(),
+		FirstName:      domainUser.Profile.FirstName,
+		LastName:       domainUser.Profile.LastName,
+		FullName:       domainUser.GetFullName(),
+		Bio:            domainUser.Profile.Bio,
+		Gender:         domainUser.Profile.Gender.String(),
+		IsVerified:     domainUser.IsEmailVerified(),
+		MfaEnabled:     domainUser.Credentials.MfaEnabled,
+		AvatarPhotoID:  domainUser.Profile.AvatarPhotoID,
+		RelationshipID: domainUser.Profile.RelationshipID,
+		Locale:         domainUser.Profile.Locale,
+		Timezone:       domainUser.Profile.Timezone,
+		CreatedAt:      domainUser.CreatedAt.Format("2006-01-02T15:04:05Z"),
 	}
 
 	return profile

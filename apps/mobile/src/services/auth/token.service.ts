@@ -12,7 +12,7 @@ export const TokenService = {
   getRefresh: () => secureStorage.getItem<string>(KEY.REFRESH),
   setTokens: async (access: string, refresh?: string) => {
     await secureStorage.setItem(KEY.ACCESS, access);
-    if (refresh) secureStorage.setItem(KEY.REFRESH, refresh);
+    if (refresh) await secureStorage.setItem(KEY.REFRESH, refresh);
   },
   clear: async () => {
     await secureStorage.deleteItem(KEY.ACCESS);

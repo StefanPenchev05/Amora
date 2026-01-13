@@ -3,32 +3,32 @@ import { TokenService } from "../auth/token.service";
 
 let refreshing: Promise<string | null> | null = null;
 
-// expected shape: { token: { accessToken, refreshToken? } }
 type RefreshResponse = {
-  token: {
-    accessToken: string;
-    refreshToken?: string;
-  };
+  access_token: string;
+  refresh_token?: string;
+  token_type: string;
+  exp: number;
 };
 
 async function runRefresh(): Promise<string | null> {
   const refreshToken = await TokenService.getRefresh();
   if (!refreshToken) return null;
 
-  const res = await fetch(`${Env.API_URL}/auth/refresh/`, {
+  const res = await fetch(`${Env.API_URL}/auth/refresh`, {
     method: "POST",
-    body: JSON.stringify({ refreshToken }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ refresh_token: refreshToken }),
   });
   const json = (await res.json()) as RefreshResponse;
 
-  if (!res.ok || !json?.token) {
+  if (!res.ok || !json?.access_token) {
     throw new Error(`${res.status}`);
   }
 
-  const tokens = json.token;
-  await TokenService.setTokens(tokens.accessToken, tokens.refreshToken);
-
-  return tokens.accessToken;
+  await TokenService.setTokens(json.access_token, json.refresh_token);
+  return json.access_token;
 }
 
 

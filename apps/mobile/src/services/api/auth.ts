@@ -1,4 +1,8 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiClient from './client';
+import { TokenService } from '../auth/token.service';
+
+const CURRENT_USER_KEY = 'current_user';
 
 export interface LoginRequest {
   email: string;
@@ -19,6 +23,7 @@ export interface AuthResponse {
     email: string;
     first_name: string;
     last_name: string;
+    relationship_id?: string;
   };
   access_token: string;
   refresh_token: string;
@@ -41,7 +46,13 @@ export const authService = {
       email_or_username: data.email,
       password: data.password,
     });
+
+    // Store tokens in SecureStore (preferred) + keep legacy storage for compatibility.
+    await TokenService.setTokens(response.access_token, response.refresh_token);
     await apiClient.setToken(response.access_token);
+
+    // Cache user info for UI.
+    await AsyncStorage.setItem(CURRENT_USER_KEY, JSON.stringify(response.user));
     return response;
   },
 
@@ -57,7 +68,20 @@ export const authService = {
   },
 
   async logout(): Promise<void> {
+    await TokenService.clear();
     await apiClient.removeToken();
+
+    await AsyncStorage.removeItem(CURRENT_USER_KEY);
+  },
+
+  async getCurrentUser(): Promise<AuthResponse['user'] | null> {
+    const raw = await AsyncStorage.getItem(CURRENT_USER_KEY);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as AuthResponse['user'];
+    } catch {
+      return null;
+    }
   },
 
   async isAuthenticated(): Promise<boolean> {

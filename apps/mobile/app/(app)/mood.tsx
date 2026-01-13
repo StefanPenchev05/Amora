@@ -1,41 +1,49 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Modal,
-  TextInput,
-  Dimensions,
-  Alert,
   ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import Screen from '../../src/components/layout/Screen';
+import AppHeader from '../../src/components/layout/AppHeader';
+import Card from '../../src/components/ui/Card';
+import IconCircleButton from '../../src/components/ui/IconCircleButton';
+import { withOpacity } from '../../src/components/form/color';
+import { lightTheme } from '../../src/styles/theme';
 import { moodService } from '../../src/services/api/moods';
-
-const { width } = Dimensions.get('window');
+import { relationshipService, RelationshipStatusResponse } from '../../src/services/api/relationship';
 
 const moodEmojis = [
   { value: 1, emoji: '😢', label: 'Sad', color: '#6B8E9D' },
-  { value: 2, emoji: '😕', label: 'Not Great', color: '#9DA6B8' },
-  { value: 3, emoji: '😐', label: 'Okay', color: '#FFB347' },
-  { value: 4, emoji: '😊', label: 'Good', color: '#87CEEB' },
-  { value: 5, emoji: '😄', label: 'Amazing', color: '#50C878' },
-];
+  { value: 2, emoji: '😕', label: 'Not great', color: '#9DA6B8' },
+  { value: 3, emoji: '😐', label: 'Okay', color: '#F59E0B' },
+  { value: 4, emoji: '😊', label: 'Good', color: '#60A5FA' },
+  { value: 5, emoji: '😄', label: 'Amazing', color: '#22C55E' },
+] as const;
 
-interface MoodEntry {
+type MoodEntry = {
   id: string;
   mood: number;
   date: string;
   time: string;
   note: string;
-}
+};
 
 export default function MoodScreen() {
   const router = useRouter();
+  const theme = lightTheme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
+  const [relationship, setRelationship] = useState<RelationshipStatusResponse | null>(null);
+  const [loadingRelationship, setLoadingRelationship] = useState(false);
+
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedMood, setSelectedMood] = useState<number | null>(null);
   const [moodNote, setMoodNote] = useState('');
@@ -43,7 +51,8 @@ export default function MoodScreen() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadMoods();
+    void loadMoods();
+    void loadRelationship();
   }, []);
 
   const formatDateLabel = (dateStr: string) => {
@@ -57,6 +66,19 @@ export default function MoodScreen() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  const loadRelationship = async () => {
+    try {
+      setLoadingRelationship(true);
+      const status = await relationshipService.getStatus();
+      setRelationship(status);
+    } catch {
+      // Non-blocking.
+      setRelationship(null);
+    } finally {
+      setLoadingRelationship(false);
+    }
+  };
+
   const loadMoods = async () => {
     try {
       const apiMoods = await moodService.getAll();
@@ -64,8 +86,11 @@ export default function MoodScreen() {
         id: m.id,
         mood: m.level,
         date: formatDateLabel(m.mood_date),
-        time: new Date(m.mood_date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-        note: m.note || 'No note',
+        time: new Date(m.mood_date).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+        }),
+        note: m.note?.trim() ? m.note : '—',
       }));
       setMoodHistory(mapped);
     } catch (error) {
@@ -73,12 +98,6 @@ export default function MoodScreen() {
       console.error('Error loading moods:', error);
     }
   };
-
-  const partnerMoodHistory = [
-    { id: 1, mood: 4, date: 'Today', time: '11:00 AM', note: 'Loved our breakfast!' },
-    { id: 2, mood: 5, date: 'Yesterday', time: '9:00 PM', note: 'Best movie night ever' },
-    { id: 3, mood: 3, date: 'Jan 13', time: '3:00 PM', note: 'Tired but happy to help' },
-  ];
 
   const handleSaveMood = async () => {
     if (!selectedMood) return;
@@ -113,452 +132,535 @@ export default function MoodScreen() {
     }
   };
 
-  const getMoodEmoji = (value: number) => {
-    return moodEmojis.find(m => m.value === value);
-  };
+  const getMoodMeta = (value: number) => moodEmojis.find((m) => m.value === value);
 
-  const getWeeklyAverage = () => {
-    if (moodHistory.length === 0) return '0.0';
-    const sum = moodHistory.slice(0, 7).reduce((acc, m) => acc + m.mood, 0);
-    return (sum / Math.min(moodHistory.length, 7)).toFixed(1);
-  };
+  const weeklyAverage = useMemo(() => {
+    if (moodHistory.length === 0) return '—';
+    const slice = moodHistory.slice(0, 7);
+    const sum = slice.reduce((acc, m) => acc + m.mood, 0);
+    return (sum / slice.length).toFixed(1);
+  }, [moodHistory]);
+
+  const partnerConnected = relationship?.status === 'active';
+  const partnerName = relationship?.partner?.full_name || relationship?.partner?.username || 'Partner';
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={['#E5F3FF', '#FFF5E5', '#FFFFFF']}
-        style={styles.gradient}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Mood Tracking</Text>
-          <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addButton}>
-            <Ionicons name="add-circle" size={28} color="#4A90E2" />
-          </TouchableOpacity>
+    <Screen scroll theme={theme} contentStyle={styles.content}>
+      <AppHeader
+        title="Mood"
+        subtitle="Track how you feel"
+        onBack={() => router.back()}
+        theme={theme}
+        right={
+          <IconCircleButton
+            icon="add"
+            theme={theme}
+            onPress={() => {
+              setSelectedMood(null);
+              setMoodNote('');
+              setModalVisible(true);
+            }}
+          />
+        }
+      />
+
+      <Card theme={theme} style={styles.summaryCard}>
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryLeft}>
+            <Text style={styles.cardTitle}>This week</Text>
+            <Text style={styles.cardSubtitle}>Average mood</Text>
+          </View>
+          <View style={styles.summaryRight}>
+            <Text style={styles.averageText}>{weeklyAverage}</Text>
+          </View>
         </View>
 
-        {/* Mood Summary */}
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Your Week</Text>
-          <View style={styles.summaryContent}>
-            <Text style={styles.averageText}>{getWeeklyAverage()}</Text>
-            <Text style={styles.averageLabel}>Average Mood</Text>
-          </View>
-          <View style={styles.moodBar}>
-            {moodHistory.slice(0, 7).reverse().map((mood) => {
-              const moodData = getMoodEmoji(mood.mood);
+        <View style={styles.moodBar}>
+          {moodHistory
+            .slice(0, 7)
+            .reverse()
+            .map((m) => {
+              const meta = getMoodMeta(m.mood);
               return (
-                <View key={mood.id} style={styles.barColumn}>
+                <View key={m.id} style={styles.barColumn}>
                   <View
                     style={[
                       styles.barFill,
                       {
-                        height: `${mood.mood * 20}%`,
-                        backgroundColor: moodData?.color || '#999',
+                        height: `${m.mood * 20}%`,
+                        backgroundColor: meta?.color ?? theme.colors.primary,
                       },
                     ]}
                   />
                 </View>
               );
             })}
+          {moodHistory.length === 0 ? (
+            <View style={styles.emptyBarHint}>
+              <Text style={styles.emptyBarText}>Log a mood to see trends.</Text>
+            </View>
+          ) : null}
+        </View>
+      </Card>
+
+      {partnerConnected ? (
+        <Card theme={theme} style={styles.partnerCard}>
+          <View style={styles.partnerRow}>
+            <View style={[styles.partnerIcon, { backgroundColor: withOpacity(theme.colors.accent, 0.12) }]}>
+              <Ionicons name="checkmark" size={18} color={theme.colors.accent} />
+            </View>
+            <View style={styles.partnerText}>
+              <Text style={styles.cardTitle}>{partnerName} connected</Text>
+              <Text style={styles.cardSubtitle}>
+                Partner mood sharing will appear here once available.
+              </Text>
+            </View>
           </View>
+        </Card>
+      ) : (
+        <Card theme={theme} style={styles.partnerCard}>
+          <View style={styles.partnerRow}>
+            <View style={styles.partnerIcon}>
+              <Ionicons name="heart" size={18} color={theme.colors.primary} />
+            </View>
+            <View style={styles.partnerText}>
+              <Text style={styles.cardTitle}>Share with a partner</Text>
+              <Text style={styles.cardSubtitle}>
+                Connect your partner to unlock shared features.
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => router.push('/(app)/partner')}
+              style={({ pressed }) => [styles.partnerCta, pressed && styles.pressed]}
+            >
+              <Text style={styles.partnerCtaText}>Connect</Text>
+            </Pressable>
+          </View>
+          {loadingRelationship ? (
+            <Text style={styles.microText}>Checking relationship...</Text>
+          ) : null}
+        </Card>
+      )}
+
+      <Card theme={theme} style={styles.card}>
+        <Text style={styles.sectionTitle}>How are you feeling?</Text>
+        <View style={styles.moodRow}>
+          {moodEmojis.map((m) => (
+            <Pressable
+              key={m.value}
+              onPress={() => {
+                setSelectedMood(m.value);
+                setModalVisible(true);
+              }}
+              style={({ pressed }) => [
+                styles.moodButton,
+                { backgroundColor: withOpacity(m.color, 0.12) },
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.moodEmoji}>{m.emoji}</Text>
+              <Text style={styles.moodLabel}>{m.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </Card>
+
+      <Card theme={theme} style={styles.card}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>History</Text>
+          <Pressable onPress={loadMoods} style={({ pressed }) => [styles.refreshBtn, pressed && styles.pressed]}>
+            <Ionicons name="refresh" size={18} color={theme.colors.textMuted} />
+          </Pressable>
         </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Quick Mood Selector */}
-          <View style={styles.quickMoodSection}>
-            <Text style={styles.sectionTitle}>How are you feeling?</Text>
-            <View style={styles.moodGrid}>
-              {moodEmojis.map((mood) => (
-                <TouchableOpacity
-                  key={mood.value}
-                  style={styles.moodButton}
-                  onPress={() => {
-                    setSelectedMood(mood.value);
-                    setModalVisible(true);
-                  }}
-                >
-                  <Text style={styles.moodEmoji}>{mood.emoji}</Text>
-                  <Text style={styles.moodLabel}>{mood.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+        {moodHistory.length === 0 ? (
+          <Text style={styles.emptyText}>No moods yet. Add your first one.</Text>
+        ) : null}
 
-          {/* Your Mood History */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Your Mood History</Text>
-            {moodHistory.map((entry) => {
-              const moodData = getMoodEmoji(entry.mood);
-              return (
-                <View key={entry.id} style={styles.moodCard}>
-                  <View style={[styles.moodIndicator, { backgroundColor: moodData?.color }]}>
-                    <Text style={styles.moodCardEmoji}>{moodData?.emoji}</Text>
-                  </View>
-                  <View style={styles.moodCardContent}>
-                    <Text style={styles.moodCardNote}>{entry.note}</Text>
-                    <View style={styles.moodCardMeta}>
-                      <Text style={styles.moodCardDate}>{entry.date}</Text>
-                      <Text style={styles.moodCardTime}>{entry.time}</Text>
-                    </View>
-                  </View>
-                  <TouchableOpacity 
-                    style={styles.deleteButton}
-                    onPress={() => handleDeleteMood(entry.id)}
-                  >
-                    <Ionicons name="trash-outline" size={20} color="#FF6B9D" />
-                  </TouchableOpacity>
-                </View>
-              );
-            })}
-          </View>
-
-          {/* Partner's Mood */}
-          <View style={styles.section}>
-            <View style={styles.partnerHeader}>
-              <Text style={styles.sectionTitle}>Alex's Mood</Text>
-              <View style={styles.partnerBadge}>
-                <Ionicons name="heart" size={16} color="#FF6B9D" />
+        {moodHistory.map((entry, index) => {
+          const meta = getMoodMeta(entry.mood);
+          return (
+            <View
+              key={entry.id}
+              style={[
+                styles.row,
+                index !== 0 && { marginTop: theme.spacing[3] },
+                { borderColor: theme.colors.border },
+              ]}
+            >
+              <View style={[styles.moodIndicator, { backgroundColor: withOpacity(meta?.color ?? theme.colors.primary, 0.16) }]}>
+                <Text style={styles.moodCardEmoji}>{meta?.emoji ?? '🙂'}</Text>
               </View>
+              <View style={styles.rowContent}>
+                <Text numberOfLines={2} style={styles.rowTitle}>
+                  {entry.note}
+                </Text>
+                <Text style={styles.rowMeta}>
+                  {entry.date} • {entry.time}
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => handleDeleteMood(entry.id)}
+                hitSlop={10}
+                style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+              >
+                <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
+              </Pressable>
             </View>
-            {partnerMoodHistory.map((entry) => {
-              const moodData = getMoodEmoji(entry.mood);
-              return (
-                <TouchableOpacity key={entry.id} style={styles.moodCard}>
-                  <View style={[styles.moodIndicator, { backgroundColor: moodData?.color }]}>
-                    <Text style={styles.moodCardEmoji}>{moodData?.emoji}</Text>
-                  </View>
-                  <View style={styles.moodCardContent}>
-                    <Text style={styles.moodCardNote}>{entry.note}</Text>
-                    <View style={styles.moodCardMeta}>
-                      <Text style={styles.moodCardDate}>{entry.date}</Text>
-                      <Text style={styles.moodCardTime}>{entry.time}</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          );
+        })}
+      </Card>
 
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      </LinearGradient>
-
-      {/* Add Mood Modal */}
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Log Your Mood</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={28} color="#666" />
-              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Log mood</Text>
+              <Pressable onPress={() => setModalVisible(false)} hitSlop={10}>
+                <Ionicons name="close" size={26} color={theme.colors.textMuted} />
+              </Pressable>
             </View>
 
-            <View style={styles.modalMoodSelector}>
-              {moodEmojis.map((mood) => (
-                <TouchableOpacity
-                  key={mood.value}
-                  style={[
-                    styles.modalMoodOption,
-                    selectedMood === mood.value && { backgroundColor: mood.color },
-                  ]}
-                  onPress={() => setSelectedMood(mood.value)}
-                >
-                  <Text style={styles.modalMoodEmoji}>{mood.emoji}</Text>
-                </TouchableOpacity>
-              ))}
+            <View style={styles.modalMoodRow}>
+              {moodEmojis.map((m) => {
+                const selected = selectedMood === m.value;
+                return (
+                  <Pressable
+                    key={m.value}
+                    onPress={() => setSelectedMood(m.value)}
+                    style={({ pressed }) => [
+                      styles.modalMoodOption,
+                      {
+                        borderColor: selected ? withOpacity(theme.colors.primary, 0.35) : theme.colors.border,
+                        backgroundColor: selected
+                          ? withOpacity(m.color, 0.18)
+                          : withOpacity(theme.colors.surface, 0.7),
+                      },
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <Text style={styles.modalMoodEmoji}>{m.emoji}</Text>
+                  </Pressable>
+                );
+              })}
             </View>
 
-            {selectedMood && (
-              <Text style={styles.selectedMoodText}>
-                {getMoodEmoji(selectedMood)?.label}
-              </Text>
+            {selectedMood ? (
+              <Text style={styles.selectedMoodText}>{getMoodMeta(selectedMood)?.label}</Text>
+            ) : (
+              <Text style={styles.selectedMoodHint}>Pick a mood to continue.</Text>
             )}
 
             <TextInput
               style={styles.noteInput}
               placeholder="Add a note (optional)"
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.colors.textMuted}
               multiline
               numberOfLines={4}
               value={moodNote}
               onChangeText={setMoodNote}
             />
 
-            <TouchableOpacity
-              style={[
-                styles.saveMoodButton,
-                (!selectedMood || saving) && styles.saveMoodButtonDisabled,
-              ]}
+            <Pressable
               onPress={handleSaveMood}
               disabled={!selectedMood || saving}
+              style={({ pressed }) => [
+                styles.saveMoodButton,
+                (!selectedMood || saving) && styles.saveMoodButtonDisabled,
+                pressed && styles.pressed,
+              ]}
             >
               {saving ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={theme.colors.onPrimary} />
               ) : (
-                <Text style={styles.saveMoodButtonText}>Save Mood</Text>
+                <Text style={styles.saveMoodButtonText}>Save</Text>
               )}
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </Modal>
-    </View>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  gradient: {
-    flex: 1,
-    paddingTop: 60,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  addButton: {
-    padding: 8,
-  },
-  summaryCard: {
-    backgroundColor: 'white',
-    marginHorizontal: 20,
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  summaryTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: 12,
-  },
-  summaryContent: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  averageText: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#4A90E2',
-  },
-  averageLabel: {
-    fontSize: 14,
-    color: '#666',
-  },
-  moodBar: {
-    flexDirection: 'row',
-    height: 100,
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-  },
-  barColumn: {
-    flex: 1,
-    marginHorizontal: 2,
-    backgroundColor: '#F0F0F0',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  barFill: {
-    width: '100%',
-    borderRadius: 4,
-    position: 'absolute',
-    bottom: 0,
-  },
-  content: {
-    flex: 1,
-  },
-  quickMoodSection: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-  },
-  moodGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  moodButton: {
-    width: (width - 80) / 5,
-    aspectRatio: 1,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  moodEmoji: {
-    fontSize: 32,
-    marginBottom: 4,
-  },
-  moodLabel: {
-    fontSize: 10,
-    color: '#666',
-    textAlign: 'center',
-  },
-  section: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  moodCard: {
-    flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  moodIndicator: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  moodCardEmoji: {
-    fontSize: 24,
-  },
-  moodCardContent: {
-    flex: 1,
-  },
-  moodCardNote: {
-    fontSize: 15,
-    color: '#333',
-    marginBottom: 6,
-  },
-  moodCardMeta: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  moodCardDate: {
-    fontSize: 13,
-    color: '#666',
-  },
-  moodCardTime: {
-    fontSize: 13,
-    color: '#999',
-  },
-  partnerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  partnerBadge: {
-    marginLeft: 8,
-    backgroundColor: '#FFE5EC',
-    padding: 4,
-    borderRadius: 12,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    minHeight: 450,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  modalMoodSelector: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  modalMoodOption: {
-    width: (width - 120) / 5,
-    aspectRatio: 1,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalMoodEmoji: {
-    fontSize: 36,
-  },
-  selectedMoodText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  noteInput: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    minHeight: 100,
-    textAlignVertical: 'top',
-    marginBottom: 24,
-    color: '#333',
-  },
-  saveMoodButton: {
-    backgroundColor: '#4A90E2',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  saveMoodButtonDisabled: {
-    backgroundColor: '#ccc',
-  },
-  saveMoodButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  deleteButton: {
-    padding: 8,
-  },
-});
+const createStyles = (theme: typeof lightTheme) =>
+  StyleSheet.create({
+    content: {
+      paddingTop: theme.spacing[4],
+    },
+    pressed: {
+      opacity: 0.92,
+      transform: [{ scale: 0.99 }],
+    },
+    card: {
+      marginTop: theme.spacing[4],
+    },
+    summaryCard: {
+      marginTop: theme.spacing[4],
+    },
+    partnerCard: {
+      marginTop: theme.spacing[4],
+      paddingVertical: theme.spacing[4],
+    },
+    cardTitle: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+    },
+    cardSubtitle: {
+      marginTop: 2,
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.regular,
+      color: theme.colors.textMuted,
+    },
+    microText: {
+      marginTop: theme.spacing[2],
+      fontSize: theme.typography.fontSize.xs,
+      color: theme.colors.textMuted,
+    },
+    summaryRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'space-between',
+    },
+    summaryLeft: {
+      flex: 1,
+    },
+    summaryRight: {
+      alignItems: 'flex-end',
+    },
+    averageText: {
+      fontSize: 34,
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.secondary,
+    },
+    moodBar: {
+      marginTop: theme.spacing[4],
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      height: 96,
+    },
+    barColumn: {
+      flex: 1,
+      height: '100%',
+      marginHorizontal: 3,
+      backgroundColor: withOpacity(theme.colors.border, 0.6),
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    barFill: {
+      width: '100%',
+      position: 'absolute',
+      bottom: 0,
+      borderRadius: 8,
+    },
+    emptyBarHint: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    emptyBarText: {
+      fontSize: theme.typography.fontSize.sm,
+      color: theme.colors.textMuted,
+    },
+    partnerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    partnerIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: withOpacity(theme.colors.primary, 0.12),
+    },
+    partnerText: {
+      flex: 1,
+      paddingHorizontal: theme.spacing[3],
+    },
+    partnerCta: {
+      paddingHorizontal: theme.spacing[4],
+      paddingVertical: theme.spacing[2],
+      borderRadius: 999,
+      backgroundColor: withOpacity(theme.colors.primary, 0.12),
+      borderWidth: 1,
+      borderColor: withOpacity(theme.colors.primary, 0.2),
+    },
+    partnerCtaText: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.primary,
+    },
+    sectionTitle: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+    },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: theme.spacing[3],
+    },
+    refreshBtn: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: withOpacity(theme.colors.border, 0.5),
+    },
+    moodRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: theme.spacing[4],
+    },
+    moodButton: {
+      width: 62,
+      paddingVertical: theme.spacing[3],
+      borderRadius: theme.radius.lg,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: withOpacity(theme.colors.border, 0.7),
+    },
+    moodEmoji: {
+      fontSize: 26,
+    },
+    moodLabel: {
+      marginTop: 6,
+      fontSize: theme.typography.fontSize.xs,
+      color: theme.colors.textMuted,
+      textAlign: 'center',
+    },
+    emptyText: {
+      marginTop: theme.spacing[3],
+      fontSize: theme.typography.fontSize.sm,
+      color: theme.colors.textMuted,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: theme.spacing[3],
+      borderRadius: theme.radius.lg,
+      borderWidth: 1,
+    },
+    moodIndicator: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    moodCardEmoji: {
+      fontSize: 18,
+    },
+    rowContent: {
+      flex: 1,
+      paddingHorizontal: theme.spacing[3],
+    },
+    rowTitle: {
+      fontSize: theme.typography.fontSize.base,
+      color: theme.colors.textPrimary,
+    },
+    rowMeta: {
+      marginTop: 2,
+      fontSize: theme.typography.fontSize.sm,
+      color: theme.colors.textMuted,
+    },
+    iconBtn: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: withOpacity(theme.colors.error, 0.08),
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.45)',
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: theme.colors.surface,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      padding: theme.spacing[5],
+      paddingBottom: theme.spacing[8],
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: theme.spacing[4],
+    },
+    modalTitle: {
+      fontSize: theme.typography.fontSize.lg,
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.textPrimary,
+    },
+    modalMoodRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: theme.spacing[3],
+    },
+    modalMoodOption: {
+      width: 56,
+      height: 56,
+      borderRadius: 18,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalMoodEmoji: {
+      fontSize: 24,
+    },
+    selectedMoodText: {
+      marginBottom: theme.spacing[3],
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+      textAlign: 'center',
+    },
+    selectedMoodHint: {
+      marginBottom: theme.spacing[3],
+      fontSize: theme.typography.fontSize.sm,
+      color: theme.colors.textMuted,
+      textAlign: 'center',
+    },
+    noteInput: {
+      minHeight: 110,
+      borderRadius: theme.radius.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      padding: theme.spacing[4],
+      fontSize: theme.typography.fontSize.base,
+      color: theme.colors.textPrimary,
+      backgroundColor: withOpacity(theme.colors.background, 0.7),
+    },
+    saveMoodButton: {
+      marginTop: theme.spacing[4],
+      height: 52,
+      borderRadius: 999,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.primary,
+    },
+    saveMoodButtonDisabled: {
+      opacity: 0.5,
+    },
+    saveMoodButtonText: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.onPrimary,
+    },
+  });

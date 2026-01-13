@@ -7,15 +7,17 @@ import (
 )
 
 type AppRoutes struct {
-	eventHandler   *handlers.EventHandler
-	moodHandler    *handlers.MoodHandler
-	noteHandler    *handlers.NoteHandler
-	memoryHandler  *handlers.MemoryHandler
-	expenseHandler *handlers.ExpenseHandler
-	authMiddleware httpInfra.Middleware
+	relationshipHandler *handlers.RelationshipHandler
+	eventHandler        *handlers.EventHandler
+	moodHandler         *handlers.MoodHandler
+	noteHandler         *handlers.NoteHandler
+	memoryHandler       *handlers.MemoryHandler
+	expenseHandler      *handlers.ExpenseHandler
+	authMiddleware      httpInfra.Middleware
 }
 
 func NewAppRoutes(
+	relationshipHandler *handlers.RelationshipHandler,
 	eventHandler *handlers.EventHandler,
 	moodHandler *handlers.MoodHandler,
 	noteHandler *handlers.NoteHandler,
@@ -24,12 +26,13 @@ func NewAppRoutes(
 	authMiddleware httpInfra.Middleware,
 ) *AppRoutes {
 	return &AppRoutes{
-		eventHandler:   eventHandler,
-		moodHandler:    moodHandler,
-		noteHandler:    noteHandler,
-		memoryHandler:  memoryHandler,
-		expenseHandler: expenseHandler,
-		authMiddleware: authMiddleware,
+		relationshipHandler: relationshipHandler,
+		eventHandler:        eventHandler,
+		moodHandler:         moodHandler,
+		noteHandler:         noteHandler,
+		memoryHandler:       memoryHandler,
+		expenseHandler:      expenseHandler,
+		authMiddleware:      authMiddleware,
 	}
 }
 
@@ -42,6 +45,14 @@ func (a *AppRoutes) RegisterRoutes(router httpInfra.Router) {
 		if a.authMiddleware != nil {
 			r.Use(a.authMiddleware.Handle)
 		}
+
+		// Relationship routes
+		r.Get("/relationship", a.relationshipHandler.GetStatus)
+		r.Post("/relationship/invite", a.relationshipHandler.CreateInvite)
+		r.Post("/relationship/invite/regenerate", a.relationshipHandler.RegenerateInvite)
+		r.Post("/relationship/accept", a.relationshipHandler.AcceptInvite)
+		r.Post("/relationship/breakup", a.relationshipHandler.BreakUp)
+
 		// Event routes
 		r.Post("/events", a.eventHandler.CreateEvent)
 		r.Get("/events", a.eventHandler.GetEvents)

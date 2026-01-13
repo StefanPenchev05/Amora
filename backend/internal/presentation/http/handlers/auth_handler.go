@@ -14,6 +14,8 @@ type AuthHandler struct {
 	logger    *slog.Logger
 }
 
+const invalidRequestBodyMessage = "Invalid request body"
+
 func NewAuthHandler(container *container.Container, logger *slog.Logger) *AuthHandler {
 	return &AuthHandler{
 		container: container,
@@ -31,7 +33,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("Invalid registration request", "error", err)
 		respondJSON(w, http.StatusBadRequest, dtoUser.ErrorResponse{
 			Error:   "invalid_request",
-			Message: "Invalid request body",
+			Message: invalidRequestBodyMessage,
 		})
 		return
 	}
@@ -93,7 +95,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("Invalid login request", "error", err)
 		respondJSON(w, http.StatusBadRequest, dtoUser.ErrorResponse{
 			Error:   "invalid_request",
-			Message: "Invalid request body",
+			Message: invalidRequestBodyMessage,
 		})
 		return
 	}
@@ -115,6 +117,51 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info("User logged in successfully", "username", output.User.Username)
 
 	respondJSON(w, http.StatusOK, output)
+}
+
+// RefreshToken refreshes the access token using a valid refresh token.
+// POST /auth/refresh
+func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
+	var req dtoUser.RefreshTokenRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.logger.Error("Invalid refresh request", "error", err)
+		respondJSON(w, http.StatusBadRequest, dtoUser.ErrorResponse{
+			Error:   "invalid_request",
+			Message: invalidRequestBodyMessage,
+		})
+		return
+	}
+
+	refreshToken := req.RefreshToken
+	if refreshToken == "" {
+		refreshToken = req.RefreshToken2
+	}
+	if refreshToken == "" {
+		respondJSON(w, http.StatusBadRequest, dtoUser.ErrorResponse{
+			Error:   "validation_error",
+			Message: "Missing refresh token",
+		})
+		return
+	}
+
+	jwtSvc := h.container.GetJWTService()
+	accessToken, err := jwtSvc.RefreshAccessToken(refreshToken)
+	if err != nil {
+		h.logger.Warn("Refresh token failed", "error", err)
+		respondJSON(w, http.StatusUnauthorized, dtoUser.ErrorResponse{
+			Error:   "unauthorized",
+			Message: "Invalid or expired refresh token",
+		})
+		return
+	}
+
+	expiresIn := jwtSvc.GetAccessTokenExpiration()
+	respondJSON(w, http.StatusOK, dtoUser.RefreshTokenResponse{
+		AccessToken: accessToken,
+		TokenType:   "Bearer",
+		ExpiresIn:   int(expiresIn),
+	})
 }
 
 // respondJSON is a helper function to send JSON responses

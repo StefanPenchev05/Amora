@@ -16,3 +16,10 @@ type AuthenticateUserRequest struct {
 	IPAddress       string `json:"ip_address,omitempty"`
 	UserAgent       string `json:"user_agent,omitempty"`
 }
+
+// RefreshTokenRequest represents the input for refreshing an access token.
+// It accepts both snake_case and camelCase for client compatibility.
+type RefreshTokenRequest struct {
+	RefreshToken  string `json:"refresh_token,omitempty"`
+	RefreshToken2 string `json:"refreshToken,omitempty"`
+}
