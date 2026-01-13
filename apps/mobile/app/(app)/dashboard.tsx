@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,15 +6,44 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
+import { authService } from '../../src/services/api/auth';
+
 const { width } = Dimensions.get('window');
 
 export default function DashboardScreen() {
   const router = useRouter();
+
+  const [userName, setUserName] = useState<string>('');
+  const [loadingUser, setLoadingUser] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadUser = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        if (cancelled) return;
+
+        const displayName =
+          [user?.first_name, user?.last_name].filter(Boolean).join(' ') ||
+          user?.username ||
+          '';
+        setUserName(displayName);
+      } finally {
+        if (!cancelled) setLoadingUser(false);
+      }
+    };
+
+    loadUser();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const mockPartner = {
     name: 'Alex',
@@ -43,7 +72,16 @@ export default function DashboardScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Hello, Sarah! 👋</Text>
+            {loadingUser ? (
+              <View style={styles.greetingRow}>
+                <ActivityIndicator size="small" color="#FF6B9D" />
+                <Text style={styles.greetingLoadingText}>Loading...</Text>
+              </View>
+            ) : (
+              <Text style={styles.greeting}>
+                {userName ? `Hello, ${userName}! 👋` : 'Hello! 👋'}
+              </Text>
+            )}
             <Text style={styles.subtitle}>Welcome back to your space</Text>
           </View>
           <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/(app)/profile')}>
@@ -175,6 +213,16 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     color: '#333',
+  },
+  greetingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  greetingLoadingText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#666',
   },
   subtitle: {
     fontSize: 14,

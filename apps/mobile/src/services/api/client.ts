@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { TokenService } from '../auth/token.service';
 
 const API_URL = 'http://localhost:8000';
 const TOKEN_KEY = 'auth_token';
@@ -16,7 +17,18 @@ class ApiClient {
   }
 
   private async getHeaders(): Promise<HeadersInit> {
-    const token = await AsyncStorage.getItem(TOKEN_KEY);
+    // Prefer SecureStore-backed access token (TokenService), but fall back to
+    // legacy AsyncStorage key for backwards compatibility.
+    let token: string | null = null;
+    try {
+      token = (await TokenService.getAccess()) ?? null;
+    } catch {
+      token = null;
+    }
+
+    if (!token) {
+      token = await AsyncStorage.getItem(TOKEN_KEY);
+    }
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
@@ -34,15 +46,32 @@ class ApiClient {
 
   async setToken(token: string | undefined): Promise<void> {
     if (token) {
+      // Store in SecureStore (preferred)
+      try {
+        await TokenService.setTokens(token);
+      } catch {
+        // ignore and still write legacy storage
+      }
       await AsyncStorage.setItem(TOKEN_KEY, token);
     }
   }
 
   async removeToken(): Promise<void> {
+    try {
+      await TokenService.clear();
+    } catch {
+      // ignore
+    }
     await AsyncStorage.removeItem(TOKEN_KEY);
   }
 
   async getToken(): Promise<string | null> {
+    try {
+      const token = (await TokenService.getAccess()) ?? null;
+      if (token) return token;
+    } catch {
+      // ignore
+    }
     return await AsyncStorage.getItem(TOKEN_KEY);
   }
 
