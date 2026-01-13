@@ -13,6 +13,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { authService } from '../../src/services/api/auth';
+import { eventService, type Event } from '../../src/services/api/events';
+import { memoryService, type Memory } from '../../src/services/api/memories';
 
 const { width } = Dimensions.get('window');
 
@@ -21,6 +23,10 @@ export default function DashboardScreen() {
 
   const [userName, setUserName] = useState<string>('');
   const [loadingUser, setLoadingUser] = useState(true);
+
+  const [events, setEvents] = useState<Event[]>([]);
+  const [memories, setMemories] = useState<Memory[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -45,23 +51,101 @@ export default function DashboardScreen() {
     };
   }, []);
 
-  const mockPartner = {
-    name: 'Alex',
-    mood: '😊',
-    lastSeen: '2 hours ago',
+  useEffect(() => {
+    let cancelled = false;
+    const loadDashboardData = async () => {
+      try {
+        const [eventsRes, memoriesRes] = await Promise.all([
+          eventService.getAll(),
+          memoryService.getAll(),
+        ]);
+
+        if (cancelled) return;
+
+        const sortedEvents = [...eventsRes].sort((a, b) => a.event_date.localeCompare(b.event_date));
+        const sortedMemories = [...memoriesRes].sort((a, b) => b.memory_date.localeCompare(a.memory_date));
+
+        setEvents(sortedEvents.slice(0, 3));
+        setMemories(sortedMemories.slice(0, 6));
+      } finally {
+        if (!cancelled) setLoadingData(false);
+      }
+    };
+
+    loadDashboardData();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const formatShortDateTime = (iso: string): string => {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return iso;
+    return date.toLocaleString();
   };
 
-  const upcomingEvents = [
-    { id: 1, title: 'Date Night', date: 'Tonight 7:00 PM', icon: '🍽️' },
-    { id: 2, title: 'Movie Marathon', date: 'Tomorrow 5:00 PM', icon: '🎬' },
-    { id: 3, title: 'Anniversary', date: 'Feb 14', icon: '💕' },
-  ];
+  const formatShortDate = (iso: string): string => {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return iso;
+    return date.toLocaleDateString();
+  };
 
-  const recentMemories = [
-    { id: 1, title: 'Beach Day', date: 'Last Sunday', emoji: '🏖️' },
-    { id: 2, title: 'First Kiss', date: 'Jan 1, 2025', emoji: '💋' },
-    { id: 3, title: 'Coffee Date', date: 'Yesterday', emoji: '☕' },
-  ];
+  const renderEvents = () => {
+    if (loadingData) {
+      return (
+        <View style={styles.sectionLoadingRow}>
+          <ActivityIndicator size="small" color="#FF6B9D" />
+          <Text style={styles.sectionLoadingText}>Loading events...</Text>
+        </View>
+      );
+    }
+
+    if (events.length === 0) {
+      return <Text style={styles.emptyText}>No upcoming events yet.</Text>;
+    }
+
+    return events.map((event) => (
+      <TouchableOpacity
+        key={event.id}
+        style={styles.eventCard}
+        onPress={() => router.push('/(app)/calendar')}
+      >
+        <Text style={styles.eventEmoji}>📅</Text>
+        <View style={styles.eventInfo}>
+          <Text style={styles.eventTitle}>{event.title}</Text>
+          <Text style={styles.eventDate}>{formatShortDateTime(event.event_date)}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color="#999" />
+      </TouchableOpacity>
+    ));
+  };
+
+  const renderMemories = () => {
+    if (loadingData) {
+      return (
+        <View style={styles.sectionLoadingRow}>
+          <ActivityIndicator size="small" color="#FF6B9D" />
+          <Text style={styles.sectionLoadingText}>Loading memories...</Text>
+        </View>
+      );
+    }
+
+    if (memories.length === 0) {
+      return <Text style={styles.emptyText}>No memories yet.</Text>;
+    }
+
+    return memories.map((memory) => (
+      <TouchableOpacity
+        key={memory.id}
+        style={styles.memoryCard}
+        onPress={() => router.push('/(app)/memories')}
+      >
+        <Text style={styles.memoryEmoji}>💖</Text>
+        <Text style={styles.memoryTitle} numberOfLines={1}>{memory.title}</Text>
+        <Text style={styles.memoryDate}>{formatShortDate(memory.memory_date)}</Text>
+      </TouchableOpacity>
+    ));
+  };
 
   return (
     <LinearGradient
@@ -88,20 +172,6 @@ export default function DashboardScreen() {
             <Ionicons name="person-circle-outline" size={40} color="#FF6B9D" />
           </TouchableOpacity>
         </View>
-
-        {/* Partner Status Card */}
-        <TouchableOpacity style={styles.partnerCard} activeOpacity={0.9}>
-          <View style={styles.partnerInfo}>
-            <View style={styles.partnerAvatar}>
-              <Text style={styles.partnerAvatarText}>A</Text>
-            </View>
-            <View>
-              <Text style={styles.partnerName}>{mockPartner.name}</Text>
-              <Text style={styles.partnerStatus}>is feeling {mockPartner.mood}</Text>
-            </View>
-          </View>
-          <Text style={styles.lastSeen}>{mockPartner.lastSeen}</Text>
-        </TouchableOpacity>
 
         {/* Quick Actions */}
         <View style={styles.section}>
@@ -157,16 +227,7 @@ export default function DashboardScreen() {
               <Text style={styles.viewAll}>View All</Text>
             </TouchableOpacity>
           </View>
-          {upcomingEvents.map((event) => (
-            <TouchableOpacity key={event.id} style={styles.eventCard}>
-              <Text style={styles.eventEmoji}>{event.icon}</Text>
-              <View style={styles.eventInfo}>
-                <Text style={styles.eventTitle}>{event.title}</Text>
-                <Text style={styles.eventDate}>{event.date}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#999" />
-            </TouchableOpacity>
-          ))}
+          {renderEvents()}
         </View>
 
         {/* Recent Memories */}
@@ -178,13 +239,7 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {recentMemories.map((memory) => (
-              <TouchableOpacity key={memory.id} style={styles.memoryCard}>
-                <Text style={styles.memoryEmoji}>{memory.emoji}</Text>
-                <Text style={styles.memoryTitle}>{memory.title}</Text>
-                <Text style={styles.memoryDate}>{memory.date}</Text>
-              </TouchableOpacity>
-            ))}
+            {renderMemories()}
           </ScrollView>
         </View>
 
@@ -217,12 +272,12 @@ const styles = StyleSheet.create({
   greetingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
   },
   greetingLoadingText: {
     fontSize: 18,
     fontWeight: '600',
     color: '#666',
+    marginLeft: 10,
   },
   subtitle: {
     fontSize: 14,
@@ -231,6 +286,22 @@ const styles = StyleSheet.create({
   },
   profileButton: {
     padding: 4,
+  },
+  sectionLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  sectionLoadingText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '600',
+    marginLeft: 10,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#999',
+    paddingVertical: 12,
   },
   partnerCard: {
     backgroundColor: 'white',

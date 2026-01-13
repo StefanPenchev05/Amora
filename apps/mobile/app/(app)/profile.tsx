@@ -7,12 +7,17 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from '../../src/services/api/auth';
+import { eventService } from '../../src/services/api/events';
+import { memoryService } from '../../src/services/api/memories';
+import { noteService } from '../../src/services/api/notes';
+import { expenseService } from '../../src/services/api/expenses';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -20,8 +25,53 @@ export default function ProfileScreen() {
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [userName, setUserName] = useState<string>('');
+  const [userEmail, setUserEmail] = useState<string>('');
+  const [stats, setStats] = useState({ memories: 0, events: 0, notes: 0, expenses: 0 });
+
   useEffect(() => {
     loadSettings();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadProfile = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        if (cancelled) return;
+
+        const displayName =
+          [user?.first_name, user?.last_name].filter(Boolean).join(' ') ||
+          user?.username ||
+          '';
+        setUserName(displayName);
+        setUserEmail(user?.email || '');
+
+        const [events, memories, notes, expenses] = await Promise.all([
+          eventService.getAll(),
+          memoryService.getAll(),
+          noteService.getAll(),
+          expenseService.getAll(),
+        ]);
+
+        if (cancelled) return;
+        setStats({
+          events: events.length,
+          memories: memories.length,
+          notes: notes.length,
+          expenses: expenses.length,
+        });
+      } finally {
+        if (!cancelled) setLoadingProfile(false);
+      }
+    };
+
+    loadProfile();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const loadSettings = async () => {
@@ -85,14 +135,6 @@ export default function ProfileScreen() {
     );
   };
 
-  const mockUser = {
-    name: 'Sarah Johnson',
-    email: 'sarah@example.com',
-    partnerName: 'Alex Smith',
-    relationshipDate: 'Jan 1, 2025',
-    daysTogeth: 45,
-  };
-
   return (
     <LinearGradient
       colors={['#FFE5E5', '#FFF0F5', '#FFFFFF']}
@@ -111,41 +153,42 @@ export default function ProfileScreen() {
         {/* Profile Card */}
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>S</Text>
+            <Text style={styles.avatarText}>{(userName || 'U').slice(0, 1).toUpperCase()}</Text>
           </View>
-          <Text style={styles.userName}>{mockUser.name}</Text>
-          <Text style={styles.userEmail}>{mockUser.email}</Text>
+          {loadingProfile ? (
+            <ActivityIndicator color="#FF6B9D" />
+          ) : (
+            <>
+              <Text style={styles.userName}>{userName || '—'}</Text>
+              <Text style={styles.userEmail}>{userEmail || '—'}</Text>
+            </>
+          )}
         </View>
 
-        {/* Relationship Info */}
+        {/* Stats */}
         <View style={styles.relationshipCard}>
           <View style={styles.relationshipHeader}>
-            <Ionicons name="heart" size={24} color="#FF6B9D" />
-            <Text style={styles.relationshipTitle}>Your Relationship</Text>
+            <Ionicons name="stats-chart" size={24} color="#FF6B9D" />
+            <Text style={styles.relationshipTitle}>Your Activity</Text>
           </View>
-          <View style={styles.partnerInfo}>
-            <View style={styles.partnerAvatar}>
-              <Text style={styles.partnerAvatarText}>A</Text>
+          <View style={styles.statsRow}>
+            <View style={styles.statBox}>
+              <Text style={styles.statNumber}>{stats.memories}</Text>
+              <Text style={styles.statLabel}>Memories</Text>
             </View>
-            <View>
-              <Text style={styles.partnerName}>{mockUser.partnerName}</Text>
-              <Text style={styles.relationshipSince}>
-                Together since {mockUser.relationshipDate}
-              </Text>
+            <View style={styles.statBox}>
+              <Text style={styles.statNumber}>{stats.events}</Text>
+              <Text style={styles.statLabel}>Events</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statNumber}>{stats.notes}</Text>
+              <Text style={styles.statLabel}>Notes</Text>
             </View>
           </View>
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
-              <Text style={styles.statNumber}>{mockUser.daysTogeth}</Text>
-              <Text style={styles.statLabel}>Days Together</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statNumber}>8</Text>
-              <Text style={styles.statLabel}>Memories</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statNumber}>12</Text>
-              <Text style={styles.statLabel}>Events</Text>
+              <Text style={styles.statNumber}>{stats.expenses}</Text>
+              <Text style={styles.statLabel}>Expenses</Text>
             </View>
           </View>
         </View>
