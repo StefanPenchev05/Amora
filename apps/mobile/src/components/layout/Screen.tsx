@@ -1,13 +1,16 @@
 import React from 'react';
 import {
-  SafeAreaView,
   ScrollView,
   StyleProp,
   StyleSheet,
   View,
   ViewStyle,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+
 import { lightTheme } from '../../styles/theme';
+import { useTheme } from '../../providers/theme';
 
 type Theme = typeof lightTheme;
 
@@ -26,8 +29,10 @@ const Screen: React.FC<Props> = ({
   contentStyle,
   style,
   variant = 'solid',
-  theme = lightTheme,
+  theme: themeProp,
 }) => {
+  const { theme: ctxTheme } = useTheme();
+  const theme = themeProp ?? ctxTheme ?? lightTheme;
   const styles = createStyles(theme);
 
   const content = scroll ? (
@@ -47,10 +52,23 @@ const Screen: React.FC<Props> = ({
     <View
       style={[
         styles.root,
-        variant === 'gradient' ? styles.rootGradient : null,
         style,
       ]}
     >
+      {variant === 'gradient' ? (
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          <LinearGradient
+            colors={[
+              theme.colors.background,
+              theme.colors.surface,
+              theme.colors.background,
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
+      ) : null}
       <SafeAreaView style={styles.safe}>{content}</SafeAreaView>
     </View>
   );
@@ -60,10 +78,6 @@ const createStyles = (theme: Theme) =>
   StyleSheet.create({
     root: {
       flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    rootGradient: {
-      // Optional soft gradient feel without a full-screen diagonal wash
       backgroundColor: theme.colors.background,
     },
     safe: {

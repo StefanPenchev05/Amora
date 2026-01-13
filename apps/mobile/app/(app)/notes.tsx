@@ -19,6 +19,7 @@ import Card from '../../src/components/ui/Card';
 import IconCircleButton from '../../src/components/ui/IconCircleButton';
 import { withOpacity } from '../../src/components/form/color';
 import { lightTheme } from '../../src/styles/theme';
+import { useTheme } from '../../src/providers/theme';
 import { noteService } from '../../src/services/api/notes';
 
 interface Note {
@@ -32,7 +33,7 @@ interface Note {
 
 export default function NotesScreen() {
   const router = useRouter();
-  const theme = lightTheme;
+  const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -130,11 +131,11 @@ export default function NotesScreen() {
   const regularNotes = filteredNotes.filter(note => !note.isPinned);
 
   return (
-    <Screen scroll theme={theme} contentStyle={styles.screenContent}>
+    <Screen scroll contentStyle={styles.screenContent}>
       <AppHeader
         title="Notes"
         subtitle="Save little things"
-        onBack={() => router.back()}
+        onBack={() => router.replace('/(app)/dashboard')}
         right={(
           <IconCircleButton
             icon="add"

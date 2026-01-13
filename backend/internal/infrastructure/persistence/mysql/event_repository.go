@@ -30,6 +30,9 @@ func (r *EventRepository) Create(ctx context.Context, domainEvent *event.Event) 
 		Description: domainEvent.Description,
 		Category:    string(domainEvent.Category),
 		EventDate:   domainEvent.EventDate,
+		EndDate:     domainEvent.EndDate,
+		AllDay:      domainEvent.AllDay,
+		Location:    domainEvent.Location,
 		CreatedAt:   domainEvent.CreatedAt,
 		UpdatedAt:   domainEvent.UpdatedAt,
 	}
@@ -98,6 +101,9 @@ func (r *EventRepository) Update(ctx context.Context, domainEvent *event.Event) 
 		Description: domainEvent.Description,
 		Category:    string(domainEvent.Category),
 		EventDate:   domainEvent.EventDate,
+		EndDate:     domainEvent.EndDate,
+		AllDay:      domainEvent.AllDay,
+		Location:    domainEvent.Location,
 		UpdatedAt:   domainEvent.UpdatedAt,
 	}
 
@@ -130,6 +136,9 @@ func (r *EventRepository) modelToDomain(model *models.Event) *event.Event {
 		Description: model.Description,
 		Category:    event.EventCategory(model.Category),
 		EventDate:   model.EventDate,
+		EndDate:     model.EndDate,
+		AllDay:      model.AllDay,
+		Location:    model.Location,
 		CreatedAt:   model.CreatedAt,
 		UpdatedAt:   model.UpdatedAt,
 	}

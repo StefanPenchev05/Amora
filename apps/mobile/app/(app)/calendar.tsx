@@ -19,45 +19,73 @@ import Card from '../../src/components/ui/Card';
 import IconCircleButton from '../../src/components/ui/IconCircleButton';
 import { withOpacity } from '../../src/components/form/color';
 import { lightTheme } from '../../src/styles/theme';
+import { useTheme } from '../../src/providers/theme';
 import { eventService } from '../../src/services/api/events';
+import { relationshipService, type RelationshipStatusResponse } from '../../src/services/api/relationship';
 
 interface Event {
   id: string;
+  user_id: string;
   title: string;
   date: string;
   time: string;
+  endTime?: string;
+  allDay: boolean;
+  location?: string;
   category: string;
   description: string;
 }
 
 export default function CalendarScreen() {
   const router = useRouter();
-  const theme = lightTheme;
+  const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
+  const [relationship, setRelationship] = useState<RelationshipStatusResponse | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [newEventTitle, setNewEventTitle] = useState('');
   const [newEventDescription, setNewEventDescription] = useState('');
   const [newEventDate, setNewEventDate] = useState('');
   const [newEventTime, setNewEventTime] = useState('');
+  const [newEventEndTime, setNewEventEndTime] = useState('');
+  const [newEventAllDay, setNewEventAllDay] = useState(false);
+  const [newEventLocation, setNewEventLocation] = useState('');
   const [newEventCategory, setNewEventCategory] = useState<'date' | 'fun' | 'milestone' | 'task' | 'activity'>('date');
   const [events, setEvents] = useState<Event[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const [ownerFilter, setOwnerFilter] = useState<'all' | 'you' | 'partner'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'date' | 'fun' | 'milestone' | 'task' | 'activity'>('all');
 
   useEffect(() => {
     loadEvents();
+    void loadRelationship();
   }, []);
+
+  const loadRelationship = async () => {
+    try {
+      const status = await relationshipService.getStatus();
+      setRelationship(status);
+    } catch {
+      setRelationship(null);
+    }
+  };
 
   const loadEvents = async () => {
     try {
       const apiEvents = await eventService.getAll();
       const mappedEvents = apiEvents.map(e => ({
         id: e.id,
+        user_id: e.user_id,
         title: e.title,
         description: e.description,
         date: e.event_date.split('T')[0],
         time: e.event_date.split('T')[1]?.split(':').slice(0, 2).join(':') || '00:00',
+        endTime: e.end_date ? e.end_date.split('T')[1]?.split(':').slice(0, 2).join(':') || undefined : undefined,
+        allDay: Boolean(e.all_day),
+        location: e.location || undefined,
         category: e.category,
       }));
       setEvents(mappedEvents);
@@ -65,6 +93,18 @@ export default function CalendarScreen() {
       Alert.alert('Error', 'Failed to load events');
       console.error('Error loading events:', error);
     }
+  };
+
+  const partnerConnected = relationship?.status === 'active';
+  const partnerName = relationship?.partner?.full_name || relationship?.partner?.username || 'Partner';
+  const partnerUserId = relationship?.partner?.user_id;
+  const isPartnerItem = (userId: string) => !!(partnerConnected && partnerUserId && userId === partnerUserId);
+  const ownerLabel = (userId: string) => (isPartnerItem(userId) ? partnerName : 'You');
+
+  const formatTimeLabel = (event: Event) => {
+    if (event.allDay) return 'All day';
+    if (event.endTime) return `${event.time}–${event.endTime}`;
+    return event.time;
   };
 
   const getCategoryColor = (category: string) => {
@@ -106,14 +146,37 @@ export default function CalendarScreen() {
       return;
     }
 
+    if (!newEventAllDay) {
+      const start = newEventTime.trim();
+      const end = newEventEndTime.trim();
+      if (start && !/^\d{2}:\d{2}$/.test(start)) {
+        Alert.alert('Error', 'Start time must be HH:MM');
+        return;
+      }
+      if (end && !/^\d{2}:\d{2}$/.test(end)) {
+        Alert.alert('Error', 'End time must be HH:MM');
+        return;
+      }
+    }
+
     try {
       setLoading(true);
-      const dateTime = `${newEventDate}T${newEventTime || '12:00'}:00Z`;
+      const dateTime = newEventAllDay
+        ? `${newEventDate}T00:00:00Z`
+        : `${newEventDate}T${newEventTime || '12:00'}:00Z`;
+
+      const endDateTime = !newEventAllDay && newEventEndTime
+        ? `${newEventDate}T${newEventEndTime}:00Z`
+        : null;
+
       await eventService.create({
         title: newEventTitle,
         description: newEventDescription || '',
         category: newEventCategory,
         event_date: dateTime,
+        end_date: endDateTime,
+        all_day: newEventAllDay,
+        location: newEventLocation || undefined,
       });
       
       await loadEvents();
@@ -122,6 +185,9 @@ export default function CalendarScreen() {
       setNewEventDescription('');
       setNewEventDate('');
       setNewEventTime('');
+      setNewEventEndTime('');
+      setNewEventAllDay(false);
+      setNewEventLocation('');
       setNewEventCategory('date');
     } catch (error) {
       Alert.alert('Error', 'Failed to create event');
@@ -173,6 +239,7 @@ export default function CalendarScreen() {
 
   const handleDateSelect = (day: number) => {
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    setSelectedDate(dateStr);
     setNewEventDate(dateStr);
     setModalVisible(true);
   };
@@ -198,6 +265,21 @@ export default function CalendarScreen() {
     });
   }, [events]);
 
+  const filteredEvents = useMemo(() => {
+    return sortedEvents.filter((e) => {
+      if (ownerFilter === 'partner' && !isPartnerItem(e.user_id)) return false;
+      if (ownerFilter === 'you' && isPartnerItem(e.user_id)) return false;
+      if (categoryFilter !== 'all' && e.category !== categoryFilter) return false;
+      return true;
+    });
+  }, [sortedEvents, ownerFilter, categoryFilter]);
+
+  const upcomingEvents = useMemo(() => {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    return filteredEvents.filter((e) => new Date(`${e.date}T${e.time || '00:00'}`) >= todayStart);
+  }, [filteredEvents]);
+
   const categories = useMemo(
     () => [
       { key: 'date' as const, label: 'Date', icon: '🍽️' },
@@ -218,20 +300,24 @@ export default function CalendarScreen() {
   );
 
   return (
-    <Screen scroll theme={theme} contentStyle={styles.screenContent}>
+    <Screen scroll contentStyle={styles.screenContent}>
       <AppHeader
         title="Calendar"
         subtitle="Plan moments together"
-        onBack={() => router.back()}
+        onBack={() => router.replace('/(app)/dashboard')}
         right={headerRight}
         theme={theme}
       />
 
       <Card theme={theme} style={styles.card}>
         <View style={styles.monthRow}>
-          <IconCircleButton icon="chevron-back" theme={theme} onPress={() => changeMonth(-1)} />
+          <View style={styles.monthNavLeft}>
+            <IconCircleButton icon="chevron-back" theme={theme} onPress={() => changeMonth(-1)} />
+          </View>
           <Text style={styles.monthText}>{getMonthName(currentDate)}</Text>
-          <IconCircleButton icon="chevron-forward" theme={theme} onPress={() => changeMonth(1)} />
+          <View style={styles.monthNavRight}>
+            <IconCircleButton icon="chevron-forward" theme={theme} onPress={() => changeMonth(1)} />
+          </View>
         </View>
       </Card>
 
@@ -259,11 +345,18 @@ export default function CalendarScreen() {
             const day = i + 1;
             const dayEvents = getEventsForDay(day);
             const today = isToday(day);
+            const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const selected = selectedDate === dateStr;
             return (
               <Pressable
                 key={day}
                 onPress={() => handleDateSelect(day)}
-                style={({ pressed }) => [styles.dayCell, today && styles.today, pressed && styles.pressed]}
+                style={({ pressed }) => [
+                  styles.dayCell,
+                  today && styles.today,
+                  selected && styles.selectedDay,
+                  pressed && styles.pressed,
+                ]}
               >
                 <Text style={[styles.dayNumber, today && styles.todayText]}>{day}</Text>
                 {dayEvents.length > 0 ? (
@@ -287,14 +380,71 @@ export default function CalendarScreen() {
       <Card theme={theme} style={styles.card}>
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>Upcoming</Text>
-          <Text style={styles.sectionMeta}>{sortedEvents.length}</Text>
+          <Text style={styles.sectionMeta}>{upcomingEvents.length}</Text>
         </View>
 
-        {sortedEvents.length === 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+          {([
+            { key: 'all' as const, label: 'All' },
+            { key: 'you' as const, label: 'You' },
+            { key: 'partner' as const, label: partnerConnected ? partnerName : 'Partner' },
+          ]).map((opt) => {
+            const active = ownerFilter === opt.key;
+            return (
+              <Pressable
+                key={opt.key}
+                onPress={() => setOwnerFilter(opt.key)}
+                style={({ pressed }) => [
+                  styles.filterChip,
+                  {
+                    backgroundColor: active ? withOpacity(theme.colors.primary, 0.12) : withOpacity(theme.colors.surface, 0.7),
+                    borderColor: active ? withOpacity(theme.colors.primary, 0.28) : theme.colors.border,
+                  },
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={[styles.filterChipText, { color: active ? theme.colors.textPrimary : theme.colors.textMuted }]}>
+                  {opt.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+
+          {([
+            { key: 'all' as const, label: 'Any' },
+            { key: 'date' as const, label: 'Date' },
+            { key: 'fun' as const, label: 'Fun' },
+            { key: 'milestone' as const, label: 'Milestone' },
+            { key: 'task' as const, label: 'Task' },
+            { key: 'activity' as const, label: 'Activity' },
+          ]).map((opt) => {
+            const active = categoryFilter === opt.key;
+            return (
+              <Pressable
+                key={opt.key}
+                onPress={() => setCategoryFilter(opt.key)}
+                style={({ pressed }) => [
+                  styles.filterChip,
+                  {
+                    backgroundColor: active ? withOpacity(theme.colors.accent, 0.12) : withOpacity(theme.colors.surface, 0.7),
+                    borderColor: active ? withOpacity(theme.colors.accent, 0.28) : theme.colors.border,
+                  },
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={[styles.filterChipText, { color: active ? theme.colors.textPrimary : theme.colors.textMuted }]}>
+                  {opt.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
+        {upcomingEvents.length === 0 ? (
           <Text style={styles.emptyText}>No upcoming events. Add one to get started.</Text>
         ) : (
           <View>
-            {sortedEvents.map((event, index) => (
+            {upcomingEvents.map((event, index) => (
               <View key={event.id} style={[styles.eventRow, index !== 0 && { marginTop: theme.spacing[3] }]}>
                 <View style={[styles.eventIndicator, { backgroundColor: getCategoryColor(event.category) }]} />
                 <View style={styles.eventBody}>
@@ -312,13 +462,15 @@ export default function CalendarScreen() {
                         </Text>
                       ) : null}
                     </View>
-                    <Pressable
-                      onPress={() => handleDeleteEvent(event.id)}
-                      hitSlop={10}
-                      style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
-                    >
-                      <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
-                    </Pressable>
+                    {isPartnerItem(event.user_id) ? null : (
+                      <Pressable
+                        onPress={() => handleDeleteEvent(event.id)}
+                        hitSlop={10}
+                        style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+                      >
+                        <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
+                      </Pressable>
+                    )}
                   </View>
 
                   <View style={styles.eventMetaRow}>
@@ -326,7 +478,43 @@ export default function CalendarScreen() {
                     <Text style={styles.eventMetaText}>{formatDate(event.date)}</Text>
                     <View style={{ width: theme.spacing[3] }} />
                     <Ionicons name="time-outline" size={14} color={theme.colors.textMuted} />
-                    <Text style={styles.eventMetaText}>{event.time}</Text>
+                    <Text style={styles.eventMetaText}>
+                      {formatTimeLabel(event)}
+                    </Text>
+
+                    {event.location ? (
+                      <>
+                        <View style={{ width: theme.spacing[3] }} />
+                        <Ionicons name="location-outline" size={14} color={theme.colors.textMuted} />
+                        <Text style={styles.eventMetaText} numberOfLines={1}>
+                          {event.location}
+                        </Text>
+                      </>
+                    ) : null}
+
+                    <View style={{ width: theme.spacing[3] }} />
+                    <View
+                      style={[
+                        styles.ownerPill,
+                        {
+                          backgroundColor: isPartnerItem(event.user_id)
+                            ? withOpacity(theme.colors.accent, 0.12)
+                            : withOpacity(theme.colors.primary, 0.12),
+                          borderColor: isPartnerItem(event.user_id)
+                            ? withOpacity(theme.colors.accent, 0.22)
+                            : withOpacity(theme.colors.primary, 0.2),
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.ownerPillText,
+                          { color: isPartnerItem(event.user_id) ? theme.colors.accent : theme.colors.primary },
+                        ]}
+                      >
+                        {ownerLabel(event.user_id)}
+                      </Text>
+                    </View>
                   </View>
                 </View>
               </View>
@@ -380,11 +568,48 @@ export default function CalendarScreen() {
               />
               <TextInput
                 style={[styles.inputInline, { width: 110 }]}
-                placeholder="HH:MM"
+                placeholder={newEventAllDay ? 'All day' : 'Start'}
                 placeholderTextColor={theme.colors.textMuted}
                 value={newEventTime}
                 onChangeText={setNewEventTime}
+                editable={!newEventAllDay}
               />
+            </View>
+
+            <View style={styles.row}>
+              <TextInput
+                style={[styles.inputInline, { flex: 1, marginRight: theme.spacing[3] }]}
+                placeholder="Location (optional)"
+                placeholderTextColor={theme.colors.textMuted}
+                value={newEventLocation}
+                onChangeText={setNewEventLocation}
+              />
+              <TextInput
+                style={[styles.inputInline, { width: 110 }]}
+                placeholder={newEventAllDay ? '' : 'End'}
+                placeholderTextColor={theme.colors.textMuted}
+                value={newEventEndTime}
+                onChangeText={setNewEventEndTime}
+                editable={!newEventAllDay}
+              />
+            </View>
+
+            <View style={[styles.row, { justifyContent: 'flex-start', gap: theme.spacing[3] }]}>
+              <Pressable
+                onPress={() => setNewEventAllDay((v) => !v)}
+                style={({ pressed }) => [
+                  styles.filterChip,
+                  {
+                    backgroundColor: newEventAllDay ? withOpacity(theme.colors.primary, 0.12) : withOpacity(theme.colors.surface, 0.7),
+                    borderColor: newEventAllDay ? withOpacity(theme.colors.primary, 0.28) : theme.colors.border,
+                  },
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={[styles.filterChipText, { color: newEventAllDay ? theme.colors.textPrimary : theme.colors.textMuted }]}>All day</Text>
+              </Pressable>
+
+              <Text style={styles.helperText}>Time fields are optional</Text>
             </View>
 
             <View style={styles.modalCategorySection}>
@@ -453,7 +678,17 @@ const createStyles = (theme: typeof lightTheme) =>
     monthRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      justifyContent: 'center',
+      position: 'relative',
+      minHeight: 40,
+    },
+    monthNavLeft: {
+      position: 'absolute',
+      left: 0,
+    },
+    monthNavRight: {
+      position: 'absolute',
+      right: 0,
     },
     monthText: {
       fontSize: theme.typography.fontSize.base,
@@ -463,9 +698,11 @@ const createStyles = (theme: typeof lightTheme) =>
     calendarGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
+      justifyContent: 'center',
     },
     weekDay: {
-      width: `${100 / 7}%`,
+      flexBasis: '14.2857%',
+      maxWidth: '14.2857%',
       textAlign: 'center',
       fontSize: theme.typography.fontSize.xs,
       fontFamily: theme.typography.fontFamily.medium,
@@ -473,19 +710,21 @@ const createStyles = (theme: typeof lightTheme) =>
       marginBottom: theme.spacing[2],
     },
     dayCellMuted: {
-      width: `${100 / 7}%`,
+      flexBasis: '14.2857%',
+      maxWidth: '14.2857%',
       aspectRatio: 1,
       borderRadius: 16,
       backgroundColor: withOpacity(theme.colors.surface, 0.3),
-      marginVertical: 2,
+      margin: 2,
     },
     dayCell: {
-      width: `${100 / 7}%`,
+      flexBasis: '14.2857%',
+      maxWidth: '14.2857%',
       aspectRatio: 1,
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: 16,
-      marginVertical: 2,
+      margin: 2,
       borderWidth: 1,
       borderColor: withOpacity(theme.colors.border, 0.7),
       backgroundColor: theme.colors.background,
@@ -493,6 +732,10 @@ const createStyles = (theme: typeof lightTheme) =>
     today: {
       borderColor: withOpacity(theme.colors.primary, 0.45),
       backgroundColor: withOpacity(theme.colors.primary, 0.1),
+    },
+    selectedDay: {
+      borderColor: withOpacity(theme.colors.accent, 0.5),
+      backgroundColor: withOpacity(theme.colors.accent, 0.12),
     },
     dayNumber: {
       fontSize: theme.typography.fontSize.sm,
@@ -509,12 +752,12 @@ const createStyles = (theme: typeof lightTheme) =>
       height: 6,
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 3,
     },
     dot: {
       width: 5,
       height: 5,
       borderRadius: 3,
+      marginHorizontal: 1.5,
     },
     sectionHeaderRow: {
       flexDirection: 'row',
@@ -529,6 +772,29 @@ const createStyles = (theme: typeof lightTheme) =>
     },
     sectionMeta: {
       fontSize: theme.typography.fontSize.sm,
+      color: theme.colors.textMuted,
+    },
+    filterRow: {
+      paddingBottom: theme.spacing[3],
+      paddingRight: theme.spacing[2],
+      gap: theme.spacing[2],
+    },
+    filterChip: {
+      height: 32,
+      borderRadius: 16,
+      paddingHorizontal: theme.spacing[4],
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: withOpacity(theme.colors.surface, 0.7),
+    },
+    filterChipText: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textMuted,
+    },
+    helperText: {
+      fontSize: theme.typography.fontSize.xs,
       color: theme.colors.textMuted,
     },
     emptyText: {
@@ -588,6 +854,19 @@ const createStyles = (theme: typeof lightTheme) =>
       marginLeft: 6,
       fontSize: theme.typography.fontSize.sm,
       color: theme.colors.textMuted,
+    },
+    ownerPill: {
+      paddingHorizontal: theme.spacing[3],
+      height: 24,
+      borderRadius: 999,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      marginLeft: theme.spacing[2],
+    },
+    ownerPillText: {
+      fontSize: theme.typography.fontSize.xs,
+      fontFamily: theme.typography.fontFamily.medium,
     },
     iconBtn: {
       width: 36,

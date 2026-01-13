@@ -1,6 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from "react";
-import { View, Text, Pressable, StyleSheet, Dimensions, Animated } from "react-native";
-import { lightTheme } from "@/src/styles/theme";
+import { Appearance, View, Text, Pressable, StyleSheet, Dimensions, Animated } from "react-native";
+import { darkTheme, lightTheme } from "@/src/styles/theme";
 import { textStyles } from "@/src/styles/components/text-styles";
 import { designTokens } from "@/src/styles/tokens/design-tokens";
 
@@ -186,7 +186,7 @@ export class ErrorBoundary extends Component<Props, State> {
       return this.props.children;
     }
 
-    const theme = lightTheme; // You can add theme switching logic here
+    const theme = Appearance.getColorScheme() === 'dark' ? darkTheme : lightTheme;
     const { fallbackTitle, fallbackMessage } = this.props;
     const { error, retryCount } = this.state;
 

@@ -1,6 +1,7 @@
 import apiClient from './client';
 
 export interface Mood {
+  user_id: string;
   id: string;
   level: number;
   note: string;

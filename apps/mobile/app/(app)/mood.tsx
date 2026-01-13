@@ -17,6 +17,7 @@ import Card from '../../src/components/ui/Card';
 import IconCircleButton from '../../src/components/ui/IconCircleButton';
 import { withOpacity } from '../../src/components/form/color';
 import { lightTheme } from '../../src/styles/theme';
+import { useTheme } from '../../src/providers/theme';
 import { moodService } from '../../src/services/api/moods';
 import { relationshipService, RelationshipStatusResponse } from '../../src/services/api/relationship';
 
@@ -30,6 +31,7 @@ const moodEmojis = [
 
 type MoodEntry = {
   id: string;
+  user_id: string;
   mood: number;
   date: string;
   time: string;
@@ -38,7 +40,7 @@ type MoodEntry = {
 
 export default function MoodScreen() {
   const router = useRouter();
-  const theme = lightTheme;
+  const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [relationship, setRelationship] = useState<RelationshipStatusResponse | null>(null);
@@ -84,6 +86,7 @@ export default function MoodScreen() {
       const apiMoods = await moodService.getAll();
       const mapped: MoodEntry[] = apiMoods.map((m) => ({
         id: m.id,
+        user_id: m.user_id,
         mood: m.level,
         date: formatDateLabel(m.mood_date),
         time: new Date(m.mood_date).toLocaleTimeString('en-US', {
@@ -143,13 +146,21 @@ export default function MoodScreen() {
 
   const partnerConnected = relationship?.status === 'active';
   const partnerName = relationship?.partner?.full_name || relationship?.partner?.username || 'Partner';
+  const partnerUserId = relationship?.partner?.user_id;
+
+  const ownerLabel = (userId: string) => {
+    if (partnerConnected && partnerUserId && userId === partnerUserId) return partnerName;
+    return 'You';
+  };
+
+  const isPartnerItem = (userId: string) => !!(partnerConnected && partnerUserId && userId === partnerUserId);
 
   return (
-    <Screen scroll theme={theme} contentStyle={styles.content}>
+    <Screen scroll contentStyle={styles.content}>
       <AppHeader
         title="Mood"
         subtitle="Track how you feel"
-        onBack={() => router.back()}
+        onBack={() => router.replace('/(app)/dashboard')}
         theme={theme}
         right={
           <IconCircleButton
@@ -212,7 +223,7 @@ export default function MoodScreen() {
             <View style={styles.partnerText}>
               <Text style={styles.cardTitle}>{partnerName} connected</Text>
               <Text style={styles.cardSubtitle}>
-                Partner mood sharing will appear here once available.
+                You can now see both of your moods in History.
               </Text>
             </View>
           </View>
@@ -279,6 +290,7 @@ export default function MoodScreen() {
 
         {moodHistory.map((entry, index) => {
           const meta = getMoodMeta(entry.mood);
+          const partnerItem = isPartnerItem(entry.user_id);
           return (
             <View
               key={entry.id}
@@ -299,13 +311,35 @@ export default function MoodScreen() {
                   {entry.date} • {entry.time}
                 </Text>
               </View>
-              <Pressable
-                onPress={() => handleDeleteMood(entry.id)}
-                hitSlop={10}
-                style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
-              >
-                <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
-              </Pressable>
+              <View style={styles.rowRight}>
+                <View
+                  style={[
+                    styles.ownerPill,
+                    {
+                      backgroundColor: partnerItem
+                        ? withOpacity(theme.colors.accent, 0.12)
+                        : withOpacity(theme.colors.primary, 0.12),
+                      borderColor: partnerItem
+                        ? withOpacity(theme.colors.accent, 0.22)
+                        : withOpacity(theme.colors.primary, 0.2),
+                    },
+                  ]}
+                >
+                  <Text style={[styles.ownerPillText, { color: partnerItem ? theme.colors.accent : theme.colors.primary }]}>
+                    {ownerLabel(entry.user_id)}
+                  </Text>
+                </View>
+
+                {partnerItem ? null : (
+                  <Pressable
+                    onPress={() => handleDeleteMood(entry.id)}
+                    hitSlop={10}
+                    style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+                  >
+                    <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
+                  </Pressable>
+                )}
+              </View>
             </View>
           );
         })}
@@ -567,6 +601,23 @@ const createStyles = (theme: typeof lightTheme) =>
     rowContent: {
       flex: 1,
       paddingHorizontal: theme.spacing[3],
+    },
+    rowRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    ownerPill: {
+      paddingHorizontal: theme.spacing[3],
+      height: 26,
+      borderRadius: 999,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      marginRight: theme.spacing[2],
+    },
+    ownerPillText: {
+      fontSize: theme.typography.fontSize.xs,
+      fontFamily: theme.typography.fontFamily.medium,
     },
     rowTitle: {
       fontSize: theme.typography.fontSize.base,

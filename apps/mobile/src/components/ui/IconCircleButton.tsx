@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleProp, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { lightTheme } from '../../styles/theme';
+import { useTheme } from '../../providers/theme';
 
 type Theme = typeof lightTheme;
 
@@ -12,7 +13,9 @@ type Props = {
   style?: StyleProp<ViewStyle>;
 };
 
-const IconCircleButton: React.FC<Props> = ({ icon, onPress, theme = lightTheme, style }) => {
+const IconCircleButton: React.FC<Props> = ({ icon, onPress, theme: themeProp, style }) => {
+  const { theme: ctxTheme } = useTheme();
+  const theme = themeProp ?? ctxTheme ?? lightTheme;
   const styles = createStyles(theme);
   return (
     <Pressable
