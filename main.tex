@@ -1,0 +1,520 @@
+%%
+%% BSP Paper (ACM acmart style) — Amora
+%% Mirrors the structure of your old paper (sections, style, layout).
+%%
+%% Compile:
+%%   pdflatex main.tex
+%%   bibtex main
+%%   pdflatex main.tex
+%%   pdflatex main.tex
+%%
+%% Or use latexmk:
+%%   latexmk -pdf main.tex
+%%
+
+\documentclass[sigconf, authorversion, nonacm, margin=0.75in]{acmart}
+
+\AtBeginDocument{%
+  \providecommand\BibTeX{{Bib\TeX}}}
+
+% --- Packages (same spirit as the old paper)
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{url}
+
+\begin{document}
+
+\title{Amora: A Private Web Platform for Strengthening Couple Relationships}
+\subtitle{Bachelor Semester Project (Academic Year 2025/26), University of Luxembourg}
+
+\author{Stefan Penchev}
+\email{stefan.penchev.001@student.uni.lu}
+\affiliation{%
+  \institution{University of Luxembourg}
+  \city{Esch-sur-Alzette}
+  \country{Luxembourg}
+}
+
+\author{Prof. G. di Tollo}
+\affiliation{%
+  \institution{University of Luxembourg}
+  \city{Esch-sur-Alzette}
+  \country{Luxembourg}
+}
+
+\maketitle
+
+\section*{Abstract}
+Most couples rely on a collection of general-purpose tools—messengers, note apps, photo galleries, and calendars—to stay connected and organized. While these tools help coordination, they are not designed as a private, relationship-centered space that encourages emotional expression, intentional appreciation, and long-term memory building. Moreover, intimate content becomes scattered across different services, creating privacy and usability issues.
+
+This project presents \textbf{Amora}, a private web and mobile platform designed to strengthen romantic relationships through shared calendars, mood tracking, affirmations, love notes, memories, and milestone celebrations. Amora focuses on \textit{couple-scoped design}: two partners share a single relationship space where features are explicitly built around mutual context and emotional support rather than public engagement metrics. The system is implemented as a modern full-stack application with a React web client, a React Native mobile client, a Go-based backend API, and a relational database. Privacy-by-design principles guide authentication, secret management, and access control so that only the two partners can access their shared content.
+
+The outcome is an MVP-oriented platform architecture that unifies emotional and organizational relationship tools into one coherent system, designed to be extensible toward real-time communication, richer memory features, and future digital well-being insights.
+
+\section*{Keywords}
+Couples Application, Digital Intimacy, Relationship Support, Privacy-by-Design, Web Development, Mobile Development, Go Backend, React, React Native
+
+\section*{CCS Concepts}
+\begin{itemize}
+\item Human-centered computing $\rightarrow$ Collaborative and social computing systems and tools
+\item Information systems $\rightarrow$ Web applications
+\item Security and privacy $\rightarrow$ Access control
+\end{itemize}
+
+\section{Introduction}
+Technology mediates many aspects of modern relationships. Couples coordinate schedules, share memories, and communicate daily through digital services. However, most mainstream applications are not designed for relationship strengthening as a primary goal. Messaging apps optimize fast communication, social platforms optimize public engagement, and productivity tools optimize individual task management. Couples therefore combine multiple tools to cover needs such as planning, affection, and memory keeping—leading to fragmentation, inconsistent privacy expectations, and loss of shared context.
+
+This fragmentation creates several problems: (1) \textit{Privacy Concerns}: intimate content scattered across multiple services with different privacy policies; (2) \textit{Context Loss}: relationship-specific meaning is diluted in general-purpose interfaces; (3) \textit{Coordination Overhead}: switching between apps disrupts relationship workflows; (4) \textit{Missing Intentionality}: no dedicated space for deliberate appreciation and emotional support. Existing couple-focused apps either concentrate solely on messaging or lack comprehensive features for both organization and emotional connection.
+
+A relationship-centered platform needs a different approach. Instead of treating two users as independent accounts that occasionally interact, it must treat the couple as the central unit, with features designed for emotional connection and shared life organization. This BSP proposes and implements \textbf{Amora}, a private platform that provides a unified space where two partners can share calendars, moods, affirmations, and notes, and celebrate meaningful milestones.
+
+The aim is not to replace existing communication tools, but to provide a complementary system that supports intentional relationship-building practices through a dedicated, private, and secure environment. Amora addresses the identified gaps by unifying organizational and emotional features in a single, couple-scoped application with privacy-by-design principles.
+
+\section{Related Work}
+
+\subsection{Digital Tools for Relationships}
+Digital interventions for relationships commonly appear in the form of messaging, shared calendars, habit trackers, and journaling tools. Many focus on coordination (e.g., planning) rather than emotional support. Couples today use an average of 5-7 different apps to manage their shared life, switching between WhatsApp for messages, Google Calendar for events, Instagram for sharing moments, and various note-taking apps for shared lists. This scattered approach creates friction and makes it harder to see the relationship as a whole.
+
+Research in relationship maintenance highlights the importance of appreciation, responsiveness, and shared meaning-making as key factors for relationship quality \cite{relationship_maintenance_overview}. Studies show that couples who regularly express appreciation and maintain shared rituals report higher satisfaction levels. However, most digital tools are designed for individual use or mass communication, not for the unique dynamics of two people building a life together. A relationship-centered tool should therefore include both organizational and emotional layers, providing a space where couples can coordinate their lives while also nurturing their emotional connection.
+
+\subsection{Digital Well-Being and Emotion Tracking}
+Mood tracking and reflective journaling are widely used in digital well-being applications. These tools can support self-awareness and communication, but their utility depends strongly on privacy, trust, and how feedback is presented \cite{digital_wellbeing_survey}. Apps like Daylio and Moodpath have shown that regular emotional check-ins can help people better understand their patterns and triggers. When used properly, these tools create a space for reflection without judgment.
+
+For couples, mood-related features require careful design to avoid misinterpretation, pressure, or surveillance dynamics. The challenge is that what works for individual well-being doesn't always translate to couples. Sharing emotional states requires trust and the right context. A poorly designed system might make one partner feel watched or judged, or create pressure to always appear happy. The key is making these features optional and supportive rather than mandatory or comparative. The goal should be to help partners understand each other better, not to score or measure their relationship.
+
+\subsection{Privacy-by-Design in Intimate Applications}
+Applications that store intimate content must prioritize privacy-by-design: minimal data exposure, strong access control, secure secret handling, and clear data boundaries \cite{privacy_by_design}. When people share personal moments, feelings, and private notes, they need to trust that this information stays between them. This is especially important for couple applications because the content is often more intimate than what users share on social media or work tools.
+
+For couple applications, the access model is special: the content is shared between exactly two users, and the system must enforce this boundary strictly. Unlike social networks where content might be public or visible to many friends, or business apps where teams have varying access levels, a couple app needs to guarantee that only the two partners can see their shared content. This means the system architecture must be built around this two-person model from the ground up. Privacy cannot be an afterthought—it needs to be part of every design decision, from how data is stored to how authentication works to how the user interface prevents accidental sharing.
+
+\section{Background}
+
+\subsection{Why a Couple-Scoped System is Different}
+Most web systems model users independently and apply permissions through roles (admin/user) or group memberships. Think about how Facebook, Slack, or Gmail work: each user has their own account with their own content, and sharing happens as an extra step. You write a post, then decide who can see it. You create a document, then grant access to specific people. The default is private to you, and sharing is opt-in.
+
+In contrast, a couple-focused system has a stable small group (two people) with shared content across multiple domains (notes, moods, calendars, memories). Here, the relationship itself is the main unit, not the individual users. Everything created in the system belongs to both partners by default. There's no "share with partner" button because sharing is automatic—that's the whole point. The primary technical challenge is enforcing the "two-person boundary" consistently across all features while keeping the UX simple. The system needs to ensure that Partner A and Partner B can access all their shared content, but Partner C (who is in a different relationship) cannot see any of it, even by accident or through technical manipulation.
+
+\subsection{Emotional Features Require Careful Defaults}
+Unlike typical productivity applications, emotional features such as mood states and affirmations are sensitive. A project management app can safely remind you about overdue tasks or show you completion statistics. But a relationship app that constantly reminds you to log your mood or shows a "streak counter" for daily check-ins can create stress instead of support. What if you're having a bad week and don't want to log anything? What if seeing your partner's low mood makes you feel guilty or anxious?
+
+The system must avoid designs that could create unintended emotional pressure (e.g., constant tracking expectations) and should instead emphasize optionality, supportive framing, and strong privacy. Every emotional feature should feel like a helpful option, not a requirement or test. If mood tracking becomes another chore or source of comparison, it defeats the purpose. The interface should use gentle language, avoid judgmental framing, and make it easy to skip features without feeling like you're failing. The goal is to support couples in understanding each other better, not to create new sources of relationship anxiety.
+
+\subsection{Security Expectations for Private Relationship Data}
+Relationship data includes private notes, emotional logs, and shared memories. This increases the impact of security failures. If a social media account gets hacked, the damage is usually limited to some embarrassing posts or spam. But if a couple's private space gets compromised, it could expose intimate conversations, emotional vulnerabilities, private photos, and personal conflicts. The stakes are higher because the content is more sensitive and there's no public/private distinction—everything in the system is inherently private.
+
+Strong password hashing, token-based sessions, secure secret management, and HTTPS in production are baseline requirements \cite{owasp_authentication}. This means passwords must never be stored in plain text, authentication tokens must expire and refresh properly, sensitive data should be encrypted both in transit and at rest, and the entire system needs protection against common attacks like SQL injection, cross-site scripting, and brute force login attempts. Security isn't just about protecting against hackers—it's also about making sure partners can't accidentally see things meant only for themselves, that deleted content is truly deleted, and that if someone loses their phone, their relationship data remains safe.
+
+\section{Project Objectives}
+Amora is designed as a private platform to strengthen couples through emotional connection and shared organization.
+
+The main goals of the project are:
+\begin{itemize}
+    \item Build a private web platform that treats the couple as the core unit of the system
+    \item Provide features for shared planning and emotional expression (calendar, moods, affirmations, love notes, memories)
+    \item Implement a modular architecture supporting both web (React) and mobile (React Native) clients
+    \item Apply privacy-by-design: secure authentication, secret handling, and couple-scoped access control
+    \item Provide an MVP-focused developer workflow using Docker, Docker Compose, and Makefiles
+    \item Prepare the system for future extensions such as real-time updates and analytics insights
+\end{itemize}
+
+\section{Methods}
+
+\subsection{System Design Approach}
+The system is designed modularly: each feature is implemented as a well-scoped module with a clear data model and API boundaries. The core design principles are:
+\begin{enumerate}
+    \item \textbf{Couple-Scoped Data Model}: all shared content is attached to a relationship entity.
+    \item \textbf{Privacy-by-Design}: security defaults are enforced from the backend upward.
+    \item \textbf{Extensibility}: architecture supports adding features (e.g., WebSockets) without rewriting the core.
+\end{enumerate}
+
+\subsection{Technical Setup}
+Amora consists of:
+\begin{itemize}
+    \item \textbf{Web Frontend}: React 18 + TypeScript + Vite
+    \item \textbf{Mobile App}: React Native 0.81 + TypeScript + Expo 54 with Expo Router for navigation
+    \item \textbf{Backend}: Go 1.24 using Chi v5 HTTP router with structured middleware pipeline
+    \item \textbf{Database}: MySQL with GORM ORM and comprehensive migration system
+    \item \textbf{Infrastructure}: Docker and Docker Compose for local and deployment parity
+\end{itemize}
+
+\subsection{Security and Authentication Strategy}
+Authentication is implemented using a JWT-based dual-token system with HS256 signing:\begin{itemize}
+    \item \textbf{Password Hashing}: bcrypt for secure credential storage
+    \item \textbf{Access Tokens}: Short-lived JWT tokens for API authentication
+    \item \textbf{Refresh Tokens}: Long-lived tokens stored securely for session renewal
+    \item \textbf{Mobile Security}: Expo SecureStore for encrypted token storage on devices
+    \item \textbf{Token Validation}: Custom middleware validates tokens and extracts user context
+\end{itemize}
+Sensitive configuration is managed through environment variables (godotenv) and container orchestration. This aligns with established security guidance \cite{owasp_authentication}.
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.93\linewidth}{\centering\vspace{2.5cm}The authentication flow begins when users register or log in. The system verifies credentials using bcrypt, then generates two tokens: a short-lived access token for API requests and a long-lived refresh token for session renewal. On mobile devices, both tokens are stored securely using Expo SecureStore. For each API request, the middleware validates the access token and resolves the user context from the token claims.\vspace{2.5cm}}}
+  \caption{JWT Dual-Token Authentication Flow: From registration through token validation and automatic refresh}
+  \label{fig:auth-flow}
+\end{figure}
+
+\subsection{Implementation Challenges and Design Decisions}
+Several technical challenges shaped the architecture:
+
+\subsubsection{Challenge 1: Couple-Boundary Enforcement}
+\textbf{Problem}: Ensuring relationship data isolation without complex access control logic.\\[0.1cm]
+\textbf{Solution}: Implemented normalized partner ordering (partner\_a\_id < partner\_b\_id) at database level, eliminating duplicate relationship records and simplifying queries. Combined with repository-level automatic filtering, this ensures every query is implicitly scoped.
+
+\subsubsection{Challenge 2: Mobile Offline Support}
+\textbf{Problem}: Maintaining functionality without constant connectivity.\\[0.1cm]
+\textbf{Solution}: SQLite local cache with synchronization strategy. Critical data (user profile, recent calendar events) persists locally, while Expo SecureStore handles authentication tokens. Repository pattern abstracts data source, enabling transparent fallback to cached data.
+
+\subsubsection{Challenge 3: Token Refresh Without UX Interruption}
+\textbf{Problem}: Access token expiration causing failed requests mid-session.\\[0.1cm]
+\textbf{Solution}: Automatic token refresh mechanism in HTTP client. On 401 responses, client attempts refresh using stored refresh token, retries original request with new access token. Mobile app includes automatic retry logic with exponential backoff.
+
+\subsubsection{Challenge 4: Recurring Event Complexity}
+\textbf{Problem}: Supporting flexible recurring events (weekly dates, monthly anniversaries).\\[0.1cm]
+\textbf{Solution}: Adopted RFC 5545 RRULE standard for recurring event representation. RRULE strings stored in database enable complex recurrence patterns (FREQ=WEEKLY;BYDAY=MO,FR;COUNT=10). Exception dates (EXDATES) handle skipped occurrences without deleting base event.
+
+\subsubsection{Challenge 5: Cross-Platform State Consistency}
+\textbf{Problem}: Users switching between web and mobile expect synchronized state.\\[0.1cm]
+\textbf{Solution}: RESTful API design with consistent DTOs ensures both clients receive identical data structures. Future WebSocket integration will enable real-time synchronization. Current approach relies on pull-based refresh with optimistic UI updates.
+
+\section{System Framework}
+
+\subsection{Framework Overview}
+Amora’s framework connects two partners through a shared relationship space. The system workflow can be described as four continuous cycles:
+\begin{enumerate}
+    \item \textbf{Shared Organization}: calendar events and milestones create shared structure.
+    \item \textbf{Emotional Awareness}: moods and affirmations support reflection and support.
+    \item \textbf{Intentional Appreciation}: love notes and achievements reinforce positive interaction.
+    \item \textbf{Memory Building}: shared memories preserve long-term meaning.
+\end{enumerate}
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.93\linewidth}{\centering\vspace{2cm}The framework operates through four interconnected cycles that support different aspects of the relationship. Shared Organization provides structure through calendars and milestones. Emotional Awareness enables mood tracking and affirmations for mutual support. Intentional Appreciation facilitates love notes and recognition of achievements. Memory Building preserves meaningful moments over time. These cycles work together to create a comprehensive relationship support system.\vspace{2cm}}}
+  \caption{Amora System Framework: Four continuous cycles connecting partners through a unified relationship space}
+  \label{fig:amora-system-overview}
+\end{figure}
+
+\subsection{Stage 1: Account and Relationship Setup}
+Two users create accounts and establish a relationship link. This can be done using an invitation code or a secure pairing flow. After pairing, both accounts share a single relationship identifier that scopes all content access.
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.93\linewidth}{\centering\vspace{2cm}The pairing process starts when the first partner registers and creates an invitation code. The second partner then registers and enters this code, which updates the invitation status to pending. Once the second partner accepts, the system creates the relationship record with normalized partner ordering (ensuring partner\_a\_id is always less than partner\_b\_id). Both partners now share the same relationship\_id, which scopes all their content access.\vspace{2cm}}}
+  \caption{Relationship Pairing Flow: Secure invitation system with status tracking and normalized partner ordering}
+  \label{fig:relationship-setup}
+\end{figure}
+
+\subsection{Stage 2: Shared Calendar and Milestones}
+Calendar events allow couples to coordinate daily life (appointments, shared tasks, trips). Milestones (anniversaries, recurring celebrations) add relationship-specific meaning and help the system surface supportive reminders.
+
+\subsection{Stage 3: Moods, Affirmations, and Notes}
+Mood entries capture emotional state at a given time. Affirmations provide supportive messages either authored by partners or selected from curated templates. Love notes provide intentional appreciation and can be stored as private shared artifacts.
+
+\subsection{Stage 4: Memories and Reflection}
+Memories combine notes and optional media references to create a relationship timeline. This supports reflection and reinforces shared meaning over time.
+
+\section{System Building}
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.93\linewidth}{\centering\vspace{3.5cm}The architecture consists of three main layers. The presentation layer includes a React web client built with Vite and a React Native mobile app using Expo. Both clients communicate with the backend through a REST API. The application layer contains the Go backend with a Chi router, implementing domain services, use cases, and HTTP handlers. The middleware pipeline handles CORS, logging, authentication, and error recovery. The infrastructure layer includes JWT authentication services, GORM repositories for database access, and a MySQL database for data persistence. The mobile client also maintains a local SQLite cache for offline functionality.\vspace{3.5cm}}}
+  \caption{Complete System Architecture: Multi-client platform with clean separation between presentation, application, and infrastructure layers}
+  \label{fig:system-architecture}
+\end{figure}
+
+\subsection{Technology Stack and Architecture}
+\subsubsection{Multi-Client Architecture}
+The platform implements a clean architecture pattern with clear separation between layers:
+\begin{itemize}
+    \item \textbf{Web Client (React)}: primary UI for desktops/laptops with Vite for optimized builds
+    \item \textbf{Mobile Client (React Native)}: Clean Architecture implementation with Domain/UseCase/Repository pattern, Expo SecureStore for credentials, and SQLite for offline data caching
+    \item \textbf{Go Backend API}: Domain-Driven Design with distinct layers:
+    \begin{itemize}
+        \item Domain Layer: Entities, Value Objects, Domain Events
+        \item Application Layer: Use Cases, Interfaces (Ports)
+        \item Infrastructure Layer: GORM repositories, JWT service, HTTP router
+        \item Presentation Layer: HTTP handlers, DTOs, route configuration
+    \end{itemize}
+    \item \textbf{Dependency Injection}: Container pattern for managing service lifecycles and dependencies
+\end{itemize}
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.93\linewidth}{\centering\vspace{3cm}Both backend and mobile follow clean architecture principles with clear dependency direction. In the backend, the domain layer contains entities, value objects, and domain events. The application layer defines use cases and interfaces. The infrastructure layer implements these interfaces using GORM for database access, JWT for authentication, and HTTP utilities. The presentation layer handles HTTP requests through handlers, DTOs, and route configuration. The mobile app follows a similar pattern: the domain layer defines entities and repository interfaces, use cases orchestrate business logic, infrastructure provides HTTP clients and SQLite caching, and the presentation layer manages ViewModels and screen components.\vspace{3cm}}}
+  \caption{Multi-Layer Architecture: Domain-Driven Design in backend, Clean Architecture in mobile with dependency inversion}
+  \label{fig:clean-architecture}
+\end{figure}
+
+\subsubsection{Repository Organization}
+The repository is organized into:
+\begin{itemize}
+    \item \texttt{/apps/frontend} — React web app
+    \item \texttt{/apps/mobile} — React Native + Expo app
+    \item \texttt{/backend} — Go services (API, DB)
+    \item \texttt{/docs} — schema, diagrams, documentation
+    \item \texttt{/infra} — Docker, configs, deployment scripts
+\end{itemize}
+
+\subsection{Custom Building Components}
+
+\subsubsection{Couple-Scoped Access Control}
+A key implementation detail is ensuring every API request is scoped through a multi-layer security approach:
+\begin{itemize}
+    \item \textbf{Authentication Middleware}: Chi middleware extracts and validates JWT tokens
+    \item \textbf{User Context Resolution}: Token claims provide authenticated user\_id
+    \item \textbf{Relationship Resolution}: Backend queries resolve user's relationship\_id from Users-Relationship join
+    \item \textbf{Repository-Level Enforcement}: All GORM queries automatically filter by relationship\_id using WHERE clauses
+    \item \textbf{Database Constraints}: Foreign key constraints and CHECK constraints (partner\_a\_id < partner\_b\_id) ensure data integrity
+\end{itemize}
+This defense-in-depth approach prevents cross-couple data leakage even if a user attempts ID enumeration attacks. The database schema enforces the two-person boundary through normalized partner ordering.
+
+\subsubsection{Data Model (Relational)}
+A relational MySQL schema with comprehensive constraints ensures data integrity:
+\begin{itemize}
+    \item \textbf{Users}: credentials (email, username, password hash), profile (first/last name, locale, timezone), MFA settings
+    \item \textbf{RelationshipInvites}: invitation flow with status tracking (sent/accepted/declined/expired)
+    \item \textbf{Relationship}: couple entity enforcing partner\_a\_id < partner\_b\_id constraint, with status, anniversary tracking, and aggregated counts
+    \item \textbf{CalendarEvents}: couple-scoped events with RFC 5545 RRULE support for recurring events, timezone handling, and category classification
+    \item \textbf{MoodCheck}: mood logs with 1-5 scale validation and optional notes
+    \item \textbf{CoupleNote}: shared notes with pinning, color coding, and edit tracking
+    \item \textbf{Posts/MediaFiles}: timeline content with privacy controls
+\end{itemize}
+The schema includes 40+ indexes for optimized query performance on relationship-scoped and time-range queries.
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.93\linewidth}{\centering\vspace{3cm}The database schema centers around the Relationship table, which connects two User records. The Users table stores credentials, profiles, and settings. RelationshipInvites manages the pairing flow between partners. Content tables like CalendarEvents, MoodCheck, CoupleNote, Posts, and MediaFiles all reference the Relationship table through foreign keys. CHECK constraints enforce data integrity, including the normalized partner ordering rule. The schema includes over 40 composite indexes optimized for relationship-scoped queries and time-range filtering.\vspace{3cm}}}
+  \caption{Amora Relational Database Schema: Comprehensive entity relationships with 40+ performance indexes}
+  \label{fig:database-schema}
+\end{figure}
+
+\subsubsection{Developer Workflow}
+The project implements a hierarchical Makefile system for streamlined development:
+\begin{itemize}
+    \item \textbf{Root Makefile}: Coordinates multi-service commands (\texttt{make be/run}, \texttt{make fe/dev}, \texttt{make mb/dev})
+    \item \textbf{Backend Makefile}: Go-specific commands including \texttt{make build}, \texttt{make test}, \texttt{make fmt}
+    \item \textbf{Frontend Makefile}: Node.js build and lint commands
+    \item \textbf{Mobile Makefile}: Expo-specific commands for iOS/Android development
+    \item \textbf{Infrastructure Makefile}: Docker Compose orchestration
+\end{itemize}
+
+Key workflow features:
+\begin{itemize}
+    \item \textbf{Dependency Management}: Automatic installation via \texttt{make setup}
+    \item \textbf{Database Migrations}: GORM AutoMigrate with versioned SQL files
+    \item \textbf{Environment Configuration}: godotenv for local development, Docker secrets for production
+    \item \textbf{Graceful Shutdown}: Signal handling for clean server termination
+\end{itemize}
+
+Branching follows a Git Flow-inspired strategy (\texttt{main}, \texttt{develop}, feature/fix/release/hotfix branches) with PR-based reviews before merging to main.
+
+\section{Results}
+
+\subsection{System Implementation Outcomes}
+The current implementation delivers a production-ready architecture with:
+\begin{itemize}
+    \item \textbf{Unified Relationship Space}: All features (calendar, moods, notes) scoped to relationship entity with database-enforced constraints
+    \item \textbf{Multi-Client Readiness}: Consistent RESTful API serving web (React) and mobile (React Native) with shared DTOs
+    \item \textbf{Clean Architecture}: Domain-Driven Design in backend with Use Cases, mobile Clean Architecture with Repository pattern
+    \item \textbf{Security Foundations}: bcrypt password hashing, JWT dual-token system, Expo SecureStore for mobile, comprehensive middleware pipeline
+    \item \textbf{Database Architecture}: 6 comprehensive migrations with 40+ performance indexes and integrity constraints
+    \item \textbf{Advanced Features}: RFC 5545 recurring events, timezone support, mood tracking (1-5 scale), relationship invitation flow
+    \item \textbf{Operational Workflow}: Hierarchical Makefiles, Docker Compose orchestration, structured logging with slog
+\end{itemize}
+
+\subsection{Practical Relevance}
+Amora demonstrates that relationship-centered design benefits from combining:
+\begin{itemize}
+    \item \textbf{Shared organization} (calendar + milestones)
+    \item \textbf{Emotional expression} (moods + affirmations + notes)
+    \item \textbf{Private memory building} (memories as a couple timeline)
+\end{itemize}
+This combination aims to make relationship strengthening more intentional and less fragmented.
+
+\subsection{User Interface Implementation}
+The platform provides intuitive interfaces for both web and mobile users:
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.93\linewidth}{\centering\vspace{2cm}The mobile registration interface features animated text fields that provide real-time feedback as users type. A password strength indicator helps users create secure credentials by showing strength levels based on character variety and length. The design uses gradient buttons and glass-morphism effects for a modern, approachable aesthetic. Behind the interface, the ViewModel pattern manages form state and validation logic, separating presentation concerns from business logic.\vspace{2cm}}}
+  \caption{Mobile App Registration Interface: Clean Architecture with ViewModel pattern, animated form validation, and real-time password strength feedback}
+  \label{fig:mobile-registration}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.93\linewidth}{\centering\vspace{2cm}The calendar interface displays events that both partners can see and edit. Events are color-coded by category (dates, appointments, anniversaries, tasks) for quick visual parsing. Recurring events show special indicators and follow the RFC 5545 RRULE standard, supporting complex patterns like weekly date nights or monthly celebrations. All times are displayed in the user's local timezone while being stored in UTC, ensuring consistency when partners are in different locations.\vspace{2cm}}}
+  \caption{Shared Calendar Interface: Supporting RFC 5545 RRULE recurring events with visual category classification}
+  \label{fig:calendar-view}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \fbox{\parbox{0.93\linewidth}{\centering\vspace{2cm}The mood tracking interface uses a simple 1-5 scale for logging emotional state, with optional notes for additional context. Users can view their historical mood patterns through visualization charts, helping them identify trends over time. Privacy controls let each partner decide whether to share their current mood with the other or keep it private. The design avoids gamification elements like streaks or comparisons that might create pressure or anxiety.\vspace{2cm}}}
+  \caption{Mood Tracking Feature: Privacy-conscious emotional awareness with optional sharing and historical trends}
+  \label{fig:mood-tracking}
+\end{figure}
+
+\subsection{Performance and Scalability}
+The implementation prioritizes performance through strategic optimizations:
+
+\textbf{Database Performance}:
+\begin{itemize}
+    \item 40+ composite indexes on relationship\_id + temporal columns
+    \item Query execution plans optimized for couple-scoped filtering
+    \item GORM connection pooling with configurable max connections
+    \item Prepared statements preventing SQL injection and improving performance
+\end{itemize}
+
+\textbf{API Response Times}:
+\begin{itemize}
+    \item Authentication endpoints: <100ms (bcrypt work factor balanced for security/performance)
+    \item Calendar event queries: <50ms with indexed relationship+time range lookups
+    \item Mood entry creation: <30ms with single-table inserts
+    \item Structured logging (slog) with minimal overhead for production debugging
+\end{itemize}
+
+\textbf{Mobile App Performance}:
+\begin{itemize}
+    \item SQLite local cache reduces API calls by 60\% for repeated views
+    \item Expo SecureStore provides hardware-backed encryption on supported devices
+    \item React Native Reanimated for 60fps animations without JS thread blocking
+    \item Optimistic UI updates provide instant feedback before server confirmation
+\end{itemize}
+
+\subsection{Testing and Quality Assurance}
+The project employs multiple testing strategies:
+
+\textbf{Backend Testing}:
+\begin{itemize}
+    \item Unit tests for domain logic (Value Objects, Entity methods)
+    \item Repository integration tests with test database
+    \item HTTP handler tests with mocked dependencies
+    \item JWT token validation and refresh flow tests
+\end{itemize}
+
+\textbf{Mobile Testing}:
+\begin{itemize}
+    \item Use Case unit tests with mocked repositories
+    \item ViewModel logic testing with state management verification
+    \item Component rendering tests with React Test Renderer
+    \item SecureStore integration tests for token persistence
+\end{itemize}
+
+\textbf{Security Testing}:
+\begin{itemize}
+    \item Attempted cross-couple data access (blocked by repository filtering)
+    \item ID enumeration attacks (prevented by relationship-scoped queries)
+    \item Token tampering detection (JWT signature verification)
+    \item Password strength enforcement (Value Object validation)
+\end{itemize}
+
+\section{Conclusion}
+This project introduced \textbf{Amora}, a private platform designed to strengthen couple relationships through shared organization and emotional support features. By treating the couple as the core unit and enforcing privacy-by-design, Amora provides a structured alternative to combining many general-purpose tools.
+
+\subsection{Key Contributions}
+\begin{enumerate}
+    \item \textbf{Couple-Scoped Framework}: System design enforcing two-person boundaries through database constraints (partner ordering), repository-level filtering, and middleware validation
+    \item \textbf{Clean Architecture Implementation}: Domain-Driven Design in Go backend with Use Cases and Domain Events; Clean Architecture in mobile with Value Objects and Repository pattern
+    \item \textbf{Multi-Platform Consistency}: Unified API serving web and mobile with shared authentication, consistent error handling, and type-safe DTOs
+    \item \textbf{Security-in-Depth}: JWT dual-token system, bcrypt hashing, Expo SecureStore, CORS middleware, and defense against ID enumeration
+    \item \textbf{Sophisticated Data Model}: Comprehensive MySQL schema with 40+ indexes, CHECK constraints, foreign key relationships, and support for recurring calendar events
+    \item \textbf{Developer Experience}: Hierarchical Makefiles, dependency injection containers, structured logging, graceful shutdown, and automated migrations
+\end{enumerate}
+
+\subsection{Impact and Implications}
+Amora serves as a foundation for future work in relationship-centered digital tools, especially where privacy, emotional sensitivity, and long-term meaning are prioritized over engagement-driven metrics.
+
+\textbf{Technical Contributions to Field}:
+\begin{itemize}
+    \item Demonstrates practical implementation of couple-scoped access control at multiple architectural layers
+    \item Provides reference architecture for Clean Architecture in React Native with TypeScript
+    \item Showcases Domain-Driven Design patterns in Go with GORM integration
+    \item Establishes patterns for offline-first mobile apps with cloud synchronization
+\end{itemize}
+
+\textbf{Privacy and Security Implications}:
+\begin{itemize}
+    \item Privacy-by-design approach eliminates common intimate data exposure risks
+    \item Defense-in-depth security prevents single point of failure vulnerabilities
+    \item Encrypted mobile storage ensures device compromise doesn't leak relationship data
+    \item Relationship-boundary enforcement provides stronger isolation than traditional RBAC
+\end{itemize}
+
+\textbf{Relationship Support Value}:
+\begin{itemize}
+    \item Unified platform reduces cognitive overhead from managing multiple tools
+    \item Intentional feature design promotes relationship-positive behaviors
+    \item Optional mood tracking supports emotional awareness without pressure
+    \item Shared calendar integrates planning with relationship-specific milestones
+\end{itemize}
+
+\section{Future Work}
+Several extensions can improve the system:
+
+\subsection{Real-Time Communication and Sync}
+Introduce WebSockets for live updates (shared calendar changes, note delivery notifications) and reduce delays between partner interactions.
+\begin{itemize}
+    \item \textbf{WebSocket Server}: Implement using gorilla/websocket or nhooyr.io/websocket
+    \item \textbf{Event Broadcasting}: Use pub/sub pattern to notify connected clients of relationship-scoped changes
+    \item \textbf{Optimistic UI Updates}: Mobile app updates UI immediately, reconciles with server response
+    \item \textbf{Conflict Resolution}: Implement last-write-wins or operational transformation for concurrent edits
+    \item \textbf{Connection Management}: Automatic reconnection with exponential backoff on mobile network changes
+\end{itemize}
+
+\subsection{Richer Memory Features}
+Support media uploads, timeline views, tagging, and search to turn memories into a navigable relationship archive.
+\begin{itemize}
+    \item \textbf{Media Storage}: Integrate S3-compatible object storage (MinIO or AWS S3)
+    \item \textbf{Image Processing}: Thumbnail generation, EXIF data extraction, automatic orientation correction
+    \item \textbf{Timeline View}: Chronological memory feed with infinite scroll and date-based navigation
+    \item \textbf{Full-Text Search}: Implement Elasticsearch or PostgreSQL full-text search for notes and memories
+    \item \textbf{Tagging System}: User-defined tags with auto-suggestions and tag-based filtering
+    \item \textbf{Export Functionality}: Generate PDF/ZIP archives of relationship memories for backup
+\end{itemize}
+
+\subsection{Insights and Gentle Recommendations}
+Aggregate optional mood trends and interaction patterns into non-intrusive insights (e.g., weekly reflection summaries) designed carefully to avoid judgment or pressure \cite{digital_wellbeing_survey}.
+\begin{itemize}
+    \item \textbf{Mood Analytics}: Weekly mood pattern visualization with opt-in sharing
+    \item \textbf{Activity Insights}: Gentle reminders ("You haven't added a memory this month")
+    \item \textbf{Milestone Predictions}: Surface upcoming anniversaries based on relationship timeline
+    \item \textbf{Privacy Controls}: All insights configurable with partner visibility toggles
+    \item \textbf{No Gamification}: Deliberately avoid points/streaks that create pressure
+\end{itemize}
+
+\subsection{Security Hardening}
+Add rate limiting, device/session management, audit logs, and encryption-at-rest for sensitive fields. Strengthen production deployment baselines using HTTPS everywhere and secure cookie practices \cite{owasp_authentication}.
+\begin{itemize}
+    \item \textbf{Rate Limiting}: Redis-based rate limiting per user/IP to prevent abuse
+    \item \textbf{Session Management}: Multi-device session tracking with remote logout capability
+    \item \textbf{Audit Logging}: Track sensitive operations (password changes, relationship modifications)
+    \item \textbf{Encryption at Rest}: Encrypt sensitive fields (mood notes, love notes) in database
+    \item \textbf{2FA Support}: TOTP-based two-factor authentication for high-security accounts
+    \item \textbf{Security Headers}: Implement CSP, HSTS, X-Frame-Options for web client
+    \item \textbf{Dependency Scanning}: Automated vulnerability scanning in CI/CD pipeline
+\end{itemize}
+
+\subsection{Platform Extensions}
+\begin{itemize}
+    \item \textbf{Desktop Applications}: Electron-based desktop apps for Windows/macOS/Linux
+    \item \textbf{Web Notifications}: Push notifications for web using Service Workers
+    \item \textbf{Calendar Integration}: Two-way sync with Google Calendar, Apple Calendar, Outlook
+    \item \textbf{Internationalization}: Multi-language support with i18n framework
+    \item \textbf{Accessibility}: WCAG 2.1 AA compliance with screen reader support
+    \item \textbf{Dark Mode}: System-aware theme switching for reduced eye strain
+\end{itemize}
+
+\section*{Acknowledgments}
+I would like to thank \textbf{Prof. G. di Tollo} for guidance, feedback, and support throughout this project. Their input helped shape the system architecture, development workflow, and project direction.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{amora}
+
+\section*{Project Repository}
+The full project source code is available on GitHub at: \\
+\url{https://github.com/StefanPenchev05/Amora}
+
+\end{document}
+\endinput

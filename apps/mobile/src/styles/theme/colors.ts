@@ -1,37 +1,37 @@
 export const lightColors = {
-  background: "#FAFCFF",        // Soft cloud white with hint of blue
-  surface: "#F8FBFF",           // Slightly cooler surface
-  primary: "#6366F1",           // Electric indigo - modern and vibrant
-  primaryHover: "#4F46E5",      // Deeper indigo on hover
-  secondary: "#EC4899",         // Hot pink - energetic and creative
-  accent: "#F59E0B",            // Amber gold - warm accent
-  textPrimary: "#0F172A",       // Deep slate - high contrast
-  textMuted: "#475569",         // WCAG AA compliant slate gray
-  success: "#10B981",           // Emerald green - fresh and positive
-  warning: "#F59E0B",           // Amber - attention-grabbing
-  error: "#EF4444",             // Red - clear danger signal
-  border: "#E2E8F0",            // Light slate border
-  // WCAG AA compliant "on-*" tokens for text/icons on colored backgrounds
-  onPrimary: "#FFFFFF",         // white text on indigo (≈8.2:1 contrast)
-  onSecondary: "#FFFFFF",       // white text on hot pink (≈4.7:1 contrast)
-  onAccent: "#0F172A",          // dark text on amber (≈8.9:1 contrast)
+  // "Rose & Gold" palette for Amora (warm, romantic, intimate)
+  background: "#FBF7F5", // warm ivory with hint of rose
+  surface: "#FFFFFF", // clean white cards
+  primary: "#E57373", // warm rose (couples' connection, warmth, love)
+  primaryHover: "#D32F2F", // deeper rose on hover
+  secondary: "#8D6E63", // warm brown (grounding, trust, stability)
+  accent: "#FFB74D", // warm gold (celebration, warmth, optimism)
+  textPrimary: "#3E2723", // deep brown (warm, readable)
+  textMuted: "#8D7F7A", // warm taupe
+  success: "#C8E6C9", // soft green
+  warning: "#FFE0B2", // soft amber
+  error: "#FFCDD2", // soft pink-red
+  border: "#F0E6E3", // very soft warm border
+  // "On" tokens
+  onPrimary: "#FFFFFF", // white text on rose
+  onSecondary: "#FFFFFF", // white text on brown
+  onAccent: "#3E2723", // dark text on gold
 };
 
 export const darkColors = {
-  background: '#0A0A0F',        // Deep cosmic black
-  surface: '#1A1625',           // Dark purple-tinged surface
-  primary: '#8B5CF6',           // Vibrant violet - more saturated for dark mode
-  primaryHover: '#7C3AED',      // Deeper violet hover
-  secondary: '#F472B6',         // Bright pink - pops in dark mode
-  accent: '#FBBF24',            // Golden yellow - warm accent
-  textPrimary: '#F8FAFC',       // Pure white for maximum contrast
-  textMuted: '#94A3B8',         // Light slate gray
-  success: '#34D399',           // Bright emerald
-  warning: '#FBBF24',           // Golden warning
-  error: '#F87171',             // Coral red - softer than pure red
-  border: '#374151',            // Dark gray border
-  // WCAG AA compliant "on-*" tokens for text/icons on light brand fills
-  onPrimary: '#FFFFFF',         // white text on violet (≈6.8:1 contrast)
-  onSecondary: '#FFFFFF',       // white text on bright pink (≈4.9:1 contrast)
-  onAccent: '#0A0A0F',          // dark text on golden yellow (≈12.1:1 contrast)
+  background: "#1C1310", // deep warm brown-black
+  surface: "#2B1F1A", // warm dark surface
+  primary: "#F08080", // lighter rose for dark mode
+  primaryHover: "#E57373",
+  secondary: "#A1887F", // lighter warm brown
+  accent: "#FFD699", // lighter gold
+  textPrimary: "#F5E6E1", // warm off-white
+  textMuted: "#B39A95", // warm light taupe
+  success: "#A5D6A7",
+  warning: "#FFD54F",
+  error: "#EF9A9A",
+  border: "#4A3630", // warm dark border
+  onPrimary: "#FFFFFF",
+  onSecondary: "#FFFFFF",
+  onAccent: "#1C1310",
 };

@@ -7,15 +7,7 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <Stack
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: "#f4511e",
-          },
-          headerTintColor: "#fff",
-          headerTitleStyle: {
-            fontWeight: "bold",
-          },
-        }}
+        screenOptions={{ headerShown: false }}
       >
         <Stack.Screen
           name="index"
@@ -27,7 +19,13 @@ export default function RootLayout() {
         <Stack.Screen
           name="(tabs)"
           options={{
-            headerShown: true,
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="(app)"
+          options={{
+            headerShown: false,
           }}
         />
       </Stack>

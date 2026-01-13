@@ -13,20 +13,27 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-export default function LoginScreen() {
+export default function RegisterScreen() {
   const router = useRouter();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleLogin = () => {
-    // Mock login - just check if fields are filled
-    if (email.trim() && password.trim()) {
+  const handleRegister = () => {
+    // Mock register - just check if fields are filled
+    if (name.trim() && email.trim() && password.trim() && confirmPassword.trim()) {
       router.replace('/(app)/dashboard');
     }
   };
 
-  const isFormValid = email.trim() && password.trim();
+  const isFormValid = 
+    name.trim() && 
+    email.trim() && 
+    password.trim() && 
+    confirmPassword.trim();
 
   return (
     <LinearGradient
@@ -47,12 +54,27 @@ export default function LoginScreen() {
             <View style={styles.logoContainer}>
               <Text style={styles.logo}>💕</Text>
             </View>
-            <Text style={styles.title}>Welcome Back!</Text>
-            <Text style={styles.subtitle}>Log in to continue your journey</Text>
+            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.subtitle}>Start your love journey together</Text>
           </View>
 
           {/* Form */}
           <View style={styles.form}>
+            {/* Name Input */}
+            <View style={styles.inputContainer}>
+              <View style={styles.inputIcon}>
+                <Ionicons name="person-outline" size={20} color="#666" />
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Full Name"
+                placeholderTextColor="#999"
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
+              />
+            </View>
+
             {/* Email Input */}
             <View style={styles.inputContainer}>
               <View style={styles.inputIcon}>
@@ -83,7 +105,6 @@ export default function LoginScreen() {
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
-                autoComplete="password"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}
@@ -97,25 +118,55 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Forgot Password */}
-            <TouchableOpacity style={styles.forgotPassword}>
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
+            {/* Confirm Password Input */}
+            <View style={styles.inputContainer}>
+              <View style={styles.inputIcon}>
+                <Ionicons name="lock-closed-outline" size={20} color="#666" />
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Confirm Password"
+                placeholderTextColor="#999"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showConfirmPassword}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                <Ionicons
+                  name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
+                  size={20}
+                  color="#666"
+                />
+              </TouchableOpacity>
+            </View>
 
-            {/* Login Button */}
+            {/* Terms and Conditions */}
+            <View style={styles.termsContainer}>
+              <Text style={styles.termsText}>
+                By signing up, you agree to our{' '}
+                <Text style={styles.termsLink}>Terms & Conditions</Text> and{' '}
+                <Text style={styles.termsLink}>Privacy Policy</Text>
+              </Text>
+            </View>
+
+            {/* Register Button */}
             <TouchableOpacity
-              style={[styles.loginButton, !isFormValid && styles.loginButtonDisabled]}
-              onPress={handleLogin}
+              style={[styles.registerButton, !isFormValid && styles.registerButtonDisabled]}
+              onPress={handleRegister}
               disabled={!isFormValid}
               activeOpacity={0.8}
             >
               <LinearGradient
                 colors={isFormValid ? ['#FF6B9D', '#FF8FAB'] : ['#ccc', '#ddd']}
-                style={styles.loginGradient}
+                style={styles.registerGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
               >
-                <Text style={styles.loginButtonText}>Log In</Text>
+                <Text style={styles.registerButtonText}>Sign Up</Text>
               </LinearGradient>
             </TouchableOpacity>
 
@@ -137,11 +188,11 @@ export default function LoginScreen() {
               <Text style={styles.socialButtonText}>Continue with Apple</Text>
             </TouchableOpacity>
 
-            {/* Sign Up Link */}
-            <View style={styles.signupContainer}>
-              <Text style={styles.signupText}>Don't have an account? </Text>
-              <TouchableOpacity onPress={() => router.push('/(tabs)/register')}>
-                <Text style={styles.signupLink}>Sign Up</Text>
+            {/* Login Link */}
+            <View style={styles.loginContainer}>
+              <Text style={styles.loginText}>Already have an account? </Text>
+              <TouchableOpacity onPress={() => router.push('/(tabs)/login')}>
+                <Text style={styles.loginLink}>Log In</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -160,7 +211,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingTop: 80,
+    paddingTop: 60,
     paddingHorizontal: 30,
   },
   header: {
@@ -222,16 +273,20 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: 8,
   },
-  forgotPassword: {
-    alignSelf: 'flex-end',
+  termsContainer: {
     marginBottom: 24,
   },
-  forgotPasswordText: {
-    fontSize: 14,
+  termsText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  termsLink: {
     color: '#FF6B9D',
     fontWeight: '600',
   },
-  loginButton: {
+  registerButton: {
     borderRadius: 12,
     overflow: 'hidden',
     marginBottom: 24,
@@ -241,15 +296,15 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 5,
   },
-  loginButtonDisabled: {
+  registerButtonDisabled: {
     shadowOpacity: 0,
     elevation: 0,
   },
-  loginGradient: {
+  registerGradient: {
     paddingVertical: 16,
     alignItems: 'center',
   },
-  loginButtonText: {
+  registerButtonText: {
     fontSize: 18,
     fontWeight: 'bold',
     color: 'white',
@@ -287,21 +342,20 @@ const styles = StyleSheet.create({
     color: '#333',
     marginLeft: 12,
   },
-  signupContainer: {
+  loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 24,
     marginBottom: 40,
   },
-  signupText: {
+  loginText: {
     fontSize: 14,
     color: '#666',
   },
-  signupLink: {
+  loginLink: {
     fontSize: 14,
     color: '#FF6B9D',
     fontWeight: 'bold',
   },
 });
-
