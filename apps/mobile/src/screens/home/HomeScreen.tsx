@@ -7,15 +7,15 @@ import {
   StyleSheet,
   Text,
   View,
-  useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { darkTheme, lightTheme } from '../../styles/theme';
+import { lightTheme } from '../../styles/theme';
 import { withOpacity } from '../../components/form/color';
 import GlassCard from '../../components/ui/GlassCard';
 import GradientButton from '../../components/ui/GradientButton';
+import { useTheme } from '../../providers/theme';
 
 export type HomeScreenProps = {
   onOpenCalendar?: () => void;
@@ -32,9 +32,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   onOpenMemories,
   onAnswerPrompt,
 }) => {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const theme = isDark ? darkTheme : lightTheme;
+  const { theme, isDark } = useTheme();
   const styles = createStyles(theme);
 
   const orb1Anim = React.useRef(new Animated.Value(0)).current;

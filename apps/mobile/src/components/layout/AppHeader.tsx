@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { lightTheme } from '../../styles/theme';
 import { withOpacity } from '../form/color';
+import { useTheme } from '../../providers/theme';
 
 type Theme = typeof lightTheme;
 
@@ -23,9 +24,11 @@ const AppHeader: React.FC<Props> = ({
   subtitle,
   onBack,
   right,
-  theme = lightTheme,
+  theme: themeProp,
   style,
 }) => {
+  const { theme: ctxTheme, isDark } = useTheme();
+  const theme = themeProp ?? ctxTheme ?? lightTheme;
   const styles = createStyles(theme);
 
   return (
@@ -42,7 +45,7 @@ const AppHeader: React.FC<Props> = ({
           style={StyleSheet.absoluteFill}
         />
         {Platform.OS === 'ios' ? (
-          <BlurView intensity={18} tint="light" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={18} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
         ) : null}
 
         <View style={styles.row}>

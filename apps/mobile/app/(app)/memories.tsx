@@ -20,6 +20,7 @@ import Card from '../../src/components/ui/Card';
 import IconCircleButton from '../../src/components/ui/IconCircleButton';
 import { withOpacity } from '../../src/components/form/color';
 import { lightTheme } from '../../src/styles/theme';
+import { useTheme } from '../../src/providers/theme';
 import { memoryService } from '../../src/services/api/memories';
 
 interface Memory {
@@ -33,7 +34,7 @@ interface Memory {
 
 export default function MemoriesScreen() {
   const router = useRouter();
-  const theme = lightTheme;
+  const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const tileWidth = useMemo(() => {
@@ -224,11 +225,11 @@ export default function MemoriesScreen() {
   }
 
   return (
-    <Screen scroll theme={theme} contentStyle={styles.screenContent}>
+    <Screen scroll contentStyle={styles.screenContent}>
       <AppHeader
         title="Memories"
         subtitle="Capture moments together"
-        onBack={() => router.back()}
+        onBack={() => router.replace('/(app)/dashboard')}
         right={headerRight}
         theme={theme}
       />

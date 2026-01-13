@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Screen from '../../src/components/layout/Screen';
 import Card from '../../src/components/ui/Card';
 import { lightTheme } from '../../src/styles/theme';
+import { useTheme } from '../../src/providers/theme';
 import { withOpacity } from '../../src/components/form/color';
 import { relationshipService, type RelationshipStatusResponse } from '../../src/services/api/relationship';
 
@@ -261,7 +262,7 @@ function getInitials(name: string): string {
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const theme = lightTheme;
+  const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const { userName, loadingUser } = useCurrentUserName();
@@ -302,7 +303,6 @@ export default function DashboardScreen() {
   return (
     <Screen
       scroll
-      theme={theme}
       contentStyle={styles.screenContent}
     >
       <DashboardTopBar

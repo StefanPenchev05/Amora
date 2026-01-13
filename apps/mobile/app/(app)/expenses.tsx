@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { expenseService } from '../../src/services/api/expenses';
+import Screen from '../../src/components/layout/Screen';
+import { withOpacity } from '../../src/components/form/color';
+import { lightTheme } from '../../src/styles/theme';
+import { useTheme } from '../../src/providers/theme';
 
 type PaidBy = 'me' | 'partner' | 'split';
 
@@ -46,6 +50,9 @@ interface Expense {
 
 export default function ExpensesScreen() {
   const router = useRouter();
+  const { theme, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   const [modalVisible, setModalVisible] = useState(false);
   const [expenseTitle, setExpenseTitle] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
@@ -183,20 +190,29 @@ export default function ExpensesScreen() {
     .filter(e => e.date.startsWith(monthPrefix))
     .reduce((sum, e) => sum + e.amount, 0);
 
+  const gradientColors = useMemo(
+    (): [string, string, string] => [
+      withOpacity(theme.colors.primary, isDark ? 0.14 : 0.1),
+      withOpacity(theme.colors.accent, isDark ? 0.08 : 0.1),
+      theme.colors.background,
+    ],
+    [theme, isDark],
+  );
+
   return (
-    <View style={styles.container}>
+    <Screen contentStyle={styles.screenContent}>
       <LinearGradient
-        colors={['#E5F3FF', '#FFF5E5', '#FFFFFF']}
+        colors={gradientColors}
         style={styles.gradient}
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
+          <TouchableOpacity onPress={() => router.replace('/(app)/dashboard')} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Expenses</Text>
           <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addButton}>
-            <Ionicons name="add-circle" size={28} color="#50C878" />
+            <Ionicons name="add-circle" size={28} color={theme.colors.primary} />
           </TouchableOpacity>
         </View>
 
@@ -252,7 +268,7 @@ export default function ExpensesScreen() {
               style={[
                 styles.categoryChip,
                 filterCategory === cat.id && styles.categoryChipActive,
-                { backgroundColor: filterCategory === cat.id ? cat.color : '#F8F9FA' }
+                { backgroundColor: filterCategory === cat.id ? cat.color : theme.colors.surface }
               ]}
               onPress={() => setFilterCategory(cat.id)}
             >
@@ -308,14 +324,14 @@ export default function ExpensesScreen() {
                     <Ionicons
                       name={expense.settled ? 'checkmark-circle' : 'checkmark-circle-outline'}
                       size={24}
-                      color={expense.settled ? '#50C878' : '#999'}
+                      color={expense.settled ? theme.colors.primary : theme.colors.textMuted}
                     />
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleDeleteExpense(expense.id)}
                     style={styles.actionButton}
                   >
-                    <Ionicons name="trash-outline" size={20} color="#FF6B9D" />
+                    <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -337,14 +353,14 @@ export default function ExpensesScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>New Expense</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={28} color="#666" />
+                <Ionicons name="close" size={28} color={theme.colors.textMuted} />
               </TouchableOpacity>
             </View>
 
             <TextInput
               style={styles.input}
               placeholder="What was it for?"
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.colors.textMuted}
               value={expenseTitle}
               onChangeText={setExpenseTitle}
             />
@@ -352,7 +368,7 @@ export default function ExpensesScreen() {
             <TextInput
               style={styles.input}
               placeholder="Amount ($)"
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.colors.textMuted}
               value={expenseAmount}
               onChangeText={setExpenseAmount}
               keyboardType="decimal-pad"
@@ -388,7 +404,11 @@ export default function ExpensesScreen() {
                 style={[styles.paidByOption, paidBy === 'me' && styles.paidByOptionActive]}
                 onPress={() => setPaidBy('me')}
               >
-                <Ionicons name="person" size={24} color={paidBy === 'me' ? 'white' : '#666'} />
+                <Ionicons
+                  name="person"
+                  size={24}
+                  color={paidBy === 'me' ? theme.colors.onPrimary : theme.colors.textMuted}
+                />
                 <Text style={[styles.paidByLabel, paidBy === 'me' && { color: 'white' }]}>
                   I Paid
                 </Text>
@@ -397,7 +417,11 @@ export default function ExpensesScreen() {
                 style={[styles.paidByOption, paidBy === 'partner' && styles.paidByOptionActive]}
                 onPress={() => setPaidBy('partner')}
               >
-                <Ionicons name="people" size={24} color={paidBy === 'partner' ? 'white' : '#666'} />
+                <Ionicons
+                  name="people"
+                  size={24}
+                  color={paidBy === 'partner' ? theme.colors.onPrimary : theme.colors.textMuted}
+                />
                 <Text style={[styles.paidByLabel, paidBy === 'partner' && { color: 'white' }]}>
                   Partner Paid
                 </Text>
@@ -406,7 +430,11 @@ export default function ExpensesScreen() {
                 style={[styles.paidByOption, paidBy === 'split' && styles.paidByOptionActive]}
                 onPress={() => setPaidBy('split')}
               >
-                <Ionicons name="git-compare" size={24} color={paidBy === 'split' ? 'white' : '#666'} />
+                <Ionicons
+                  name="git-compare"
+                  size={24}
+                  color={paidBy === 'split' ? theme.colors.onPrimary : theme.colors.textMuted}
+                />
                 <Text style={[styles.paidByLabel, paidBy === 'split' && { color: 'white' }]}>
                   Split 50/50
                 </Text>
@@ -422,7 +450,7 @@ export default function ExpensesScreen() {
               disabled={!expenseTitle.trim() || !expenseAmount.trim() || saving}
             >
               {saving ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={theme.colors.onPrimary} />
               ) : (
                 <Text style={styles.addExpenseButtonText}>Add Expense</Text>
               )}
@@ -430,13 +458,18 @@ export default function ExpensesScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: typeof lightTheme) => StyleSheet.create({
   container: {
     flex: 1,
+  },
+  screenContent: {
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
   },
   gradient: {
     flex: 1,
@@ -455,27 +488,25 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.textPrimary,
   },
   addButton: {
     padding: 8,
   },
   balanceCard: {
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.surface,
     borderRadius: 16,
     padding: 24,
     marginHorizontal: 20,
     marginBottom: 20,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.border, 0.9),
+    ...theme.shadow.sm,
   },
   balanceLabel: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textMuted,
     marginBottom: 8,
   },
   balanceAmount: {
@@ -485,7 +516,7 @@ const styles = StyleSheet.create({
   },
   balanceText: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textMuted,
     marginBottom: 20,
   },
   statsRow: {
@@ -499,11 +530,11 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.textPrimary,
   },
   statLabel: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.textMuted,
     marginTop: 4,
   },
   categoryScroll: {
@@ -517,7 +548,7 @@ const styles = StyleSheet.create({
   categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: theme.colors.surface,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -525,18 +556,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   categoryChipActive: {
-    backgroundColor: '#50C878',
+    backgroundColor: theme.colors.primary,
   },
   categoryEmoji: {
     fontSize: 16,
   },
   categoryText: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textMuted,
     fontWeight: '600',
   },
   categoryTextActive: {
-    color: 'white',
+    color: theme.colors.onPrimary,
   },
   content: {
     flex: 1,
@@ -544,20 +575,17 @@ const styles = StyleSheet.create({
   },
   expenseCard: {
     flexDirection: 'row',
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.border, 0.9),
   },
   expenseCardSettled: {
     opacity: 0.6,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: theme.colors.surface,
   },
   categoryIndicator: {
     width: 48,
@@ -582,18 +610,18 @@ const styles = StyleSheet.create({
   expenseTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.textPrimary,
     flex: 1,
   },
   expenseAmount: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#50C878',
+    color: theme.colors.primary,
     marginLeft: 8,
   },
   expenseTextSettled: {
     textDecorationLine: 'line-through',
-    color: '#999',
+    color: theme.colors.textMuted,
   },
   expenseDetails: {
     flexDirection: 'row',
@@ -602,17 +630,17 @@ const styles = StyleSheet.create({
   },
   expenseDate: {
     fontSize: 12,
-    color: '#999',
+    color: theme.colors.textMuted,
   },
   paidByBadge: {
-    backgroundColor: '#E5F3FF',
+    backgroundColor: withOpacity(theme.colors.primary, 0.1),
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
   },
   paidByText: {
     fontSize: 11,
-    color: '#4A90E2',
+    color: theme.colors.textMuted,
     fontWeight: '600',
   },
   expenseActions: {
@@ -629,7 +657,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
@@ -644,20 +672,20 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.textPrimary,
   },
   input: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: theme.colors.background,
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
     marginBottom: 16,
-    color: '#333',
+    color: theme.colors.textPrimary,
   },
   modalSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   modalCategoryScroll: {
@@ -667,7 +695,7 @@ const styles = StyleSheet.create({
   modalCategoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: theme.colors.background,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
@@ -679,7 +707,7 @@ const styles = StyleSheet.create({
   },
   modalCategoryText: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textMuted,
     fontWeight: '600',
   },
   paidBySelector: {
@@ -689,22 +717,22 @@ const styles = StyleSheet.create({
   },
   paidByOption: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: theme.colors.background,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     gap: 8,
   },
   paidByOptionActive: {
-    backgroundColor: '#50C878',
+    backgroundColor: theme.colors.primary,
   },
   paidByLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#666',
+    color: theme.colors.textMuted,
   },
   addExpenseButton: {
-    backgroundColor: '#50C878',
+    backgroundColor: theme.colors.primary,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -713,7 +741,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#CCC',
   },
   addExpenseButtonText: {
-    color: 'white',
+    color: theme.colors.onPrimary,
     fontSize: 16,
     fontWeight: 'bold',
   },

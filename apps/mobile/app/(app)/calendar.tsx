@@ -19,6 +19,7 @@ import Card from '../../src/components/ui/Card';
 import IconCircleButton from '../../src/components/ui/IconCircleButton';
 import { withOpacity } from '../../src/components/form/color';
 import { lightTheme } from '../../src/styles/theme';
+import { useTheme } from '../../src/providers/theme';
 import { eventService } from '../../src/services/api/events';
 import { relationshipService, type RelationshipStatusResponse } from '../../src/services/api/relationship';
 
@@ -37,7 +38,7 @@ interface Event {
 
 export default function CalendarScreen() {
   const router = useRouter();
-  const theme = lightTheme;
+  const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [relationship, setRelationship] = useState<RelationshipStatusResponse | null>(null);
@@ -299,11 +300,11 @@ export default function CalendarScreen() {
   );
 
   return (
-    <Screen scroll theme={theme} contentStyle={styles.screenContent}>
+    <Screen scroll contentStyle={styles.screenContent}>
       <AppHeader
         title="Calendar"
         subtitle="Plan moments together"
-        onBack={() => router.back()}
+        onBack={() => router.replace('/(app)/dashboard')}
         right={headerRight}
         theme={theme}
       />

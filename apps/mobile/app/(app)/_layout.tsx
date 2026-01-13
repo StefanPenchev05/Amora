@@ -3,11 +3,12 @@ import { StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 
 import QuickActionsFooter from '../../src/components/layout/QuickActionsFooter';
-import { lightTheme } from '../../src/styles/theme';
+import { useTheme } from '../../src/providers/theme';
 
 export default function AppLayout() {
+  const { theme } = useTheme();
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
       <View style={styles.content}>
         <Stack
           screenOptions={{
@@ -25,7 +26,7 @@ export default function AppLayout() {
         </Stack>
       </View>
 
-      <QuickActionsFooter theme={lightTheme} />
+      <QuickActionsFooter />
     </View>
   );
 }
@@ -33,7 +34,6 @@ export default function AppLayout() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: lightTheme.colors.background,
   },
   content: {
     flex: 1,

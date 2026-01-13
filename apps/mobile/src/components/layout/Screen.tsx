@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { lightTheme } from '../../styles/theme';
+import { useTheme } from '../../providers/theme';
 
 type Theme = typeof lightTheme;
 
@@ -28,8 +29,10 @@ const Screen: React.FC<Props> = ({
   contentStyle,
   style,
   variant = 'solid',
-  theme = lightTheme,
+  theme: themeProp,
 }) => {
+  const { theme: ctxTheme } = useTheme();
+  const theme = themeProp ?? ctxTheme ?? lightTheme;
   const styles = createStyles(theme);
 
   const content = scroll ? (

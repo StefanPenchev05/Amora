@@ -7,6 +7,7 @@ import { BlurView } from 'expo-blur';
 
 import { lightTheme } from '../../styles/theme';
 import { withOpacity } from '../form/color';
+import { useTheme } from '../../providers/theme';
 
 type Theme = typeof lightTheme;
 
@@ -14,7 +15,9 @@ type Props = {
   theme?: Theme;
 };
 
-const QuickActionsFooter: React.FC<Props> = ({ theme = lightTheme }) => {
+const QuickActionsFooter: React.FC<Props> = ({ theme: themeProp }) => {
+  const { theme: ctxTheme, isDark } = useTheme();
+  const theme = themeProp ?? ctxTheme ?? lightTheme;
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
@@ -60,7 +63,7 @@ const QuickActionsFooter: React.FC<Props> = ({ theme = lightTheme }) => {
 
   return (
     <View style={[styles.root, { paddingBottom: Math.max(insets.bottom, theme.spacing[2]) }]}>
-      <BlurView intensity={18} tint="light" style={StyleSheet.absoluteFill} />
+      <BlurView intensity={18} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
       <View style={styles.tint} pointerEvents="none" />
       <View style={styles.bar}>
         {actions.map((a) => {

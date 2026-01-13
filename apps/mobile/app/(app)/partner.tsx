@@ -11,6 +11,7 @@ import IconCircleButton from '../../src/components/ui/IconCircleButton';
 import { lightTheme } from '../../src/styles/theme';
 import { relationshipService, type RelationshipStatusResponse } from '../../src/services/api/relationship';
 import { withOpacity } from '../../src/components/form/color';
+import { useTheme } from '../../src/providers/theme';
 
 const normalizeInviteCode = (value: string) => value.replaceAll(/[^a-z0-9]/gi, '').toUpperCase();
 const formatInviteCode = (value: string) => {
@@ -22,7 +23,7 @@ const formatInviteCode = (value: string) => {
 // eslint-disable-next-line sonarjs/cognitive-complexity
 export default function PartnerConnectScreen() {
   const router = useRouter();
-  const theme = lightTheme;
+  const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [loading, setLoading] = useState(true);
@@ -203,8 +204,8 @@ export default function PartnerConnectScreen() {
     : undefined;
 
   return (
-    <Screen scroll theme={theme} contentStyle={styles.content}>
-      <AppHeader title={headline} subtitle={subtitle} onBack={() => router.back()} theme={theme} />
+    <Screen scroll contentStyle={styles.content}>
+      <AppHeader title={headline} subtitle={subtitle} onBack={() => router.replace('/(app)/dashboard')} theme={theme} />
 
       <View style={styles.stack}>
         {isActive ? (

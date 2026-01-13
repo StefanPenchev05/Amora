@@ -17,6 +17,7 @@ import AppHeader from '../../src/components/layout/AppHeader';
 import Card from '../../src/components/ui/Card';
 import { withOpacity } from '../../src/components/form/color';
 import { lightTheme } from '../../src/styles/theme';
+import { useTheme } from '../../src/providers/theme';
 import { authService } from '../../src/services/api/auth';
 import { relationshipService, type RelationshipStatusResponse } from '../../src/services/api/relationship';
 import { eventService } from '../../src/services/api/events';
@@ -93,11 +94,10 @@ const ActionRow: React.FC<ActionRowProps> = ({
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const theme = lightTheme;
+  const { theme, isDark, setMode } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -183,8 +183,12 @@ export default function ProfileScreen() {
       if (settings) {
         const parsed = JSON.parse(settings);
         setNotificationsEnabled(parsed.notifications ?? true);
-        setDarkModeEnabled(parsed.darkMode ?? false);
         setSoundEnabled(parsed.sound ?? true);
+
+        // Back-compat migration: if older installs stored `darkMode`, map it to ThemeProvider.
+        if (typeof parsed.darkMode === 'boolean') {
+          setMode(parsed.darkMode ? 'dark' : 'light');
+        }
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -208,8 +212,7 @@ export default function ProfileScreen() {
   };
 
   const handleToggleDarkMode = (value: boolean) => {
-    setDarkModeEnabled(value);
-    saveSettings('darkMode', value);
+    setMode(value ? 'dark' : 'light');
   };
 
   const handleToggleSound = (value: boolean) => {
@@ -232,8 +235,8 @@ export default function ProfileScreen() {
   };
 
   return (
-    <Screen scroll theme={theme} contentStyle={styles.content}>
-      <AppHeader theme={theme} title="Profile" onBack={() => router.back()} />
+    <Screen scroll contentStyle={styles.content}>
+      <AppHeader theme={theme} title="Profile" onBack={() => router.replace('/(app)/dashboard')} />
 
       <Card theme={theme} style={styles.profileCard}>
         <View style={styles.profileHeader}>
@@ -447,10 +450,10 @@ export default function ProfileScreen() {
             <Text style={styles.settingText}>Dark mode</Text>
           </View>
           <Switch
-            value={darkModeEnabled}
+            value={isDark}
             onValueChange={handleToggleDarkMode}
             trackColor={{ false: theme.colors.border, true: withOpacity(theme.colors.secondary, 0.18) }}
-            thumbColor={darkModeEnabled ? theme.colors.secondary : theme.colors.surface}
+            thumbColor={isDark ? theme.colors.secondary : theme.colors.surface}
             ios_backgroundColor={theme.colors.border}
           />
         </View>

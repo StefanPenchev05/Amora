@@ -9,18 +9,18 @@ import {
   StyleSheet,
   Text,
   View,
-  useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useRegisterViewModel, RegisterPayload } from '../../../viewmodels/auth/useRegisterViewModel';
-import { darkTheme, lightTheme } from '../../../styles/theme';
+import { lightTheme } from '../../../styles/theme';
 import AuthTextField from '../../../components/form/AuthTextField';
 import AuthPasswordField from '../../../components/form/AuthPasswordField';
 import { withOpacity } from '../../../components/form/color';
 import GradientButton from '../../../components/ui/GradientButton';
+import { useTheme } from '../../../providers/theme';
 
 export type RegisterScreenProps = {
   onRegister?: (payload: RegisterPayload) => Promise<void>;
@@ -35,8 +35,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({
   onGoogleLogin,
   onAppleLogin,
 }) => {
-  const colorScheme = useColorScheme();
-  const theme = colorScheme === 'dark' ? darkTheme : lightTheme;
+  const { theme, isDark } = useTheme();
   const styles = createStyles(theme);
   const vm = useRegisterViewModel({ register: onRegister });
 
@@ -252,7 +251,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({
             >
               <BlurView
                 intensity={Platform.OS === 'android' ? 40 : 55}
-                tint={colorScheme === 'dark' ? 'systemThinMaterialDark' : 'systemThinMaterialLight'}
+                tint={isDark ? 'systemThinMaterialDark' : 'systemThinMaterialLight'}
                 experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : 'none'}
                 style={StyleSheet.absoluteFill}
               />
@@ -260,8 +259,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({
               <LinearGradient
                 pointerEvents="none"
                 colors={[
-                  withOpacity(theme.colors.surface, colorScheme === 'dark' ? 0.42 : 0.62),
-                  withOpacity(theme.colors.surface, colorScheme === 'dark' ? 0.2 : 0.28),
+                  withOpacity(theme.colors.surface, isDark ? 0.42 : 0.62),
+                  withOpacity(theme.colors.surface, isDark ? 0.2 : 0.28),
                 ]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}

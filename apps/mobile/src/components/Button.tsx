@@ -1,7 +1,7 @@
 import React from 'react';
-import { TouchableOpacity, Text, TouchableOpacityProps, useColorScheme } from 'react-native';
-import { lightTheme, darkTheme } from '@styles/theme';
+import { TouchableOpacity, Text, TouchableOpacityProps } from 'react-native';
 import { textStyles } from '@styles/components/text-styles';
+import { useTheme } from '../providers/theme';
 
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
@@ -20,8 +20,7 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   ...props 
 }) => {
-  const colorScheme = useColorScheme();
-  const theme = colorScheme === 'dark' ? darkTheme : lightTheme;
+  const { theme } = useTheme();
 
   const getButtonStyles = () => {
     let paddingVertical = theme.spacing[3]; // medium default

@@ -17,6 +17,7 @@ import Card from '../../src/components/ui/Card';
 import IconCircleButton from '../../src/components/ui/IconCircleButton';
 import { withOpacity } from '../../src/components/form/color';
 import { lightTheme } from '../../src/styles/theme';
+import { useTheme } from '../../src/providers/theme';
 import { moodService } from '../../src/services/api/moods';
 import { relationshipService, RelationshipStatusResponse } from '../../src/services/api/relationship';
 
@@ -39,7 +40,7 @@ type MoodEntry = {
 
 export default function MoodScreen() {
   const router = useRouter();
-  const theme = lightTheme;
+  const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [relationship, setRelationship] = useState<RelationshipStatusResponse | null>(null);
@@ -155,11 +156,11 @@ export default function MoodScreen() {
   const isPartnerItem = (userId: string) => !!(partnerConnected && partnerUserId && userId === partnerUserId);
 
   return (
-    <Screen scroll theme={theme} contentStyle={styles.content}>
+    <Screen scroll contentStyle={styles.content}>
       <AppHeader
         title="Mood"
         subtitle="Track how you feel"
-        onBack={() => router.back()}
+        onBack={() => router.replace('/(app)/dashboard')}
         theme={theme}
         right={
           <IconCircleButton
