@@ -7,19 +7,39 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { expenseService } from '../../src/services/api/expenses';
+
+type PaidBy = 'me' | 'partner' | 'split';
+
+const balanceToColor = (balance: number) => {
+  if (balance === 0) return '#50C878';
+  return balance > 0 ? '#FF6B9D' : '#4A90E2';
+};
+
+const balanceToText = (balance: number) => {
+  if (balance === 0) return 'All Settled Up! 🎉';
+  return balance > 0 ? 'Partner owes you' : 'You owe partner';
+};
+
+const paidByToLabel = (paidBy: PaidBy) => {
+  if (paidBy === 'me') return '👤 You paid';
+  if (paidBy === 'partner') return '👥 Partner paid';
+  return '🤝 Split';
+};
 
 interface Expense {
-  id: number;
+  id: string;
   title: string;
   amount: number;
   date: string;
   category: string;
-  paidBy: 'me' | 'partner' | 'split';
+  paidBy: PaidBy;
   settled: boolean;
   splitPercentage?: number; // if split, percentage I pay (default 50)
 }
@@ -30,9 +50,10 @@ export default function ExpensesScreen() {
   const [expenseTitle, setExpenseTitle] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('groceries');
-  const [paidBy, setPaidBy] = useState<'me' | 'partner' | 'split'>('me');
+  const [paidBy, setPaidBy] = useState<PaidBy>('me');
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [filterCategory, setFilterCategory] = useState('all');
+  const [saving, setSaving] = useState(false);
 
   const categories = [
     { id: 'groceries', label: 'Groceries', icon: '🛒', color: '#50C878' },
@@ -49,64 +70,80 @@ export default function ExpensesScreen() {
 
   const loadExpenses = async () => {
     try {
-      const stored = await AsyncStorage.getItem('expenses');
-      if (stored) {
-        setExpenses(JSON.parse(stored));
-      } else {
-        // Initialize with mock data
-        const mockExpenses: Expense[] = [
-          { id: 1, title: 'Grocery Shopping', amount: 85.50, date: '2026-01-12', category: 'groceries', paidBy: 'me', settled: false },
-          { id: 2, title: 'Dinner at Italian Place', amount: 120.00, date: '2026-01-10', category: 'dates', paidBy: 'partner', settled: false },
-          { id: 3, title: 'Netflix Subscription', amount: 15.99, date: '2026-01-05', category: 'bills', paidBy: 'split', settled: true },
-          { id: 4, title: 'Movie Tickets', amount: 30.00, date: '2026-01-08', category: 'entertainment', paidBy: 'me', settled: false },
-          { id: 5, title: 'Gas for Road Trip', amount: 65.00, date: '2026-01-06', category: 'travel', paidBy: 'partner', settled: true },
-        ];
-        setExpenses(mockExpenses);
-        await AsyncStorage.setItem('expenses', JSON.stringify(mockExpenses));
-      }
+      const apiExpenses = await expenseService.getAll();
+      const mapped: Expense[] = apiExpenses.map((e) => ({
+        id: e.id,
+        title: e.description,
+        amount: e.amount,
+        date: e.expense_date.split('T')[0],
+        category: e.category,
+        paidBy: (e.paid_by as PaidBy) || 'me',
+        settled: e.is_settled,
+        splitPercentage: e.paid_by === 'split' ? 50 : undefined,
+      }));
+      setExpenses(mapped);
     } catch (error) {
+      Alert.alert('Error', 'Failed to load expenses');
       console.error('Error loading expenses:', error);
     }
   };
 
-  const saveExpenses = async (newExpenses: Expense[]) => {
-    try {
-      await AsyncStorage.setItem('expenses', JSON.stringify(newExpenses));
-      setExpenses(newExpenses);
-    } catch (error) {
-      console.error('Error saving expenses:', error);
-    }
-  };
-
   const handleAddExpense = async () => {
-    if (expenseTitle.trim() && expenseAmount.trim() && !isNaN(Number(expenseAmount))) {
-      const newExpense: Expense = {
-        id: Date.now(),
-        title: expenseTitle,
-        amount: parseFloat(expenseAmount),
-        date: new Date().toISOString().split('T')[0],
+    const amountNumber = Number.parseFloat(expenseAmount);
+    if (!expenseTitle.trim() || !expenseAmount.trim() || Number.isNaN(amountNumber)) {
+      Alert.alert('Error', 'Please enter a valid title and amount');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await expenseService.create({
+        description: expenseTitle.trim(),
+        amount: amountNumber,
         category: selectedCategory,
-        paidBy: paidBy,
-        settled: false,
-        splitPercentage: paidBy === 'split' ? 50 : undefined,
-      };
-      await saveExpenses([newExpense, ...expenses]);
+        paid_by: paidBy,
+        expense_date: new Date().toISOString(),
+      });
+      await loadExpenses();
+
       setModalVisible(false);
       setExpenseTitle('');
       setExpenseAmount('');
       setSelectedCategory('groceries');
       setPaidBy('me');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add expense');
+      console.error('Error creating expense:', error);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleToggleSettled = async (id: number) => {
-    const updated = expenses.map(e => e.id === id ? { ...e, settled: !e.settled } : e);
-    await saveExpenses(updated);
+  const handleToggleSettled = async (id: string) => {
+    const current = expenses.find((e) => e.id === id);
+    if (!current) return;
+    if (current.settled) {
+      Alert.alert('Already settled', 'This expense is already settled.');
+      return;
+    }
+
+    try {
+      await expenseService.settle(id);
+      await loadExpenses();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to settle expense');
+      console.error('Error settling expense:', error);
+    }
   };
 
-  const handleDeleteExpense = async (id: number) => {
-    const updated = expenses.filter(e => e.id !== id);
-    await saveExpenses(updated);
+  const handleDeleteExpense = async (id: string) => {
+    try {
+      await expenseService.delete(id);
+      await loadExpenses();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete expense');
+      console.error('Error deleting expense:', error);
+    }
   };
 
   const calculateBalance = () => {
@@ -139,8 +176,11 @@ export default function ExpensesScreen() {
     : expenses.filter(e => e.category === filterCategory);
 
   const balance = calculateBalance();
+  const balanceColor = balanceToColor(balance);
+  const balanceText = balanceToText(balance);
+  const monthPrefix = new Date().toISOString().slice(0, 7);
   const monthlyTotal = expenses
-    .filter(e => e.date.startsWith('2026-01'))
+    .filter(e => e.date.startsWith(monthPrefix))
     .reduce((sum, e) => sum + e.amount, 0);
 
   return (
@@ -165,12 +205,12 @@ export default function ExpensesScreen() {
           <Text style={styles.balanceLabel}>Current Balance</Text>
           <Text style={[
             styles.balanceAmount,
-            { color: balance === 0 ? '#50C878' : balance > 0 ? '#FF6B9D' : '#4A90E2' }
+            { color: balanceColor }
           ]}>
             ${Math.abs(balance).toFixed(2)}
           </Text>
           <Text style={styles.balanceText}>
-            {balance === 0 ? 'All Settled Up! 🎉' : balance > 0 ? 'Partner owes you' : 'You owe partner'}
+            {balanceText}
           </Text>
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
@@ -255,7 +295,7 @@ export default function ExpensesScreen() {
                     <Text style={styles.expenseDate}>{expense.date}</Text>
                     <View style={styles.paidByBadge}>
                       <Text style={styles.paidByText}>
-                        {expense.paidBy === 'me' ? '👤 You paid' : expense.paidBy === 'partner' ? '👥 Partner paid' : '🤝 Split'}
+                        {paidByToLabel(expense.paidBy)}
                       </Text>
                     </View>
                   </View>
@@ -376,12 +416,16 @@ export default function ExpensesScreen() {
             <TouchableOpacity
               style={[
                 styles.addExpenseButton,
-                (!expenseTitle.trim() || !expenseAmount.trim()) && styles.addExpenseButtonDisabled
+                (!expenseTitle.trim() || !expenseAmount.trim() || saving) && styles.addExpenseButtonDisabled
               ]}
               onPress={handleAddExpense}
-              disabled={!expenseTitle.trim() || !expenseAmount.trim()}
+              disabled={!expenseTitle.trim() || !expenseAmount.trim() || saving}
             >
-              <Text style={styles.addExpenseButtonText}>Add Expense</Text>
+              {saving ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.addExpenseButtonText}>Add Expense</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>

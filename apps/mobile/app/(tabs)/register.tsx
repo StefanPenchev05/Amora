@@ -8,32 +8,72 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { authService } from '../../src/services/api/auth';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
-  const handleRegister = () => {
-    // Mock register - just check if fields are filled
-    if (name.trim() && email.trim() && password.trim() && confirmPassword.trim()) {
-      router.replace('/(app)/dashboard');
+  const handleRegister = async () => {
+    if (!firstName.trim() || !lastName.trim() || !username.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await authService.register({
+        username: username.trim(),
+        email: email.trim(),
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        password: password.trim(),
+      });
+      Alert.alert(
+        'Success!',
+        'Your account has been created. Please login.',
+        [
+          {
+            text: 'OK',
+            onPress: () => router.replace('/(tabs)/login')
+          }
+        ]
+      );
+    } catch (error) {
+      Alert.alert('Registration Failed', error instanceof Error ? error.message : 'Please try again');
+    } finally {
+      setLoading(false);
     }
   };
 
   const isFormValid = 
-    name.trim() && 
+    firstName.trim() && 
+    lastName.trim() && 
+    username.trim() && 
     email.trim() && 
     password.trim() && 
-    confirmPassword.trim();
+    confirmPassword.trim() &&
+    termsAccepted;
 
   return (
     <LinearGradient
@@ -60,18 +100,48 @@ export default function RegisterScreen() {
 
           {/* Form */}
           <View style={styles.form}>
-            {/* Name Input */}
+            {/* First Name Input */}
             <View style={styles.inputContainer}>
               <View style={styles.inputIcon}>
                 <Ionicons name="person-outline" size={20} color="#666" />
               </View>
               <TextInput
                 style={styles.input}
-                placeholder="Full Name"
+                placeholder="First Name"
                 placeholderTextColor="#999"
-                value={name}
-                onChangeText={setName}
+                value={firstName}
+                onChangeText={setFirstName}
                 autoCapitalize="words"
+              />
+            </View>
+
+            {/* Last Name Input */}
+            <View style={styles.inputContainer}>
+              <View style={styles.inputIcon}>
+                <Ionicons name="person-outline" size={20} color="#666" />
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Last Name"
+                placeholderTextColor="#999"
+                value={lastName}
+                onChangeText={setLastName}
+                autoCapitalize="words"
+              />
+            </View>
+
+            {/* Username Input */}
+            <View style={styles.inputContainer}>
+              <View style={styles.inputIcon}>
+                <Ionicons name="at-outline" size={20} color="#666" />
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Username"
+                placeholderTextColor="#999"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
               />
             </View>
 
@@ -117,6 +187,13 @@ export default function RegisterScreen() {
                 />
               </TouchableOpacity>
             </View>
+            
+            {/* Password Requirements */}
+            <View style={styles.passwordHint}>
+              <Text style={styles.passwordHintText}>
+                Password must contain at least 8 characters with uppercase, lowercase, number, and special character
+              </Text>
+            </View>
 
             {/* Confirm Password Input */}
             <View style={styles.inputContainer}>
@@ -145,28 +222,39 @@ export default function RegisterScreen() {
             </View>
 
             {/* Terms and Conditions */}
-            <View style={styles.termsContainer}>
+            <TouchableOpacity 
+              style={styles.termsContainer}
+              onPress={() => setTermsAccepted(!termsAccepted)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+                {termsAccepted && <Ionicons name="checkmark" size={18} color="#fff" />}
+              </View>
               <Text style={styles.termsText}>
-                By signing up, you agree to our{' '}
+                I agree to the{' '}
                 <Text style={styles.termsLink}>Terms & Conditions</Text> and{' '}
                 <Text style={styles.termsLink}>Privacy Policy</Text>
               </Text>
-            </View>
+            </TouchableOpacity>
 
             {/* Register Button */}
             <TouchableOpacity
-              style={[styles.registerButton, !isFormValid && styles.registerButtonDisabled]}
+              style={[styles.registerButton, (!isFormValid || loading) && styles.registerButtonDisabled]}
               onPress={handleRegister}
-              disabled={!isFormValid}
+              disabled={!isFormValid || loading}
               activeOpacity={0.8}
             >
               <LinearGradient
-                colors={isFormValid ? ['#FF6B9D', '#FF8FAB'] : ['#ccc', '#ddd']}
+                colors={isFormValid && !loading ? ['#FF6B9D', '#FF8FAB'] : ['#ccc', '#ddd']}
                 style={styles.registerGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
               >
-                <Text style={styles.registerButtonText}>Sign Up</Text>
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.registerButtonText}>Sign Up</Text>
+                )}
               </LinearGradient>
             </TouchableOpacity>
 
@@ -273,13 +361,41 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: 8,
   },
+  passwordHint: {
+    marginTop: -10,
+    marginBottom: 12,
+    paddingHorizontal: 8,
+  },
+  passwordHintText: {
+    fontSize: 12,
+    color: '#888',
+    lineHeight: 16,
+  },
   termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 24,
+    paddingHorizontal: 8,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  checkboxChecked: {
+    backgroundColor: '#FF6B9D',
+    borderColor: '#FF6B9D',
   },
   termsText: {
-    fontSize: 12,
+    flex: 1,
+    fontSize: 13,
     color: '#666',
-    textAlign: 'center',
     lineHeight: 18,
   },
   termsLink: {

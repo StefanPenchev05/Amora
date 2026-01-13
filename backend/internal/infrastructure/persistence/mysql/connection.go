@@ -79,6 +79,11 @@ func autoMigrate(db *gorm.DB) error {
 		&models.Profile{},
 		&models.Session{},
 		&models.RefreshToken{},
+		&models.Event{},
+		&models.Mood{},
+		&models.Note{},
+		&models.Memory{},
+		&models.Expense{},
 	}
 
 	for _, model := range models {

@@ -7,19 +7,20 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
-  Image,
   Dimensions,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { memoryService } from '../../src/services/api/memories';
 
 const { width } = Dimensions.get('window');
 const imageSize = (width - 48) / 2;
 
 interface Memory {
-  id: number;
+  id: string;
   title: string;
   description: string;
   date: string;
@@ -35,96 +36,80 @@ export default function MemoriesScreen() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [memories, setMemories] = useState<Memory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadMemories();
-  }, []);
+  }, [selectedCategory]);
+
+  const emojiForCategory = (category: string) => {
+    const map: Record<string, string> = {
+      travel: '🏖️',
+      milestone: '💋',
+      date: '☕',
+      fun: '🎬',
+      cozy: '🛏️',
+    };
+    return map[category] || '📸';
+  };
 
   const loadMemories = async () => {
     try {
-      const stored = await AsyncStorage.getItem('memories');
-      if (stored) {
-        setMemories(JSON.parse(stored));
-      } else {
-        const mockMemories: Memory[] = [
-          {
-            id: 1,
-            title: 'Beach Sunset',
-            description: 'Our first beach trip together. The sunset was magical! 🌅',
-            date: 'Jan 12, 2026',
-            emoji: '🏖️',
-            category: 'travel',
-          },
-          {
-            id: 2,
-            title: 'First Kiss',
-            description: 'Under the stars at the park. A moment I\'ll never forget.',
-            date: 'Jan 1, 2025',
-            emoji: '💋',
-            category: 'milestone',
-          },
-          {
-            id: 3,
-            title: 'Coffee Shop Date',
-            description: 'Tried the new cafe downtown. Best latte and conversation!',
-            date: 'Jan 14, 2026',
-            emoji: '☕',
-            category: 'date',
-          },
-          {
-            id: 4,
-            title: 'Movie Night',
-            description: 'Marathon of our favorite series with homemade popcorn 🍿',
-            date: 'Jan 10, 2026',
-            emoji: '🎬',
-            category: 'fun',
-          },
-          {
-            id: 5,
-            title: 'Cozy Morning',
-            description: 'Breakfast in bed and morning cuddles',
-            date: 'Jan 8, 2026',
-            emoji: '🛏️',
-            category: 'cozy',
-          },
-        ];
-        setMemories(mockMemories);
-        await AsyncStorage.setItem('memories', JSON.stringify(mockMemories));
-      }
+      const category = selectedCategory === 'all' ? undefined : selectedCategory;
+      const apiMemories = await memoryService.getAll(category);
+      const mapped: Memory[] = apiMemories.map((m) => ({
+        id: m.id,
+        title: m.title,
+        description: m.description,
+        date: new Date(m.memory_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        emoji: emojiForCategory(m.category),
+        category: m.category,
+      }));
+      setMemories(mapped);
     } catch (error) {
+      Alert.alert('Error', 'Failed to load memories');
       console.error('Error loading memories:', error);
     }
   };
 
-  const saveMemories = async (newMemories: Memory[]) => {
-    try {
-      await AsyncStorage.setItem('memories', JSON.stringify(newMemories));
-      setMemories(newMemories);
-    } catch (error) {
-      console.error('Error saving memories:', error);
-    }
-  };
-
   const handleSaveMemory = async () => {
-    if (memoryTitle.trim() && memoryDescription.trim()) {
-      const newMemory: Memory = {
-        id: Date.now(),
-        title: memoryTitle,
-        description: memoryDescription,
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        emoji: '📸',
-        category: selectedCategory === 'all' ? 'fun' : selectedCategory,
-      };
-      await saveMemories([newMemory, ...memories]);
+    if (!memoryTitle.trim() || !memoryDescription.trim()) {
+      Alert.alert('Error', 'Please fill in title and description');
+      return;
+    }
+
+    const category = selectedCategory === 'all' ? 'fun' : selectedCategory;
+
+    try {
+      setSaving(true);
+      await memoryService.create({
+        title: memoryTitle.trim(),
+        description: memoryDescription.trim(),
+        category,
+        photo_url: '',
+        memory_date: new Date().toISOString(),
+      });
+      await loadMemories();
+
       setModalVisible(false);
       setMemoryTitle('');
       setMemoryDescription('');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save memory');
+      console.error('Error saving memory:', error);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDeleteMemory = async (id: number) => {
-    const updated = memories.filter(m => m.id !== id);
-    await saveMemories(updated);
+  const handleDeleteMemory = async (id: string) => {
+    try {
+      await memoryService.delete(id);
+      await loadMemories();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete memory');
+      console.error('Error deleting memory:', error);
+    }
   };
 
   const filteredMemories = selectedCategory === 'all' 
@@ -334,12 +319,16 @@ export default function MemoriesScreen() {
             <TouchableOpacity 
               style={[
                 styles.saveMemoryButton,
-                (!memoryTitle.trim() || !memoryDescription.trim()) && styles.saveMemoryButtonDisabled
+                (!memoryTitle.trim() || !memoryDescription.trim() || saving) && styles.saveMemoryButtonDisabled
               ]} 
               onPress={handleSaveMemory}
-              disabled={!memoryTitle.trim() || !memoryDescription.trim()}
+              disabled={!memoryTitle.trim() || !memoryDescription.trim() || saving}
             >
-              <Text style={styles.saveMemoryButtonText}>Save Memory</Text>
+              {saving ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.saveMemoryButtonText}>Save Memory</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>

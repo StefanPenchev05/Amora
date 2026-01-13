@@ -7,30 +7,35 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { eventService, Event as ApiEvent } from '../../src/services/api/events';
 
 interface Event {
-  id: number;
+  id: string;
   title: string;
   date: string;
   time: string;
   category: string;
-  icon: string;
+  description: string;
 }
 
 export default function CalendarScreen() {
   const router = useRouter();
   const [modalVisible, setModalVisible] = useState(false);
   const [newEventTitle, setNewEventTitle] = useState('');
+  const [newEventDescription, setNewEventDescription] = useState('');
   const [newEventDate, setNewEventDate] = useState('');
   const [newEventTime, setNewEventTime] = useState('');
   const [newEventCategory, setNewEventCategory] = useState<'date' | 'fun' | 'milestone' | 'task' | 'activity'>('date');
   const [events, setEvents] = useState<Event[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadEvents();
@@ -38,33 +43,22 @@ export default function CalendarScreen() {
 
   const loadEvents = async () => {
     try {
-      const stored = await AsyncStorage.getItem('events');
-      if (stored) {
-        setEvents(JSON.parse(stored));
-      } else {
-        // Initialize with mock data
-        const mockEvents = [
-          { id: 1, title: 'Date Night', date: '2026-01-15', time: '19:00', category: 'date', icon: '🍽️' },
-          { id: 2, title: 'Movie Marathon', date: '2026-01-16', time: '17:00', category: 'fun', icon: '🎬' },
-          { id: 3, title: 'Anniversary', date: '2026-02-14', time: '00:00', category: 'milestone', icon: '💕' },
-          { id: 4, title: 'Doctor Appointment', date: '2026-01-20', time: '10:00', category: 'task', icon: '🏥' },
-          { id: 5, title: 'Gym Together', date: '2026-01-17', time: '07:00', category: 'activity', icon: '💪' },
-          { id: 6, title: 'Cook Together', date: '2026-01-18', time: '18:00', category: 'date', icon: '👨‍🍳' },
-        ];
-        setEvents(mockEvents);
-        await AsyncStorage.setItem('events', JSON.stringify(mockEvents));
-      }
+      setRefreshing(true);
+      const apiEvents = await eventService.getAll();
+      const mappedEvents = apiEvents.map(e => ({
+        id: e.id,
+        title: e.title,
+        description: e.description,
+        date: e.event_date.split('T')[0],
+        time: e.event_date.split('T')[1]?.split(':').slice(0, 2).join(':') || '00:00',
+        category: e.category,
+      }));
+      setEvents(mappedEvents);
     } catch (error) {
+      Alert.alert('Error', 'Failed to load events');
       console.error('Error loading events:', error);
-    }
-  };
-
-  const saveEvents = async (newEvents: Event[]) => {
-    try {
-      await AsyncStorage.setItem('events', JSON.stringify(newEvents));
-      setEvents(newEvents);
-    } catch (error) {
-      console.error('Error saving events:', error);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -102,27 +96,44 @@ export default function CalendarScreen() {
   };
 
   const handleAddEvent = async () => {
-    if (newEventTitle.trim() && newEventDate.trim()) {
-      const newEvent: Event = {
-        id: Date.now(),
+    if (!newEventTitle.trim() || !newEventDate.trim()) {
+      Alert.alert('Error', 'Please fill in title and date');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const dateTime = `${newEventDate}T${newEventTime || '12:00'}:00Z`;
+      await eventService.create({
         title: newEventTitle,
-        date: newEventDate,
-        time: newEventTime || '12:00',
+        description: newEventDescription || '',
         category: newEventCategory,
-        icon: getCategoryIcon(newEventCategory),
-      };
-      await saveEvents([...events, newEvent]);
+        event_date: dateTime,
+      });
+      
+      await loadEvents();
       setModalVisible(false);
       setNewEventTitle('');
+      setNewEventDescription('');
       setNewEventDate('');
       setNewEventTime('');
       setNewEventCategory('date');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create event');
+      console.error('Error creating event:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDeleteEvent = async (eventId: number) => {
-    const updatedEvents = events.filter(e => e.id !== eventId);
-    await saveEvents(updatedEvents);
+  const handleDeleteEvent = async (eventId: string) => {
+    try {
+      await eventService.delete(eventId);
+      await loadEvents();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete event');
+      console.error('Error deleting event:', error);
+    }
   };
 
   const getDaysInMonth = (date: Date) => {
@@ -240,7 +251,7 @@ export default function CalendarScreen() {
               <View style={[styles.eventIndicator, { backgroundColor: getCategoryColor(event.category) }]} />
               <View style={styles.eventContent}>
                 <View style={styles.eventHeader}>
-                  <Text style={styles.eventEmoji}>{event.icon}</Text>
+                  <Text style={styles.eventEmoji}>{getCategoryIcon(event.category)}</Text>
                   <Text style={styles.eventTitle}>{event.title}</Text>
                 </View>
                 <View style={styles.eventDetails}>
@@ -287,6 +298,16 @@ export default function CalendarScreen() {
             />
 
             <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Description"
+              placeholderTextColor="#999"
+              value={newEventDescription}
+              onChangeText={setNewEventDescription}
+              multiline
+              numberOfLines={3}
+            />
+
+            <TextInput
               style={styles.input}
               placeholder="Date (YYYY-MM-DD)"
               placeholderTextColor="#999"
@@ -329,11 +350,15 @@ export default function CalendarScreen() {
             </View>
 
             <TouchableOpacity 
-              style={[styles.addEventButton, (!newEventTitle.trim() || !newEventDate.trim()) && styles.addEventButtonDisabled]} 
+              style={[styles.addEventButton, ((!newEventTitle.trim() || !newEventDate.trim()) || loading) && styles.addEventButtonDisabled]} 
               onPress={handleAddEvent}
-              disabled={!newEventTitle.trim() || !newEventDate.trim()}
+              disabled={!newEventTitle.trim() || !newEventDate.trim() || loading}
             >
-              <Text style={styles.addEventButtonText}>Add Event</Text>
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.addEventButtonText}>Add Event</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -512,6 +537,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
     color: '#333',
+  },
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
   categorySelector: {
     marginBottom: 24,

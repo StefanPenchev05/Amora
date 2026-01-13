@@ -6,11 +6,13 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authService } from '../../src/services/api/auth';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -62,8 +64,25 @@ export default function ProfileScreen() {
     saveSettings('sound', value);
   };
 
-  const handleLogout = () => {
-    router.replace('/');
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            await authService.logout();
+            router.replace('/');
+          }
+        }
+      ]
+    );
   };
 
   const mockUser = {

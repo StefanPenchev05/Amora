@@ -8,11 +8,13 @@ import {
   Modal,
   TextInput,
   Dimensions,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { moodService } from '../../src/services/api/moods';
 
 const { width } = Dimensions.get('window');
 
@@ -25,7 +27,7 @@ const moodEmojis = [
 ];
 
 interface MoodEntry {
-  id: number;
+  id: string;
   mood: number;
   date: string;
   time: string;
@@ -38,40 +40,37 @@ export default function MoodScreen() {
   const [selectedMood, setSelectedMood] = useState<number | null>(null);
   const [moodNote, setMoodNote] = useState('');
   const [moodHistory, setMoodHistory] = useState<MoodEntry[]>([]);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadMoods();
   }, []);
 
-  const loadMoods = async () => {
-    try {
-      const stored = await AsyncStorage.getItem('moods');
-      if (stored) {
-        setMoodHistory(JSON.parse(stored));
-      } else {
-        // Initialize with mock data
-        const mockMoodHistory: MoodEntry[] = [
-          { id: 1, mood: 5, date: 'Today', time: '10:30 AM', note: 'Had an amazing breakfast date!' },
-          { id: 2, mood: 4, date: 'Yesterday', time: '8:00 PM', note: 'Great movie night together' },
-          { id: 3, mood: 3, date: 'Jan 13', time: '2:00 PM', note: 'Work was stressful but Alex cheered me up' },
-          { id: 4, mood: 5, date: 'Jan 12', time: '7:00 PM', note: 'Surprise date! So thoughtful 💕' },
-          { id: 5, mood: 4, date: 'Jan 11', time: '9:00 AM', note: 'Morning cuddles make everything better' },
-          { id: 6, mood: 2, date: 'Jan 10', time: '6:00 PM', note: 'Had a disagreement but talked it through' },
-        ];
-        setMoodHistory(mockMoodHistory);
-        await AsyncStorage.setItem('moods', JSON.stringify(mockMoodHistory));
-      }
-    } catch (error) {
-      console.error('Error loading moods:', error);
-    }
+  const formatDateLabel = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) return 'Today';
+    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const saveMoods = async (newMoods: MoodEntry[]) => {
+  const loadMoods = async () => {
     try {
-      await AsyncStorage.setItem('moods', JSON.stringify(newMoods));
-      setMoodHistory(newMoods);
+      const apiMoods = await moodService.getAll();
+      const mapped: MoodEntry[] = apiMoods.map((m) => ({
+        id: m.id,
+        mood: m.level,
+        date: formatDateLabel(m.mood_date),
+        time: new Date(m.mood_date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+        note: m.note || 'No note',
+      }));
+      setMoodHistory(mapped);
     } catch (error) {
-      console.error('Error saving moods:', error);
+      Alert.alert('Error', 'Failed to load moods');
+      console.error('Error loading moods:', error);
     }
   };
 
@@ -82,25 +81,36 @@ export default function MoodScreen() {
   ];
 
   const handleSaveMood = async () => {
-    if (selectedMood) {
-      const now = new Date();
-      const newMood: MoodEntry = {
-        id: Date.now(),
-        mood: selectedMood,
-        date: 'Today',
-        time: now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-        note: moodNote || 'No note',
-      };
-      await saveMoods([newMood, ...moodHistory]);
+    if (!selectedMood) return;
+
+    try {
+      setSaving(true);
+      await moodService.create({
+        level: selectedMood,
+        note: moodNote || '',
+        mood_date: new Date().toISOString(),
+      });
+      await loadMoods();
+
       setModalVisible(false);
       setSelectedMood(null);
       setMoodNote('');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save mood');
+      console.error('Error saving mood:', error);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDeleteMood = async (id: number) => {
-    const updated = moodHistory.filter(m => m.id !== id);
-    await saveMoods(updated);
+  const handleDeleteMood = async (id: string) => {
+    try {
+      await moodService.delete(id);
+      await loadMoods();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete mood');
+      console.error('Error deleting mood:', error);
+    }
   };
 
   const getMoodEmoji = (value: number) => {
@@ -138,10 +148,10 @@ export default function MoodScreen() {
             <Text style={styles.averageLabel}>Average Mood</Text>
           </View>
           <View style={styles.moodBar}>
-            {moodHistory.slice(0, 7).reverse().map((mood, index) => {
+            {moodHistory.slice(0, 7).reverse().map((mood) => {
               const moodData = getMoodEmoji(mood.mood);
               return (
-                <View key={index} style={styles.barColumn}>
+                <View key={mood.id} style={styles.barColumn}>
                   <View
                     style={[
                       styles.barFill,
@@ -285,11 +295,18 @@ export default function MoodScreen() {
             />
 
             <TouchableOpacity
-              style={[styles.saveMoodButton, !selectedMood && styles.saveMoodButtonDisabled]}
+              style={[
+                styles.saveMoodButton,
+                (!selectedMood || saving) && styles.saveMoodButtonDisabled,
+              ]}
               onPress={handleSaveMood}
-              disabled={!selectedMood}
+              disabled={!selectedMood || saving}
             >
-              <Text style={styles.saveMoodButtonText}>Save Mood</Text>
+              {saving ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.saveMoodButtonText}>Save Mood</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>

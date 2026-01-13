@@ -36,6 +36,10 @@ func NewAuthenticateUserCase(
 }
 
 func (uc *AuthenticateUserCase) Execute(ctx context.Context, req dto.AuthenticateUserRequest) (*dto.AuthenticateUserResponse, error) {
+	if uc.jwtService == nil {
+		return nil, errors.New("jwt service not configured")
+	}
+
 	// Find the user by email or username, if not found return error
 	foundUser, err := uc.findUserByEmailOrUsername(ctx, req.EmailOrUsername)
 	if err != nil {
@@ -86,17 +90,24 @@ func (uc *AuthenticateUserCase) Execute(ctx context.Context, req dto.Authenticat
 
 	events := foundUser.GetEvents()
 	if len(events) > 0 {
-		if err := uc.eventPublisher.PublishEvents(ctx, events...); err != nil {
-			uc.logger.Error("Failed to publish domain events",
+		if uc.eventPublisher == nil {
+			uc.logger.Debug("Skipping domain event publishing (no publisher configured)",
 				"user_id", foundUser.ID,
 				"event_count", len(events),
-				"error", err.Error(),
 			)
 		} else {
-			uc.logger.Debug("Successfully published domain events",
-				"user_id", foundUser.ID,
-				"event_count", len(events),
-			)
+			if err := uc.eventPublisher.PublishEvents(ctx, events...); err != nil {
+				uc.logger.Error("Failed to publish domain events",
+					"user_id", foundUser.ID,
+					"event_count", len(events),
+					"error", err.Error(),
+				)
+			} else {
+				uc.logger.Debug("Successfully published domain events",
+					"user_id", foundUser.ID,
+					"event_count", len(events),
+				)
+			}
 		}
 	}
 	foundUser.ClearEvents()

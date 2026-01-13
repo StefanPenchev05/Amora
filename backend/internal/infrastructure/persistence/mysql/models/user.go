@@ -17,7 +17,7 @@ type Credentials struct {
 	User   *User  `gorm:"foreignKey:UserID;references:ID" json:"-"`
 
 	Email         string     `gorm:"column:email;size:320;unique;not null;index" json:"email"`
-	Password      string     `gorm:"column:password;size:255;not null;->:false;<-:create" json:"-"`
+	Password      string     `gorm:"column:password;size:255;not null;<-:create" json:"-"`
 	Username      string     `gorm:"column:username;size:50;unique;not null;index" json:"username"`
 	EmailVerified bool       `gorm:"column:email_verified;not null;default:false" json:"email_verified"`
 	MfaEnabled    bool       `gorm:"column:mfa_enabled;not null;default:false" json:"mfa_enabled"`

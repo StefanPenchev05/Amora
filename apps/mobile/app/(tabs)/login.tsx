@@ -8,21 +8,35 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { authService } from '../../src/services/api/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    // Mock login - just check if fields are filled
-    if (email.trim() && password.trim()) {
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await authService.login({ email: email.trim(), password: password.trim() });
       router.replace('/(app)/dashboard');
+    } catch (error) {
+      Alert.alert('Login Failed', error instanceof Error ? error.message : 'Please try again');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -104,18 +118,22 @@ export default function LoginScreen() {
 
             {/* Login Button */}
             <TouchableOpacity
-              style={[styles.loginButton, !isFormValid && styles.loginButtonDisabled]}
+              style={[styles.loginButton, (!isFormValid || loading) && styles.loginButtonDisabled]}
               onPress={handleLogin}
-              disabled={!isFormValid}
+              disabled={!isFormValid || loading}
               activeOpacity={0.8}
             >
               <LinearGradient
-                colors={isFormValid ? ['#FF6B9D', '#FF8FAB'] : ['#ccc', '#ddd']}
+                colors={isFormValid && !loading ? ['#FF6B9D', '#FF8FAB'] : ['#ccc', '#ddd']}
                 style={styles.loginGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
               >
-                <Text style={styles.loginButtonText}>Log In</Text>
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.loginButtonText}>Log In</Text>
+                )}
               </LinearGradient>
             </TouchableOpacity>
 

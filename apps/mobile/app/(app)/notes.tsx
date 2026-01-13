@@ -7,14 +7,16 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { noteService } from '../../src/services/api/notes';
 
 interface Note {
-  id: number;
+  id: string;
   title: string;
   content: string;
   color: string;
@@ -30,6 +32,7 @@ export default function NotesScreen() {
   const [selectedColor, setSelectedColor] = useState('#FFE5EC');
   const [notes, setNotes] = useState<Note[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadNotes();
@@ -37,74 +40,19 @@ export default function NotesScreen() {
 
   const loadNotes = async () => {
     try {
-      const stored = await AsyncStorage.getItem('notes');
-      if (stored) {
-        setNotes(JSON.parse(stored));
-      } else {
-        const mockNotes: Note[] = [
-          {
-            id: 1,
-            title: 'Things I Love About You',
-            content: 'Your smile lights up my day, your laugh is contagious, the way you always know how to cheer me up...',
-            color: '#FFE5EC',
-            isPinned: true,
-            date: 'Jan 15, 2026',
-          },
-          {
-            id: 2,
-            title: 'Date Ideas',
-            content: '🍕 Try new Italian restaurant downtown\n🎬 Movie marathon weekend\n🏕️ Camping trip in spring\n☕ Coffee shop hopping',
-            color: '#E5F3FF',
-            isPinned: true,
-            date: 'Jan 14, 2026',
-          },
-          {
-            id: 3,
-            title: 'Our Song Playlist',
-            content: '1. "Perfect" - Ed Sheeran\n2. "A Thousand Years"\n3. "Thinking Out Loud"\n4. "All of Me"',
-            color: '#F0E5FF',
-            isPinned: false,
-            date: 'Jan 13, 2026',
-          },
-          {
-            id: 4,
-            title: 'Anniversary Plans',
-            content: 'Dinner reservation at La Petite Maison at 7 PM\nGift: custom photo album\nSurprise: weekend getaway',
-            color: '#FFF5E5',
-            isPinned: false,
-            date: 'Jan 10, 2026',
-          },
-          {
-            id: 5,
-            title: 'Bucket List Together',
-            content: '✈️ Travel to Paris\n🏖️ Beach vacation in Maldives\n🎸 Learn guitar together\n🍳 Take cooking classes',
-            color: '#E5FFEE',
-            isPinned: false,
-            date: 'Jan 8, 2026',
-          },
-          {
-            id: 6,
-            title: 'Thank You Note',
-            content: 'Thank you for being so patient with me today. I know I was stressed about work, but you made everything better just by being there. I love you! 💕',
-            color: '#FFE5EC',
-            isPinned: false,
-            date: 'Jan 5, 2026',
-          },
-        ];
-        setNotes(mockNotes);
-        await AsyncStorage.setItem('notes', JSON.stringify(mockNotes));
-      }
+      const apiNotes = await noteService.getAll();
+      const mapped: Note[] = apiNotes.map((n) => ({
+        id: n.id,
+        title: n.title,
+        content: n.content,
+        color: n.color,
+        isPinned: n.is_pinned,
+        date: new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      }));
+      setNotes(mapped);
     } catch (error) {
+      Alert.alert('Error', 'Failed to load notes');
       console.error('Error loading notes:', error);
-    }
-  };
-
-  const saveNotes = async (newNotes: Note[]) => {
-    try {
-      await AsyncStorage.setItem('notes', JSON.stringify(newNotes));
-      setNotes(newNotes);
-    } catch (error) {
-      console.error('Error saving notes:', error);
     }
   };
 
@@ -118,31 +66,50 @@ export default function NotesScreen() {
   ];
 
   const handleSaveNote = async () => {
-    if (noteTitle.trim() && noteContent.trim()) {
-      const newNote: Note = {
-        id: Date.now(),
-        title: noteTitle,
-        content: noteContent,
+    if (!noteTitle.trim() || !noteContent.trim()) {
+      Alert.alert('Error', 'Please fill in title and content');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await noteService.create({
+        title: noteTitle.trim(),
+        content: noteContent.trim(),
         color: selectedColor,
-        isPinned: false,
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      };
-      await saveNotes([newNote, ...notes]);
+      });
+      await loadNotes();
+
       setModalVisible(false);
       setNoteTitle('');
       setNoteContent('');
       setSelectedColor('#FFE5EC');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save note');
+      console.error('Error saving note:', error);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDeleteNote = async (id: number) => {
-    const updated = notes.filter(n => n.id !== id);
-    await saveNotes(updated);
+  const handleDeleteNote = async (id: string) => {
+    try {
+      await noteService.delete(id);
+      await loadNotes();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete note');
+      console.error('Error deleting note:', error);
+    }
   };
 
-  const handleTogglePin = async (id: number) => {
-    const updated = notes.map(n => n.id === id ? { ...n, isPinned: !n.isPinned } : n);
-    await saveNotes(updated);
+  const handleTogglePin = async (id: string) => {
+    try {
+      await noteService.togglePin(id);
+      await loadNotes();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update note');
+      console.error('Error toggling pin:', error);
+    }
   };
 
   const filteredNotes = notes.filter(note => 
@@ -306,12 +273,16 @@ export default function NotesScreen() {
             <TouchableOpacity 
               style={[
                 styles.saveNoteButton,
-                (!noteTitle.trim() || !noteContent.trim()) && styles.saveNoteButtonDisabled
+                (!noteTitle.trim() || !noteContent.trim() || saving) && styles.saveNoteButtonDisabled
               ]} 
               onPress={handleSaveNote}
-              disabled={!noteTitle.trim() || !noteContent.trim()}
+              disabled={!noteTitle.trim() || !noteContent.trim() || saving}
             >
-              <Text style={styles.saveNoteButtonText}>Save Note</Text>
+              {saving ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.saveNoteButtonText}>Save Note</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
