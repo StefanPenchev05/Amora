@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -224,55 +224,60 @@ export default function DashboardScreen() {
       <Card theme={theme} style={styles.card}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.quickActions}>
-          <TouchableOpacity style={[styles.action, styles.actionCalendar]} onPress={() => router.push('/(app)/calendar')}>
+          <Pressable
+            onPress={() => router.push('/(app)/calendar')}
+            style={({ pressed }) => [styles.actionTile, styles.actionCalendar, pressed && styles.actionPressed]}
+          >
             <View style={[styles.actionIcon, styles.actionIconCalendar]}>
               <Ionicons name="calendar" size={18} color={theme.colors.primary} />
             </View>
-            <View style={styles.actionTextWrap}>
-              <Text style={styles.actionText}>Calendar</Text>
-              <Text style={styles.actionSub}>Plan dates & events</Text>
-            </View>
-          </TouchableOpacity>
+            <Text style={styles.actionTitle}>Calendar</Text>
+            <Text style={styles.actionSub}>Plan dates & events</Text>
+          </Pressable>
 
-          <TouchableOpacity style={[styles.action, styles.actionMood]} onPress={() => router.push('/(app)/mood')}>
+          <Pressable
+            onPress={() => router.push('/(app)/mood')}
+            style={({ pressed }) => [styles.actionTile, styles.actionMood, pressed && styles.actionPressed]}
+          >
             <View style={[styles.actionIcon, styles.actionIconMood]}>
               <Ionicons name="happy" size={18} color={theme.colors.primary} />
             </View>
-            <View style={styles.actionTextWrap}>
-              <Text style={styles.actionText}>Mood</Text>
-              <Text style={styles.actionSub}>Track how you feel</Text>
-            </View>
-          </TouchableOpacity>
+            <Text style={styles.actionTitle}>Mood</Text>
+            <Text style={styles.actionSub}>Track how you feel</Text>
+          </Pressable>
 
-          <TouchableOpacity style={[styles.action, styles.actionNotes]} onPress={() => router.push('/(app)/notes')}>
+          <Pressable
+            onPress={() => router.push('/(app)/notes')}
+            style={({ pressed }) => [styles.actionTile, styles.actionNotes, pressed && styles.actionPressed]}
+          >
             <View style={[styles.actionIcon, styles.actionIconNotes]}>
               <Ionicons name="heart" size={18} color={theme.colors.primary} />
             </View>
-            <View style={styles.actionTextWrap}>
-              <Text style={styles.actionText}>Notes</Text>
-              <Text style={styles.actionSub}>Save little things</Text>
-            </View>
-          </TouchableOpacity>
+            <Text style={styles.actionTitle}>Notes</Text>
+            <Text style={styles.actionSub}>Save little things</Text>
+          </Pressable>
 
-          <TouchableOpacity style={[styles.action, styles.actionMemories]} onPress={() => router.push('/(app)/memories')}>
+          <Pressable
+            onPress={() => router.push('/(app)/memories')}
+            style={({ pressed }) => [styles.actionTile, styles.actionMemories, pressed && styles.actionPressed]}
+          >
             <View style={[styles.actionIcon, styles.actionIconMemories]}>
               <Ionicons name="images" size={18} color={theme.colors.primary} />
             </View>
-            <View style={styles.actionTextWrap}>
-              <Text style={styles.actionText}>Memories</Text>
-              <Text style={styles.actionSub}>Capture moments</Text>
-            </View>
-          </TouchableOpacity>
+            <Text style={styles.actionTitle}>Memories</Text>
+            <Text style={styles.actionSub}>Capture moments</Text>
+          </Pressable>
 
-          <TouchableOpacity style={[styles.action, styles.actionExpenses]} onPress={() => router.push('/(app)/expenses')}>
+          <Pressable
+            onPress={() => router.push('/(app)/expenses')}
+            style={({ pressed }) => [styles.actionTile, styles.actionExpenses, pressed && styles.actionPressed]}
+          >
             <View style={[styles.actionIcon, styles.actionIconExpenses]}>
               <Ionicons name="wallet" size={18} color={theme.colors.primary} />
             </View>
-            <View style={styles.actionTextWrap}>
-              <Text style={styles.actionText}>Expenses</Text>
-              <Text style={styles.actionSub}>Track spending</Text>
-            </View>
-          </TouchableOpacity>
+            <Text style={styles.actionTitle}>Expenses</Text>
+            <Text style={styles.actionSub}>Track spending</Text>
+          </Pressable>
         </View>
       </Card>
 
@@ -329,15 +334,17 @@ const createStyles = (theme: typeof lightTheme) =>
       justifyContent: 'space-between',
       marginTop: theme.spacing[3],
     },
-    action: {
-      flexDirection: 'row',
-      alignItems: 'center',
+    actionTile: {
       width: '48%',
-      paddingVertical: theme.spacing[3],
-      paddingHorizontal: theme.spacing[4],
-      borderRadius: theme.radius.lg,
-      backgroundColor: theme.colors.background,
+      padding: theme.spacing[4],
+      borderRadius: theme.radius.xl,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
       marginBottom: theme.spacing[3],
+    },
+    actionPressed: {
+      opacity: 0.92,
+      transform: [{ scale: 0.99 }],
     },
     actionCalendar: { backgroundColor: withOpacity(theme.colors.primary, 0.06) },
     actionMood: { backgroundColor: withOpacity(theme.colors.accent, 0.08) },
@@ -351,15 +358,14 @@ const createStyles = (theme: typeof lightTheme) =>
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: theme.colors.surface,
-      marginRight: theme.spacing[3],
+      marginBottom: theme.spacing[3],
     },
     actionIconCalendar: { backgroundColor: withOpacity(theme.colors.primary, 0.08) },
     actionIconMood: { backgroundColor: withOpacity(theme.colors.accent, 0.12) },
     actionIconNotes: { backgroundColor: withOpacity(theme.colors.primary, 0.06) },
     actionIconMemories: { backgroundColor: withOpacity(theme.colors.secondary, 0.08) },
     actionIconExpenses: { backgroundColor: withOpacity(theme.colors.accent, 0.1) },
-    actionTextWrap: { flex: 1 },
-    actionText: {
+    actionTitle: {
       fontSize: theme.typography.fontSize.base,
       fontFamily: theme.typography.fontFamily.medium,
       color: theme.colors.textPrimary,

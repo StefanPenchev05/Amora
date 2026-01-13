@@ -1,18 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Modal,
-  TextInput,
-  Alert,
   ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+
+import Screen from '../../src/components/layout/Screen';
+import AppHeader from '../../src/components/layout/AppHeader';
+import Card from '../../src/components/ui/Card';
+import IconCircleButton from '../../src/components/ui/IconCircleButton';
+import { withOpacity } from '../../src/components/form/color';
+import { lightTheme } from '../../src/styles/theme';
 import { noteService } from '../../src/services/api/notes';
 
 interface Note {
@@ -26,6 +32,9 @@ interface Note {
 
 export default function NotesScreen() {
   const router = useRouter();
+  const theme = lightTheme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   const [modalVisible, setModalVisible] = useState(false);
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
@@ -121,348 +130,394 @@ export default function NotesScreen() {
   const regularNotes = filteredNotes.filter(note => !note.isPinned);
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={['#FFF5E5', '#FFE5EC', '#FFFFFF']}
-        style={styles.gradient}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Love Notes</Text>
-          <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addButton}>
-            <Ionicons name="add-circle" size={28} color="#FFB347" />
-          </TouchableOpacity>
-        </View>
+    <Screen scroll theme={theme} contentStyle={styles.screenContent}>
+      <AppHeader
+        title="Notes"
+        subtitle="Save little things"
+        onBack={() => router.back()}
+        right={(
+          <IconCircleButton
+            icon="add"
+            theme={theme}
+            onPress={() => setModalVisible(true)}
+          />
+        )}
+        theme={theme}
+      />
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#999" />
+      <Card theme={theme} style={styles.card}>
+        <View style={styles.searchRow}>
+          <View style={styles.searchIcon}>
+            <Ionicons name="search" size={18} color={theme.colors.textMuted} />
+          </View>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search notes..."
-            placeholderTextColor="#999"
+            placeholder="Search notes"
+            placeholderTextColor={theme.colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
         </View>
+      </Card>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Pinned Notes */}
-          {pinnedNotes.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="pin" size={20} color="#FF6B9D" />
-                <Text style={styles.sectionTitle}>Pinned</Text>
-              </View>
-              {pinnedNotes.map((note) => (
-                <View
-                  key={note.id}
-                  style={[styles.noteCard, { backgroundColor: note.color }]}
-                >
-                  <View style={styles.noteHeader}>
-                    <Text style={styles.noteTitle}>{note.title}</Text>
-                    <View style={styles.noteActions}>
-                      <TouchableOpacity onPress={() => handleTogglePin(note.id)}>
-                        <Ionicons name="pin" size={20} color="#FF6B9D" />
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => handleDeleteNote(note.id)} style={{ marginLeft: 12 }}>
-                        <Ionicons name="trash-outline" size={20} color="#FF6B9D" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                  <Text style={styles.noteContent} numberOfLines={3}>
-                    {note.content}
-                  </Text>
-                  <Text style={styles.noteDate}>{note.date}</Text>
-                </View>
-              ))}
+      {pinnedNotes.length > 0 ? (
+        <Card theme={theme} style={styles.card}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Pinned</Text>
+            <View style={[styles.sectionBadge, { backgroundColor: withOpacity(theme.colors.primary, 0.12) }]}>
+              <Ionicons name="pin" size={16} color={theme.colors.primary} />
             </View>
-          )}
-
-          {/* All Notes */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>All Notes</Text>
-            {regularNotes.map((note) => (
-              <View
-                key={note.id}
-                style={[styles.noteCard, { backgroundColor: note.color }]}
-              >
-                <View style={styles.noteHeader}>
-                  <Text style={styles.noteTitle}>{note.title}</Text>
-                  <View style={styles.noteActions}>
-                    <TouchableOpacity onPress={() => handleTogglePin(note.id)}>
-                      <Ionicons name="pin-outline" size={20} color="#666" />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleDeleteNote(note.id)} style={{ marginLeft: 12 }}>
-                      <Ionicons name="trash-outline" size={20} color="#FF6B9D" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                <Text style={styles.noteContent} numberOfLines={3}>
-                  {note.content}
-                </Text>
-                <Text style={styles.noteDate}>{note.date}</Text>
-              </View>
-            ))}
           </View>
 
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      </LinearGradient>
+          {pinnedNotes.map((note, index) => (
+            <View
+              key={note.id}
+              style={[
+                styles.noteCard,
+                { backgroundColor: note.color },
+                index !== 0 && { marginTop: theme.spacing[3] },
+              ]}
+            >
+              <View style={styles.noteHeaderRow}>
+                <Text style={styles.noteTitle} numberOfLines={1}>
+                  {note.title}
+                </Text>
+
+                <View style={styles.noteActions}>
+                  <Pressable
+                    onPress={() => handleTogglePin(note.id)}
+                    hitSlop={10}
+                    style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+                  >
+                    <Ionicons name="pin" size={18} color={theme.colors.primary} />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => handleDeleteNote(note.id)}
+                    hitSlop={10}
+                    style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+                  >
+                    <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
+                  </Pressable>
+                </View>
+              </View>
+
+              <Text style={styles.noteContent} numberOfLines={3}>
+                {note.content}
+              </Text>
+              <Text style={styles.noteDate}>{note.date}</Text>
+            </View>
+          ))}
+        </Card>
+      ) : null}
+
+      <Card theme={theme} style={styles.card}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>All notes</Text>
+          <Text style={styles.sectionMeta}>{regularNotes.length}</Text>
+        </View>
+
+        {regularNotes.length === 0 ? (
+          <Text style={styles.emptyText}>No notes yet. Add your first one.</Text>
+        ) : (
+          regularNotes.map((note, index) => (
+            <View
+              key={note.id}
+              style={[
+                styles.noteCard,
+                { backgroundColor: note.color },
+                index !== 0 && { marginTop: theme.spacing[3] },
+              ]}
+            >
+              <View style={styles.noteHeaderRow}>
+                <Text style={styles.noteTitle} numberOfLines={1}>
+                  {note.title}
+                </Text>
+                <View style={styles.noteActions}>
+                  <Pressable
+                    onPress={() => handleTogglePin(note.id)}
+                    hitSlop={10}
+                    style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+                  >
+                    <Ionicons name="pin-outline" size={18} color={theme.colors.textMuted} />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => handleDeleteNote(note.id)}
+                    hitSlop={10}
+                    style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+                  >
+                    <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
+                  </Pressable>
+                </View>
+              </View>
+              <Text style={styles.noteContent} numberOfLines={3}>
+                {note.content}
+              </Text>
+              <Text style={styles.noteDate}>{note.date}</Text>
+            </View>
+          ))
+        )}
+      </Card>
 
       {/* Add Note Modal */}
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: selectedColor }]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>New Note</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={28} color="#666" />
-              </TouchableOpacity>
+          <View style={styles.sheet}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>New note</Text>
+              <Pressable onPress={() => setModalVisible(false)} hitSlop={10}>
+                <Ionicons name="close" size={26} color={theme.colors.textMuted} />
+              </Pressable>
             </View>
 
-            <TextInput
-              style={styles.titleInput}
-              placeholder="Title"
-              placeholderTextColor="#999"
-              value={noteTitle}
-              onChangeText={setNoteTitle}
-            />
+            <View style={[styles.preview, { backgroundColor: selectedColor }]}
+            >
+              <TextInput
+                style={styles.titleInput}
+                placeholder="Title"
+                placeholderTextColor={theme.colors.textMuted}
+                value={noteTitle}
+                onChangeText={setNoteTitle}
+              />
+              <TextInput
+                style={styles.contentInput}
+                placeholder="Write your note…"
+                placeholderTextColor={theme.colors.textMuted}
+                multiline
+                numberOfLines={8}
+                value={noteContent}
+                onChangeText={setNoteContent}
+                textAlignVertical="top"
+              />
+            </View>
 
-            <TextInput
-              style={styles.contentInput}
-              placeholder="Write your note..."
-              placeholderTextColor="#999"
-              multiline
-              numberOfLines={10}
-              value={noteContent}
-              onChangeText={setNoteContent}
-              textAlignVertical="top"
-            />
-
-            {/* Color Picker */}
             <View style={styles.colorPicker}>
-              <Text style={styles.colorLabel}>Color:</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {noteColors.map((color) => (
-                  <TouchableOpacity
-                    key={color}
-                    style={[
-                      styles.colorOption,
-                      { backgroundColor: color },
-                      selectedColor === color && styles.colorOptionSelected,
-                    ]}
-                    onPress={() => setSelectedColor(color)}
-                  >
-                    {selectedColor === color && (
-                      <Ionicons name="checkmark" size={24} color="#333" />
-                    )}
-                  </TouchableOpacity>
-                ))}
+              <Text style={styles.colorLabel}>Color</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.colorRow}>
+                {noteColors.map((color) => {
+                  const selected = selectedColor === color;
+                  return (
+                    <Pressable
+                      key={color}
+                      onPress={() => setSelectedColor(color)}
+                      style={({ pressed }) => [
+                        styles.colorOption,
+                        { backgroundColor: color, borderColor: selected ? theme.colors.textPrimary : 'transparent' },
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      {selected ? <Ionicons name="checkmark" size={18} color={theme.colors.textPrimary} /> : null}
+                    </Pressable>
+                  );
+                })}
               </ScrollView>
             </View>
 
-            <TouchableOpacity 
-              style={[
-                styles.saveNoteButton,
-                (!noteTitle.trim() || !noteContent.trim() || saving) && styles.saveNoteButtonDisabled
-              ]} 
+            <Pressable
               onPress={handleSaveNote}
               disabled={!noteTitle.trim() || !noteContent.trim() || saving}
+              style={({ pressed }) => [
+                styles.primaryBtn,
+                (!noteTitle.trim() || !noteContent.trim() || saving) && styles.primaryBtnDisabled,
+                pressed && styles.pressed,
+              ]}
             >
               {saving ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={theme.colors.onPrimary} />
               ) : (
-                <Text style={styles.saveNoteButtonText}>Save Note</Text>
+                <Text style={styles.primaryBtnText}>Save note</Text>
               )}
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </Modal>
-    </View>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  gradient: {
-    flex: 1,
-    paddingTop: 60,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  addButton: {
-    padding: 8,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    marginHorizontal: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#333',
-  },
-  content: {
-    flex: 1,
-  },
-  section: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginLeft: 8,
-  },
-  noteCard: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  noteHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  noteTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
-    flex: 1,
-  },
-  noteContent: {
-    fontSize: 15,
-    color: '#555',
-    lineHeight: 22,
-    marginBottom: 8,
-  },
-  noteDate: {
-    fontSize: 12,
-    color: '#666',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    minHeight: 500,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  titleInput: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 16,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
-  },
-  contentInput: {
-    fontSize: 16,
-    color: '#333',
-    minHeight: 200,
-    marginBottom: 20,
-  },
-  colorPicker: {
-    marginBottom: 20,
-  },
-  colorLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
-  },
-  colorOption: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  colorOptionSelected: {
-    borderColor: '#333',
-  },
-  saveNoteButton: {
-    backgroundColor: '#FFB347',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  saveNoteButtonDisabled: {
-    backgroundColor: '#CCC',
-  },
-  saveNoteButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  noteActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-});
+const createStyles = (theme: typeof lightTheme) =>
+  StyleSheet.create({
+    screenContent: {
+      paddingTop: theme.spacing[4],
+    },
+    card: {
+      marginTop: theme.spacing[4],
+    },
+    pressed: {
+      opacity: 0.92,
+      transform: [{ scale: 0.99 }],
+    },
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    searchIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: withOpacity(theme.colors.secondary, 0.05),
+      marginRight: theme.spacing[3],
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.regular,
+      color: theme.colors.textPrimary,
+      paddingVertical: theme.spacing[2],
+    },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: theme.spacing[4],
+    },
+    sectionTitle: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+    },
+    sectionMeta: {
+      fontSize: theme.typography.fontSize.sm,
+      color: theme.colors.textMuted,
+    },
+    sectionBadge: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    noteCard: {
+      borderRadius: theme.radius.lg,
+      padding: theme.spacing[4],
+      borderWidth: 1,
+      borderColor: withOpacity(theme.colors.secondary, 0.06),
+    },
+    noteHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    noteTitle: {
+      flex: 1,
+      paddingRight: theme.spacing[3],
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.textPrimary,
+    },
+    noteActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing[3],
+    },
+    iconBtn: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: withOpacity(theme.colors.surface, 0.6),
+    },
+    noteContent: {
+      marginTop: theme.spacing[3],
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.regular,
+      color: withOpacity(theme.colors.textPrimary, 0.78),
+      lineHeight: 20,
+    },
+    noteDate: {
+      marginTop: theme.spacing[3],
+      fontSize: theme.typography.fontSize.xs,
+      color: theme.colors.textMuted,
+    },
+    emptyText: {
+      paddingVertical: theme.spacing[4],
+      fontSize: theme.typography.fontSize.sm,
+      color: theme.colors.textMuted,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: withOpacity('#000000', 0.45),
+      justifyContent: 'flex-end',
+    },
+    sheet: {
+      backgroundColor: theme.colors.surface,
+      borderTopLeftRadius: theme.radius.xl,
+      borderTopRightRadius: theme.radius.xl,
+      padding: theme.spacing[5],
+      ...theme.shadow.sm,
+    },
+    sheetHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: theme.spacing[4],
+    },
+    sheetTitle: {
+      fontSize: theme.typography.fontSize.lg,
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.textPrimary,
+    },
+    preview: {
+      borderRadius: theme.radius.lg,
+      padding: theme.spacing[4],
+      borderWidth: 1,
+      borderColor: withOpacity(theme.colors.secondary, 0.06),
+    },
+    titleInput: {
+      fontSize: theme.typography.fontSize.lg,
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.textPrimary,
+      paddingVertical: theme.spacing[2],
+    },
+    contentInput: {
+      marginTop: theme.spacing[3],
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.regular,
+      color: theme.colors.textPrimary,
+      minHeight: 140,
+    },
+    colorPicker: {
+      marginTop: theme.spacing[4],
+    },
+    colorLabel: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+      marginBottom: theme.spacing[3],
+    },
+    colorRow: {
+      paddingRight: theme.spacing[2],
+    },
+    colorOption: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      marginRight: theme.spacing[3],
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+    },
+    primaryBtn: {
+      marginTop: theme.spacing[5],
+      height: 48,
+      borderRadius: theme.radius.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.primary,
+    },
+    primaryBtnDisabled: {
+      backgroundColor: withOpacity(theme.colors.primary, 0.45),
+    },
+    primaryBtnText: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.onPrimary,
+    },
+  });

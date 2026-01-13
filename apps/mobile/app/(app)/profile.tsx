@@ -22,6 +22,71 @@ import { memoryService } from '../../src/services/api/memories';
 import { noteService } from '../../src/services/api/notes';
 import { expenseService } from '../../src/services/api/expenses';
 
+type Theme = typeof lightTheme;
+
+type ActionRowProps = {
+  theme: Theme;
+  styles: ReturnType<typeof createStyles>;
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+  tone?: 'primary' | 'secondary' | 'accent';
+  showDivider?: boolean;
+  danger?: boolean;
+};
+
+const ActionRow: React.FC<ActionRowProps> = ({
+  theme,
+  styles,
+  icon,
+  title,
+  subtitle,
+  onPress,
+  tone = 'primary',
+  showDivider,
+  danger,
+}) => {
+  let iconColor: string;
+  let iconBg: string;
+
+  if (danger) {
+    iconColor = theme.colors.error;
+    iconBg = withOpacity(theme.colors.error, 0.1);
+  } else {
+    switch (tone) {
+      case 'secondary':
+        iconColor = theme.colors.secondary;
+        iconBg = withOpacity(theme.colors.secondary, 0.08);
+        break;
+      case 'accent':
+        iconColor = theme.colors.accent;
+        iconBg = withOpacity(theme.colors.accent, 0.12);
+        break;
+      default:
+        iconColor = theme.colors.primary;
+        iconBg = withOpacity(theme.colors.primary, 0.12);
+        break;
+    }
+  }
+
+  return (
+    <>
+      <Pressable onPress={onPress} style={({ pressed }) => [styles.actionRow, pressed && styles.actionRowPressed]}>
+        <View style={[styles.actionIcon, { backgroundColor: iconBg }]}>
+          <Ionicons name={icon} size={18} color={iconColor} />
+        </View>
+        <View style={styles.actionText}>
+          <Text style={[styles.actionTitle, danger && { color: theme.colors.error }]}>{title}</Text>
+          <Text style={styles.actionSubtitle}>{subtitle}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={theme.colors.textMuted} />
+      </Pressable>
+      {showDivider ? <View style={styles.actionDivider} /> : null}
+    </>
+  );
+};
+
 export default function ProfileScreen() {
   const router = useRouter();
   const theme = lightTheme;
@@ -245,52 +310,51 @@ export default function ProfileScreen() {
       <Card theme={theme} style={styles.card}>
         <Text style={styles.sectionTitle}>Shortcuts</Text>
 
-        <Pressable onPress={() => router.push('/(app)/partner')} style={({ pressed }) => [styles.linkRow, pressed && styles.pressed]}>
-          <View style={[styles.linkIcon, { backgroundColor: withOpacity(theme.colors.primary, 0.12) }]}>
-            <Ionicons name="heart" size={18} color={theme.colors.primary} />
-          </View>
-          <View style={styles.linkText}>
-            <Text style={styles.linkTitle}>Partner</Text>
-            <Text style={styles.linkSubtitle}>Invites & connection status</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={theme.colors.textMuted} />
-        </Pressable>
+        <ActionRow
+          theme={theme}
+          styles={styles}
+          icon="heart"
+          tone="primary"
+          title="Partner"
+          subtitle="Invites & connection status"
+          onPress={() => router.push('/(app)/partner')}
+          showDivider
+        />
 
-        <Pressable onPress={() => router.push('/(app)/notes')} style={({ pressed }) => [styles.linkRow, pressed && styles.pressed]}>
-          <View style={[styles.linkIcon, { backgroundColor: withOpacity(theme.colors.secondary, 0.08) }]}>
-            <Ionicons name="document-text" size={18} color={theme.colors.secondary} />
-          </View>
-          <View style={styles.linkText}>
-            <Text style={styles.linkTitle}>Notes</Text>
-            <Text style={styles.linkSubtitle}>Quick thoughts and reminders</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={theme.colors.textMuted} />
-        </Pressable>
+        <ActionRow
+          theme={theme}
+          styles={styles}
+          icon="document-text"
+          tone="secondary"
+          title="Notes"
+          subtitle="Quick thoughts and reminders"
+          onPress={() => router.push('/(app)/notes')}
+          showDivider
+        />
 
-        <Pressable onPress={() => router.push('/(app)/memories')} style={({ pressed }) => [styles.linkRow, pressed && styles.pressed]}>
-          <View style={[styles.linkIcon, { backgroundColor: withOpacity(theme.colors.accent, 0.12) }]}>
-            <Ionicons name="images" size={18} color={theme.colors.accent} />
-          </View>
-          <View style={styles.linkText}>
-            <Text style={styles.linkTitle}>Memories</Text>
-            <Text style={styles.linkSubtitle}>Photos and moments together</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={theme.colors.textMuted} />
-        </Pressable>
+        <ActionRow
+          theme={theme}
+          styles={styles}
+          icon="images"
+          tone="accent"
+          title="Memories"
+          subtitle="Photos and moments together"
+          onPress={() => router.push('/(app)/memories')}
+        />
       </Card>
 
       <Card theme={theme} style={styles.card}>
         <Text style={styles.sectionTitle}>Account</Text>
-        <Pressable onPress={handleLogout} style={({ pressed }) => [styles.logoutRow, pressed && styles.pressed]}>
-          <View style={[styles.linkIcon, { backgroundColor: withOpacity(theme.colors.error, 0.1) }]}>
-            <Ionicons name="log-out-outline" size={18} color={theme.colors.error} />
-          </View>
-          <View style={styles.linkText}>
-            <Text style={styles.logoutTitle}>Log out</Text>
-            <Text style={styles.linkSubtitle}>Sign out of this device</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={theme.colors.textMuted} />
-        </Pressable>
+
+        <ActionRow
+          theme={theme}
+          styles={styles}
+          icon="log-out-outline"
+          title="Log out"
+          subtitle="Sign out of this device"
+          onPress={handleLogout}
+          danger
+        />
       </Card>
     </Screen>
   );
@@ -300,10 +364,6 @@ const createStyles = (theme: typeof lightTheme) =>
   StyleSheet.create({
         content: {
           paddingTop: theme.spacing[4],
-        },
-        pressed: {
-          opacity: 0.92,
-          transform: [{ scale: 0.99 }],
         },
         card: {
           marginTop: theme.spacing[4],
@@ -412,40 +472,42 @@ const createStyles = (theme: typeof lightTheme) =>
           height: 1,
           backgroundColor: theme.colors.border,
         },
-        linkRow: {
+        actionRow: {
           flexDirection: 'row',
           alignItems: 'center',
+          minHeight: 52,
           paddingVertical: theme.spacing[3],
+          marginHorizontal: -theme.spacing[5],
+          paddingHorizontal: theme.spacing[5],
+          borderRadius: theme.radius.xl,
         },
-        linkIcon: {
+        actionRowPressed: {
+          backgroundColor: withOpacity(theme.colors.primary, 0.06),
+        },
+        actionDivider: {
+          height: 1,
+          backgroundColor: theme.colors.border,
+          marginHorizontal: -theme.spacing[5],
+        },
+        actionIcon: {
           width: 40,
           height: 40,
           borderRadius: 20,
           alignItems: 'center',
           justifyContent: 'center',
         },
-        linkText: {
+        actionText: {
           flex: 1,
           paddingHorizontal: theme.spacing[3],
         },
-        linkTitle: {
+        actionTitle: {
           fontSize: theme.typography.fontSize.base,
           fontFamily: theme.typography.fontFamily.medium,
           color: theme.colors.textPrimary,
         },
-        linkSubtitle: {
+        actionSubtitle: {
           marginTop: 2,
           fontSize: theme.typography.fontSize.sm,
           color: theme.colors.textMuted,
-        },
-        logoutRow: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingVertical: theme.spacing[3],
-        },
-        logoutTitle: {
-          fontSize: theme.typography.fontSize.base,
-          fontFamily: theme.typography.fontFamily.medium,
-          color: theme.colors.error,
         },
       });

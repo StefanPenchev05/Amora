@@ -1,18 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Modal,
-  TextInput,
-  Alert,
   ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+
+import Screen from '../../src/components/layout/Screen';
+import AppHeader from '../../src/components/layout/AppHeader';
+import Card from '../../src/components/ui/Card';
+import IconCircleButton from '../../src/components/ui/IconCircleButton';
+import { withOpacity } from '../../src/components/form/color';
+import { lightTheme } from '../../src/styles/theme';
 import { eventService } from '../../src/services/api/events';
 
 interface Event {
@@ -26,6 +32,9 @@ interface Event {
 
 export default function CalendarScreen() {
   const router = useRouter();
+  const theme = lightTheme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   const [modalVisible, setModalVisible] = useState(false);
   const [newEventTitle, setNewEventTitle] = useState('');
   const [newEventDescription, setNewEventDescription] = useState('');
@@ -60,13 +69,13 @@ export default function CalendarScreen() {
 
   const getCategoryColor = (category: string) => {
     const colors: { [key: string]: string } = {
-      date: '#FF6B9D',
-      fun: '#4A90E2',
-      milestone: '#9D6BFF',
-      task: '#FFB347',
-      activity: '#50C878',
+      date: theme.colors.secondary,
+      fun: theme.colors.primary,
+      milestone: theme.colors.accent,
+      task: theme.colors.warning,
+      activity: theme.colors.success,
     };
-    return colors[category] || '#999';
+    return colors[category] || theme.colors.textMuted;
   };
 
   const formatDate = (dateStr: string) => {
@@ -168,48 +177,72 @@ export default function CalendarScreen() {
     setModalVisible(true);
   };
 
+  const weekDays = useMemo(
+    () => [
+      { key: 'sun', label: 'S' },
+      { key: 'mon', label: 'M' },
+      { key: 'tue', label: 'T' },
+      { key: 'wed', label: 'W' },
+      { key: 'thu', label: 'T' },
+      { key: 'fri', label: 'F' },
+      { key: 'sat', label: 'S' },
+    ],
+    [],
+  );
+
+  const sortedEvents = useMemo(() => {
+    return [...events].sort((a, b) => {
+      const aTime = new Date(`${a.date}T${a.time || '00:00'}`).getTime();
+      const bTime = new Date(`${b.date}T${b.time || '00:00'}`).getTime();
+      return aTime - bTime;
+    });
+  }, [events]);
+
+  const categories = useMemo(
+    () => [
+      { key: 'date' as const, label: 'Date', icon: '🍽️' },
+      { key: 'fun' as const, label: 'Fun', icon: '🎬' },
+      { key: 'milestone' as const, label: 'Milestone', icon: '💕' },
+      { key: 'task' as const, label: 'Task', icon: '🏥' },
+      { key: 'activity' as const, label: 'Activity', icon: '💪' },
+    ],
+    [],
+  );
+
+  const headerRight = (
+    <IconCircleButton
+      icon="add"
+      theme={theme}
+      onPress={() => setModalVisible(true)}
+    />
+  );
+
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={['#E5F3FF', '#FFF0F5', '#FFFFFF']}
-        style={styles.gradient}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Calendar</Text>
-          <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addButton}>
-            <Ionicons name="add-circle" size={28} color="#FF6B9D" />
-          </TouchableOpacity>
-        </View>
+    <Screen scroll theme={theme} contentStyle={styles.screenContent}>
+      <AppHeader
+        title="Calendar"
+        subtitle="Plan moments together"
+        onBack={() => router.back()}
+        right={headerRight}
+        theme={theme}
+      />
 
-        {/* Month Selector */}
-        <View style={styles.monthSelector}>
-          <TouchableOpacity onPress={() => changeMonth(-1)}>
-            <Ionicons name="chevron-back" size={24} color="#666" />
-          </TouchableOpacity>
+      <Card theme={theme} style={styles.card}>
+        <View style={styles.monthRow}>
+          <IconCircleButton icon="chevron-back" theme={theme} onPress={() => changeMonth(-1)} />
           <Text style={styles.monthText}>{getMonthName(currentDate)}</Text>
-          <TouchableOpacity onPress={() => changeMonth(1)}>
-            <Ionicons name="chevron-forward" size={24} color="#666" />
-          </TouchableOpacity>
+          <IconCircleButton icon="chevron-forward" theme={theme} onPress={() => changeMonth(1)} />
         </View>
+      </Card>
 
-        {/* Calendar Grid */}
+      <Card theme={theme} style={styles.card}>
         <View style={styles.calendarGrid}>
-          {[
-            { key: 'sun', label: 'S' },
-            { key: 'mon', label: 'M' },
-            { key: 'tue', label: 'T' },
-            { key: 'wed', label: 'W' },
-            { key: 'thu', label: 'T' },
-            { key: 'fri', label: 'F' },
-            { key: 'sat', label: 'S' },
-          ].map((day) => (
-            <Text key={day.key} style={styles.weekDay}>{day.label}</Text>
+          {weekDays.map((day) => (
+            <Text key={day.key} style={styles.weekDay}>
+              {day.label}
+            </Text>
           ))}
-          {/* Empty cells for days before month starts */}
+
           {(() => {
             const firstDayOfMonth = getFirstDayOfMonth(currentDate);
             const prevMonthLastDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
@@ -218,393 +251,458 @@ export default function CalendarScreen() {
             return Array.from({ length: firstDayOfMonth }, (_, offset) => {
               const dayInPrevMonth = prevMonthLastDay - firstDayOfMonth + offset + 1;
               const key = `${prevMonthLastDate.getFullYear()}-${String(prevMonthLastDate.getMonth() + 1).padStart(2, '0')}-${String(dayInPrevMonth).padStart(2, '0')}`;
-              return <View key={key} style={styles.dayCell} />;
+              return <View key={key} style={styles.dayCellMuted} />;
             });
           })()}
-          {/* Actual days of the month */}
+
           {Array.from({ length: getDaysInMonth(currentDate) }, (_, i) => {
             const day = i + 1;
             const dayEvents = getEventsForDay(day);
+            const today = isToday(day);
             return (
-              <TouchableOpacity 
-                key={day} 
-                style={[
-                  styles.dayCell,
-                  isToday(day) && styles.today,
-                ]}
+              <Pressable
+                key={day}
                 onPress={() => handleDateSelect(day)}
+                style={({ pressed }) => [styles.dayCell, today && styles.today, pressed && styles.pressed]}
               >
-                <Text style={[
-                  styles.dayNumber,
-                  isToday(day) && styles.todayText,
-                ]}>{day}</Text>
-                {dayEvents.length > 0 && (
-                  <View style={styles.eventDotsContainer}>
+                <Text style={[styles.dayNumber, today && styles.todayText]}>{day}</Text>
+                {dayEvents.length > 0 ? (
+                  <View style={styles.dotsRow}>
                     {dayEvents.slice(0, 3).map((event) => (
-                      <View 
-                        key={event.id} 
-                        style={[styles.eventDot, { backgroundColor: getCategoryColor(event.category) }]} 
+                      <View
+                        key={event.id}
+                        style={[styles.dot, { backgroundColor: getCategoryColor(event.category) }]}
                       />
                     ))}
                   </View>
+                ) : (
+                  <View style={{ height: 6 }} />
                 )}
-              </TouchableOpacity>
+              </Pressable>
             );
           })}
         </View>
+      </Card>
 
-        {/* Events List */}
-        <ScrollView style={styles.eventsList} showsVerticalScrollIndicator={false}>
-          <Text style={styles.eventsTitle}>Upcoming Events</Text>
-          {events
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-            .map((event) => (
-            <TouchableOpacity key={event.id} style={styles.eventCard}>
-              <View style={[styles.eventIndicator, { backgroundColor: getCategoryColor(event.category) }]} />
-              <View style={styles.eventContent}>
-                <View style={styles.eventHeader}>
-                  <Text style={styles.eventEmoji}>{getCategoryIcon(event.category)}</Text>
-                  <Text style={styles.eventTitle}>{event.title}</Text>
-                </View>
-                <View style={styles.eventDetails}>
-                  <Ionicons name="calendar-outline" size={14} color="#666" />
-                  <Text style={styles.eventDate}>{formatDate(event.date)}</Text>
-                  <Ionicons name="time-outline" size={14} color="#666" style={{ marginLeft: 12 }} />
-                  <Text style={styles.eventTime}>{event.time}</Text>
+      <Card theme={theme} style={styles.card}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Upcoming</Text>
+          <Text style={styles.sectionMeta}>{sortedEvents.length}</Text>
+        </View>
+
+        {sortedEvents.length === 0 ? (
+          <Text style={styles.emptyText}>No upcoming events. Add one to get started.</Text>
+        ) : (
+          <View>
+            {sortedEvents.map((event, index) => (
+              <View key={event.id} style={[styles.eventRow, index !== 0 && { marginTop: theme.spacing[3] }]}>
+                <View style={[styles.eventIndicator, { backgroundColor: getCategoryColor(event.category) }]} />
+                <View style={styles.eventBody}>
+                  <View style={styles.eventTopRow}>
+                    <View style={styles.eventEmojiWrap}>
+                      <Text style={styles.eventEmoji}>{getCategoryIcon(event.category)}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.eventTitle} numberOfLines={1}>
+                        {event.title}
+                      </Text>
+                      {event.description ? (
+                        <Text style={styles.eventDesc} numberOfLines={1}>
+                          {event.description}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Pressable
+                      onPress={() => handleDeleteEvent(event.id)}
+                      hitSlop={10}
+                      style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+                    >
+                      <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
+                    </Pressable>
+                  </View>
+
+                  <View style={styles.eventMetaRow}>
+                    <Ionicons name="calendar-outline" size={14} color={theme.colors.textMuted} />
+                    <Text style={styles.eventMetaText}>{formatDate(event.date)}</Text>
+                    <View style={{ width: theme.spacing[3] }} />
+                    <Ionicons name="time-outline" size={14} color={theme.colors.textMuted} />
+                    <Text style={styles.eventMetaText}>{event.time}</Text>
+                  </View>
                 </View>
               </View>
-              <TouchableOpacity 
-                style={styles.eventOptions}
-                onPress={() => handleDeleteEvent(event.id)}
-              >
-                <Ionicons name="trash-outline" size={20} color="#FF6B9D" />
-              </TouchableOpacity>
-            </TouchableOpacity>
-          ))}
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      </LinearGradient>
+            ))}
+          </View>
+        )}
+      </Card>
 
       {/* Add Event Modal */}
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>New Event</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={28} color="#666" />
-              </TouchableOpacity>
+          <View style={styles.sheet}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>New event</Text>
+              <Pressable onPress={() => setModalVisible(false)} hitSlop={10}>
+                <Ionicons name="close" size={26} color={theme.colors.textMuted} />
+              </Pressable>
             </View>
 
             <TextInput
-              style={styles.input}
+              style={styles.inputTitle}
               placeholder="Event title"
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.colors.textMuted}
               value={newEventTitle}
               onChangeText={setNewEventTitle}
             />
 
             <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Description"
-              placeholderTextColor="#999"
+              style={styles.inputBody}
+              placeholder="Description (optional)"
+              placeholderTextColor={theme.colors.textMuted}
               value={newEventDescription}
               onChangeText={setNewEventDescription}
               multiline
               numberOfLines={3}
+              textAlignVertical="top"
             />
 
-            <TextInput
-              style={styles.input}
-              placeholder="Date (YYYY-MM-DD)"
-              placeholderTextColor="#999"
-              value={newEventDate}
-              onChangeText={setNewEventDate}
-            />
+            <View style={styles.row}>
+              <TextInput
+                style={[styles.inputInline, { flex: 1, marginRight: theme.spacing[3] }]}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={theme.colors.textMuted}
+                value={newEventDate}
+                onChangeText={setNewEventDate}
+              />
+              <TextInput
+                style={[styles.inputInline, { width: 110 }]}
+                placeholder="HH:MM"
+                placeholderTextColor={theme.colors.textMuted}
+                value={newEventTime}
+                onChangeText={setNewEventTime}
+              />
+            </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Time (HH:MM)"
-              placeholderTextColor="#999"
-              value={newEventTime}
-              onChangeText={setNewEventTime}
-            />
-
-            <View style={styles.categorySelector}>
-              <Text style={styles.categoryLabel}>Category:</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
-                {[
-                  { key: 'date', label: 'Date', icon: '🍽️' },
-                  { key: 'fun', label: 'Fun', icon: '🎬' },
-                  { key: 'milestone', label: 'Milestone', icon: '💕' },
-                  { key: 'task', label: 'Task', icon: '🏥' },
-                  { key: 'activity', label: 'Activity', icon: '💪' },
-                ].map((cat) => (
-                  <TouchableOpacity
-                    key={cat.key}
-                    style={[
-                      styles.categoryChip, 
-                      { backgroundColor: getCategoryColor(cat.key) },
-                      newEventCategory === cat.key && styles.categoryChipSelected,
-                    ]}
-                    onPress={() => setNewEventCategory(cat.key as any)}
-                  >
-                    <Text style={styles.categoryIcon}>{cat.icon}</Text>
-                    <Text style={styles.categoryChipText}>{cat.label}</Text>
-                  </TouchableOpacity>
-                ))}
+            <View style={styles.modalCategorySection}>
+              <Text style={styles.modalCategoryLabel}>Category</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.modalChipRow}>
+                {categories.map((cat) => {
+                  const active = newEventCategory === cat.key;
+                  const tint = getCategoryColor(cat.key);
+                  return (
+                    <Pressable
+                      key={cat.key}
+                      onPress={() => setNewEventCategory(cat.key)}
+                      style={({ pressed }) => [
+                        styles.modalChip,
+                        {
+                          borderColor: active ? withOpacity(tint, 0.4) : theme.colors.border,
+                          backgroundColor: active ? withOpacity(tint, 0.14) : withOpacity(theme.colors.surface, 0.7),
+                        },
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <Text style={styles.modalChipEmoji}>{cat.icon}</Text>
+                      <Text style={[styles.modalChipText, { color: active ? theme.colors.textPrimary : theme.colors.textMuted }]}>
+                        {cat.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </ScrollView>
             </View>
 
-            <TouchableOpacity 
-              style={[styles.addEventButton, ((!newEventTitle.trim() || !newEventDate.trim()) || loading) && styles.addEventButtonDisabled]} 
+            <Pressable
               onPress={handleAddEvent}
               disabled={!newEventTitle.trim() || !newEventDate.trim() || loading}
+              style={({ pressed }) => [
+                styles.primaryBtn,
+                (!newEventTitle.trim() || !newEventDate.trim() || loading) && styles.primaryBtnDisabled,
+                pressed && styles.pressed,
+              ]}
             >
               {loading ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={theme.colors.onPrimary} />
               ) : (
-                <Text style={styles.addEventButtonText}>Add Event</Text>
+                <Text style={styles.primaryBtnText}>Add event</Text>
               )}
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </Modal>
-    </View>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  gradient: {
-    flex: 1,
-    paddingTop: 60,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  addButton: {
-    padding: 8,
-  },
-  monthSelector: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  monthText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  calendarGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  weekDay: {
-    width: `${100 / 7}%`,
-    textAlign: 'center',
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: 8,
-  },
-  dayCell: {
-    width: `${100 / 7}%`,
-    aspectRatio: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  today: {
-    backgroundColor: '#FF6B9D',
-    borderRadius: 20,
-  },
-  dayNumber: {
-    fontSize: 14,
-    color: '#333',
-  },
-  todayText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  eventDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    position: 'absolute',
-    bottom: 8,
-  },
-  eventsList: {
-    flex: 1,
-    backgroundColor: 'white',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 20,
-    paddingHorizontal: 20,
-  },
-  eventsTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
-  },
-  eventCard: {
-    flexDirection: 'row',
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    alignItems: 'center',
-  },
-  eventIndicator: {
-    width: 4,
-    height: '100%',
-    borderRadius: 2,
-    marginRight: 12,
-  },
-  eventContent: {
-    flex: 1,
-  },
-  eventHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  eventEmoji: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  eventTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  eventDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  eventDate: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 4,
-  },
-  eventTime: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 4,
-  },
-  eventOptions: {
-    padding: 8,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    minHeight: 400,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  input: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    marginBottom: 16,
-    color: '#333',
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  categorySelector: {
-    marginBottom: 24,
-  },
-  categoryLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
-  },
-  categoriesScroll: {
-    flexGrow: 0,
-  },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
-  },
-  categoryChipSelected: {
-    borderWidth: 3,
-    borderColor: '#333',
-  },
-  categoryIcon: {
-    fontSize: 18,
-    marginRight: 6,
-  },
-  categoryChipText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  eventDotsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  addEventButton: {
-    backgroundColor: '#FF6B9D',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  addEventButtonDisabled: {
-    backgroundColor: '#CCC',
-  },
-  addEventButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
+const createStyles = (theme: typeof lightTheme) =>
+  StyleSheet.create({
+    screenContent: {
+      paddingTop: theme.spacing[4],
+    },
+    card: {
+      marginTop: theme.spacing[4],
+    },
+    pressed: {
+      opacity: 0.92,
+      transform: [{ scale: 0.99 }],
+    },
+    monthRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    monthText: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+    },
+    calendarGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+    },
+    weekDay: {
+      width: `${100 / 7}%`,
+      textAlign: 'center',
+      fontSize: theme.typography.fontSize.xs,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textMuted,
+      marginBottom: theme.spacing[2],
+    },
+    dayCellMuted: {
+      width: `${100 / 7}%`,
+      aspectRatio: 1,
+      borderRadius: 16,
+      backgroundColor: withOpacity(theme.colors.surface, 0.3),
+      marginVertical: 2,
+    },
+    dayCell: {
+      width: `${100 / 7}%`,
+      aspectRatio: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 16,
+      marginVertical: 2,
+      borderWidth: 1,
+      borderColor: withOpacity(theme.colors.border, 0.7),
+      backgroundColor: theme.colors.background,
+    },
+    today: {
+      borderColor: withOpacity(theme.colors.primary, 0.45),
+      backgroundColor: withOpacity(theme.colors.primary, 0.1),
+    },
+    dayNumber: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+    },
+    todayText: {
+      color: theme.colors.primary,
+      fontFamily: theme.typography.fontFamily.bold,
+    },
+    dotsRow: {
+      flexDirection: 'row',
+      marginTop: 6,
+      height: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 3,
+    },
+    dot: {
+      width: 5,
+      height: 5,
+      borderRadius: 3,
+    },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: theme.spacing[4],
+    },
+    sectionTitle: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+    },
+    sectionMeta: {
+      fontSize: theme.typography.fontSize.sm,
+      color: theme.colors.textMuted,
+    },
+    emptyText: {
+      paddingVertical: theme.spacing[4],
+      fontSize: theme.typography.fontSize.sm,
+      color: theme.colors.textMuted,
+    },
+    eventRow: {
+      flexDirection: 'row',
+      borderRadius: theme.radius.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.background,
+      overflow: 'hidden',
+    },
+    eventIndicator: {
+      width: 5,
+    },
+    eventBody: {
+      flex: 1,
+      padding: theme.spacing[4],
+    },
+    eventTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing[3],
+    },
+    eventEmojiWrap: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: withOpacity(theme.colors.primary, 0.06),
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: withOpacity(theme.colors.border, 0.8),
+    },
+    eventEmoji: {
+      fontSize: 18,
+    },
+    eventTitle: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+    },
+    eventDesc: {
+      marginTop: 2,
+      fontSize: theme.typography.fontSize.sm,
+      color: theme.colors.textMuted,
+    },
+    eventMetaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: theme.spacing[3],
+    },
+    eventMetaText: {
+      marginLeft: 6,
+      fontSize: theme.typography.fontSize.sm,
+      color: theme.colors.textMuted,
+    },
+    iconBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: withOpacity('#000000', 0.45),
+      justifyContent: 'flex-end',
+    },
+    sheet: {
+      backgroundColor: theme.colors.surface,
+      borderTopLeftRadius: theme.radius.xl,
+      borderTopRightRadius: theme.radius.xl,
+      padding: theme.spacing[5],
+      ...theme.shadow.sm,
+    },
+    sheetHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: theme.spacing[4],
+    },
+    sheetTitle: {
+      fontSize: theme.typography.fontSize.lg,
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.textPrimary,
+    },
+    inputTitle: {
+      height: 48,
+      borderRadius: theme.radius.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.background,
+      paddingHorizontal: theme.spacing[4],
+      fontSize: theme.typography.fontSize.base,
+      color: theme.colors.textPrimary,
+      marginBottom: theme.spacing[3],
+    },
+    inputBody: {
+      borderRadius: theme.radius.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.background,
+      paddingHorizontal: theme.spacing[4],
+      paddingTop: theme.spacing[3],
+      paddingBottom: theme.spacing[3],
+      fontSize: theme.typography.fontSize.base,
+      color: theme.colors.textPrimary,
+      minHeight: 84,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: theme.spacing[3],
+    },
+    inputInline: {
+      height: 48,
+      borderRadius: theme.radius.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.background,
+      paddingHorizontal: theme.spacing[4],
+      fontSize: theme.typography.fontSize.base,
+      color: theme.colors.textPrimary,
+    },
+    modalCategorySection: {
+      marginTop: theme.spacing[4],
+    },
+    modalCategoryLabel: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+      marginBottom: theme.spacing[3],
+    },
+    modalChipRow: {
+      paddingRight: theme.spacing[2],
+    },
+    modalChip: {
+      height: 38,
+      borderRadius: 19,
+      paddingHorizontal: theme.spacing[4],
+      borderWidth: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing[2],
+      marginRight: theme.spacing[3],
+    },
+    modalChipEmoji: {
+      fontSize: 16,
+    },
+    modalChipText: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.medium,
+    },
+    primaryBtn: {
+      marginTop: theme.spacing[5],
+      height: 48,
+      borderRadius: theme.radius.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.primary,
+    },
+    primaryBtnDisabled: {
+      backgroundColor: withOpacity(theme.colors.primary, 0.45),
+    },
+    primaryBtnText: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.onPrimary,
+    },
+  });

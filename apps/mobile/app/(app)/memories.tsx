@@ -1,23 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Modal,
-  TextInput,
-  Dimensions,
-  Alert,
   ActivityIndicator,
+  Alert,
+  Dimensions,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { memoryService } from '../../src/services/api/memories';
 
-const { width } = Dimensions.get('window');
-const imageSize = (width - 48) / 2;
+import Screen from '../../src/components/layout/Screen';
+import AppHeader from '../../src/components/layout/AppHeader';
+import Card from '../../src/components/ui/Card';
+import IconCircleButton from '../../src/components/ui/IconCircleButton';
+import { withOpacity } from '../../src/components/form/color';
+import { lightTheme } from '../../src/styles/theme';
+import { memoryService } from '../../src/services/api/memories';
 
 interface Memory {
   id: string;
@@ -30,6 +33,16 @@ interface Memory {
 
 export default function MemoriesScreen() {
   const router = useRouter();
+  const theme = lightTheme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
+  const tileWidth = useMemo(() => {
+    const windowWidth = Dimensions.get('window').width;
+    const contentPadding = theme.spacing[5] * 2;
+    const gap = theme.spacing[4];
+    return Math.floor((windowWidth - contentPadding - gap) / 2);
+  }, [theme.spacing]);
+
   const [modalVisible, setModalVisible] = useState(false);
   const [memoryTitle, setMemoryTitle] = useState('');
   const [memoryDescription, setMemoryDescription] = useState('');
@@ -37,6 +50,7 @@ export default function MemoriesScreen() {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [saving, setSaving] = useState(false);
+  const [newMemoryCategory, setNewMemoryCategory] = useState<string>('fun');
 
   useEffect(() => {
     loadMemories();
@@ -78,7 +92,7 @@ export default function MemoriesScreen() {
       return;
     }
 
-    const category = selectedCategory === 'all' ? 'fun' : selectedCategory;
+    const category = newMemoryCategory || (selectedCategory === 'all' ? 'fun' : selectedCategory);
 
     try {
       setSaving(true);
@@ -94,6 +108,7 @@ export default function MemoriesScreen() {
       setModalVisible(false);
       setMemoryTitle('');
       setMemoryDescription('');
+      setNewMemoryCategory(selectedCategory === 'all' ? 'fun' : selectedCategory);
     } catch (error) {
       Alert.alert('Error', 'Failed to save memory');
       console.error('Error saving memory:', error);
@@ -112,58 +127,122 @@ export default function MemoriesScreen() {
     }
   };
 
-  const filteredMemories = selectedCategory === 'all' 
-    ? memories 
+  const filteredMemories = selectedCategory === 'all'
+    ? memories
     : memories.filter(m => m.category === selectedCategory);
 
-  const categories = [
-    { id: 'all', label: 'All', icon: 'grid' },
-    { id: 'travel', label: 'Travel', icon: 'airplane' },
-    { id: 'milestone', label: 'Milestones', icon: 'star' },
-    { id: 'date', label: 'Dates', icon: 'heart' },
-    { id: 'fun', label: 'Fun', icon: 'happy' },
-    { id: 'cozy', label: 'Cozy', icon: 'home' },
-  ];
+  const categories = useMemo(
+    () => [
+      { id: 'all', label: 'All', icon: 'grid-outline' },
+      { id: 'travel', label: 'Travel', icon: 'airplane-outline' },
+      { id: 'milestone', label: 'Milestones', icon: 'star-outline' },
+      { id: 'date', label: 'Dates', icon: 'heart-outline' },
+      { id: 'fun', label: 'Fun', icon: 'happy-outline' },
+      { id: 'cozy', label: 'Cozy', icon: 'home-outline' },
+    ],
+    [],
+  );
+
+  const headerRight = (
+    <View style={styles.headerRight}>
+      <IconCircleButton
+        icon={viewMode === 'grid' ? 'list-outline' : 'grid-outline'}
+        theme={theme}
+        onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+      />
+      <View style={{ width: theme.spacing[3] }} />
+      <IconCircleButton
+        icon="add"
+        theme={theme}
+        onPress={() => {
+          setNewMemoryCategory(selectedCategory === 'all' ? 'fun' : selectedCategory);
+          setModalVisible(true);
+        }}
+      />
+    </View>
+  );
+
+  let memoriesSectionBody: React.ReactNode;
+  if (filteredMemories.length === 0) {
+    memoriesSectionBody = <Text style={styles.emptyText}>No memories yet. Add your first one.</Text>;
+  } else if (viewMode === 'grid') {
+    memoriesSectionBody = (
+      <View style={styles.grid}>
+        {filteredMemories.map((memory) => (
+          <View key={memory.id} style={[styles.tile, { width: tileWidth }]}> 
+            <Pressable
+              onPress={() => handleDeleteMemory(memory.id)}
+              hitSlop={10}
+              style={({ pressed }) => [styles.tileDelete, pressed && styles.pressed]}
+            >
+              <Ionicons name="close" size={16} color={theme.colors.error} />
+            </Pressable>
+
+            <View style={styles.tileMedia}>
+              <Text style={styles.tileEmoji}>{memory.emoji}</Text>
+            </View>
+
+            <Text style={styles.tileTitle} numberOfLines={2}>
+              {memory.title}
+            </Text>
+            <Text style={styles.tileDate}>{memory.date}</Text>
+          </View>
+        ))}
+      </View>
+    );
+  } else {
+    memoriesSectionBody = (
+      <View>
+        {filteredMemories.map((memory, index) => (
+          <View
+            key={memory.id}
+            style={[styles.listRow, index !== 0 && { marginTop: theme.spacing[3] }]}
+          >
+            <View style={styles.listMedia}>
+              <Text style={styles.listEmoji}>{memory.emoji}</Text>
+            </View>
+            <View style={styles.listContent}>
+              <Text style={styles.listTitle} numberOfLines={1}>
+                {memory.title}
+              </Text>
+              <Text style={styles.listDesc} numberOfLines={2}>
+                {memory.description}
+              </Text>
+              <Text style={styles.listDate}>{memory.date}</Text>
+            </View>
+            <Pressable
+              onPress={() => handleDeleteMemory(memory.id)}
+              hitSlop={10}
+              style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+            >
+              <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
+            </Pressable>
+          </View>
+        ))}
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={['#F0E5FF', '#FFE5EC', '#FFFFFF']}
-        style={styles.gradient}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Memories</Text>
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.viewModeButton}
-              onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-            >
-              <Ionicons
-                name={viewMode === 'grid' ? 'list' : 'grid'}
-                size={24}
-                color="#333"
-              />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addButton}>
-              <Ionicons name="add-circle" size={28} color="#9D6BFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
+    <Screen scroll theme={theme} contentStyle={styles.screenContent}>
+      <AppHeader
+        title="Memories"
+        subtitle="Capture moments together"
+        onBack={() => router.back()}
+        right={headerRight}
+        theme={theme}
+      />
 
-        {/* Stats Card */}
-        <View style={styles.statsCard}>
+      <Card theme={theme} style={styles.card}>
+        <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{memories.length}</Text>
             <Text style={styles.statLabel}>Memories</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>365</Text>
-            <Text style={styles.statLabel}>Days Together</Text>
+            <Text style={styles.statNumber}>—</Text>
+            <Text style={styles.statLabel}>Days together</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
@@ -171,128 +250,78 @@ export default function MemoriesScreen() {
             <Text style={styles.statLabel}>Milestones</Text>
           </View>
         </View>
+      </Card>
 
-        {/* Category Filter */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoryScroll}
-          contentContainerStyle={styles.categoryContainer}
-        >
-          {categories.map((category) => (
-            <TouchableOpacity
-              key={category.id}
-              style={[
-                styles.categoryChip,
-                selectedCategory === category.id && styles.categoryChipActive,
-              ]}
-              onPress={() => setSelectedCategory(category.id)}
-            >
-              <Ionicons
-                name={category.icon as any}
-                size={16}
-                color={selectedCategory === category.id ? 'white' : '#666'}
-              />
-              <Text
-                style={[
-                  styles.categoryText,
-                  selectedCategory === category.id && styles.categoryTextActive,
+      <Card theme={theme} style={styles.card}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+          {categories.map((category) => {
+            const active = selectedCategory === category.id;
+            return (
+              <Pressable
+                key={category.id}
+                onPress={() => setSelectedCategory(category.id)}
+                style={({ pressed }) => [
+                  styles.chip,
+                  { backgroundColor: active ? theme.colors.primary : theme.colors.background },
+                  pressed && styles.pressed,
                 ]}
               >
-                {category.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Ionicons
+                  name={category.icon as any}
+                  size={16}
+                  color={active ? theme.colors.onPrimary : theme.colors.textMuted}
+                />
+                <Text style={[styles.chipText, { color: active ? theme.colors.onPrimary : theme.colors.textMuted }]}>
+                  {category.label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </ScrollView>
+      </Card>
 
-        {/* Memories Grid/List */}
-        <ScrollView
-          style={styles.content}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={viewMode === 'grid' ? styles.gridContent : styles.listContent}
-        >
-          {viewMode === 'grid' ? (
-            <View style={styles.memoryGrid}>
-              {filteredMemories.map((memory) => (
-                <View key={memory.id} style={styles.memoryGridCard}>
-                  <TouchableOpacity 
-                    style={styles.gridDeleteButton}
-                    onPress={() => handleDeleteMemory(memory.id)}
-                  >
-                    <Ionicons name="close-circle" size={24} color="#FF6B9D" />
-                  </TouchableOpacity>
-                  <View style={styles.memoryImagePlaceholder}>
-                    <Text style={styles.memoryGridEmoji}>{memory.emoji}</Text>
-                  </View>
-                  <Text style={styles.memoryGridTitle} numberOfLines={2}>
-                    {memory.title}
-                  </Text>
-                  <Text style={styles.memoryGridDate}>{memory.date}</Text>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <>
-              {filteredMemories.map((memory) => (
-                <View key={memory.id} style={styles.memoryListCard}>
-                  <View style={styles.memoryListImagePlaceholder}>
-                    <Text style={styles.memoryListEmoji}>{memory.emoji}</Text>
-                  </View>
-                  <View style={styles.memoryListContent}>
-                    <Text style={styles.memoryListTitle}>{memory.title}</Text>
-                    <Text style={styles.memoryListDescription} numberOfLines={2}>
-                      {memory.description}
-                    </Text>
-                    <Text style={styles.memoryListDate}>{memory.date}</Text>
-                  </View>
-                  <TouchableOpacity 
-                    style={styles.memoryOptions}
-                    onPress={() => handleDeleteMemory(memory.id)}
-                  >
-                    <Ionicons name="trash-outline" size={20} color="#FF6B9D" />
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </>
-          )}
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      </LinearGradient>
+      <Card theme={theme} style={styles.card}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>{viewMode === 'grid' ? 'Gallery' : 'List'}</Text>
+          <Text style={styles.sectionMeta}>{filteredMemories.length}</Text>
+        </View>
+
+        {memoriesSectionBody}
+      </Card>
 
       {/* Add Memory Modal */}
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>New Memory</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={28} color="#666" />
-              </TouchableOpacity>
+          <View style={styles.sheet}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>New memory</Text>
+              <Pressable onPress={() => setModalVisible(false)} hitSlop={10}>
+                <Ionicons name="close" size={26} color={theme.colors.textMuted} />
+              </Pressable>
             </View>
 
-            {/* Photo Placeholder */}
-            <TouchableOpacity style={styles.photoPlaceholder}>
-              <Ionicons name="images-outline" size={48} color="#999" />
-              <Text style={styles.photoPlaceholderText}>Add Photos</Text>
-            </TouchableOpacity>
+            <View style={styles.photoPlaceholder}>
+              <Ionicons name="images-outline" size={40} color={theme.colors.textMuted} />
+              <Text style={styles.photoPlaceholderText}>Photos (coming soon)</Text>
+            </View>
 
             <TextInput
-              style={styles.titleInput}
+              style={styles.inputTitle}
               placeholder="Memory title"
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.colors.textMuted}
               value={memoryTitle}
               onChangeText={setMemoryTitle}
             />
 
             <TextInput
-              style={styles.descriptionInput}
-              placeholder="Describe this moment..."
-              placeholderTextColor="#999"
+              style={styles.inputBody}
+              placeholder="Describe this moment…"
+              placeholderTextColor={theme.colors.textMuted}
               multiline
               numberOfLines={4}
               value={memoryDescription}
@@ -300,336 +329,340 @@ export default function MemoriesScreen() {
               textAlignVertical="top"
             />
 
-            {/* Category Selector */}
             <View style={styles.modalCategorySection}>
-              <Text style={styles.modalCategoryLabel}>Category:</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {categories.slice(1).map((category) => (
-                  <TouchableOpacity
-                    key={category.id}
-                    style={styles.modalCategoryChip}
-                  >
-                    <Ionicons name={category.icon as any} size={16} color="#666" />
-                    <Text style={styles.modalCategoryText}>{category.label}</Text>
-                  </TouchableOpacity>
-                ))}
+              <Text style={styles.modalCategoryLabel}>Category</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.modalChipRow}>
+                {categories.slice(1).map((category) => {
+                  const active = newMemoryCategory === category.id;
+                  return (
+                    <Pressable
+                      key={category.id}
+                      onPress={() => setNewMemoryCategory(category.id)}
+                      style={({ pressed }) => [
+                        styles.modalChip,
+                        {
+                          borderColor: active ? withOpacity(theme.colors.primary, 0.35) : theme.colors.border,
+                          backgroundColor: active ? withOpacity(theme.colors.primary, 0.12) : withOpacity(theme.colors.surface, 0.7),
+                        },
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <Ionicons
+                        name={category.icon as any}
+                        size={16}
+                        color={active ? theme.colors.primary : theme.colors.textMuted}
+                      />
+                      <Text style={[styles.modalChipText, { color: active ? theme.colors.primary : theme.colors.textMuted }]}>
+                        {category.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </ScrollView>
             </View>
 
-            <TouchableOpacity 
-              style={[
-                styles.saveMemoryButton,
-                (!memoryTitle.trim() || !memoryDescription.trim() || saving) && styles.saveMemoryButtonDisabled
-              ]} 
+            <Pressable
               onPress={handleSaveMemory}
               disabled={!memoryTitle.trim() || !memoryDescription.trim() || saving}
+              style={({ pressed }) => [
+                styles.primaryBtn,
+                (!memoryTitle.trim() || !memoryDescription.trim() || saving) && styles.primaryBtnDisabled,
+                pressed && styles.pressed,
+              ]}
             >
               {saving ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={theme.colors.onPrimary} />
               ) : (
-                <Text style={styles.saveMemoryButtonText}>Save Memory</Text>
+                <Text style={styles.primaryBtnText}>Save memory</Text>
               )}
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </Modal>
-    </View>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  gradient: {
-    flex: 1,
-    paddingTop: 60,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    flex: 1,
-    textAlign: 'center',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  viewModeButton: {
-    padding: 8,
-  },
-  addButton: {
-    padding: 8,
-  },
-  statsCard: {
-    backgroundColor: 'white',
-    marginHorizontal: 20,
-    padding: 16,
-    borderRadius: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#9D6BFF',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: '#E0E0E0',
-  },
-  categoryScroll: {
-    marginBottom: 20,
-  },
-  categoryContainer: {
-    paddingHorizontal: 20,
-  },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
-    gap: 6,
-  },
-  categoryChipActive: {
-    backgroundColor: '#9D6BFF',
-  },
-  categoryText: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '600',
-  },
-  categoryTextActive: {
-    color: 'white',
-  },
-  content: {
-    flex: 1,
-  },
-  gridContent: {
-    paddingHorizontal: 12,
-  },
-  listContent: {
-    paddingHorizontal: 20,
-  },
-  memoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  memoryGridCard: {
-    width: imageSize,
-    margin: 8,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-    position: 'relative',
-  },
-  gridDeleteButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    zIndex: 10,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  memoryImagePlaceholder: {
-    width: '100%',
-    aspectRatio: 1,
-    backgroundColor: '#F0E5FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  memoryGridEmoji: {
-    fontSize: 48,
-  },
-  memoryGridTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    padding: 12,
-    paddingBottom: 4,
-  },
-  memoryGridDate: {
-    fontSize: 12,
-    color: '#666',
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-  },
-  memoryListCard: {
-    flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  memoryListImagePlaceholder: {
-    width: 80,
-    height: 80,
-    backgroundColor: '#F0E5FF',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  memoryListEmoji: {
-    fontSize: 32,
-  },
-  memoryListContent: {
-    flex: 1,
-  },
-  memoryListTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  memoryListDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
-  },
-  memoryListDate: {
-    fontSize: 12,
-    color: '#999',
-  },
-  memoryOptions: {
-    padding: 8,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    minHeight: 500,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  photoPlaceholder: {
-    height: 150,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
-    borderStyle: 'dashed',
-  },
-  photoPlaceholderText: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 8,
-  },
-  titleInput: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    marginBottom: 16,
-    color: '#333',
-  },
-  descriptionInput: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    minHeight: 100,
-    marginBottom: 16,
-    color: '#333',
-  },
-  modalCategorySection: {
-    marginBottom: 24,
-  },
-  modalCategoryLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
-  },
-  modalCategoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
-    gap: 6,
-  },
-  modalCategoryText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  saveMemoryButton: {
-    backgroundColor: '#9D6BFF',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  saveMemoryButtonDisabled: {
-    backgroundColor: '#CCC',
-  },
-  saveMemoryButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
+const createStyles = (theme: typeof lightTheme) =>
+  StyleSheet.create({
+    screenContent: {
+      paddingTop: theme.spacing[4],
+    },
+    card: {
+      marginTop: theme.spacing[4],
+    },
+    pressed: {
+      opacity: 0.92,
+      transform: [{ scale: 0.99 }],
+    },
+    headerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    statsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    statItem: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    statNumber: {
+      fontSize: theme.typography.fontSize.xl,
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.primary,
+    },
+    statLabel: {
+      marginTop: 4,
+      fontSize: theme.typography.fontSize.xs,
+      color: theme.colors.textMuted,
+    },
+    statDivider: {
+      width: 1,
+      height: 34,
+      backgroundColor: theme.colors.border,
+    },
+    chipRow: {
+      paddingRight: theme.spacing[2],
+    },
+    chip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing[2],
+      paddingHorizontal: theme.spacing[4],
+      height: 36,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      marginRight: theme.spacing[3],
+    },
+    chipText: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.medium,
+    },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: theme.spacing[4],
+    },
+    sectionTitle: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+    },
+    sectionMeta: {
+      fontSize: theme.typography.fontSize.sm,
+      color: theme.colors.textMuted,
+    },
+    emptyText: {
+      paddingVertical: theme.spacing[4],
+      fontSize: theme.typography.fontSize.sm,
+      color: theme.colors.textMuted,
+    },
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+    },
+    tile: {
+      borderRadius: theme.radius.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.background,
+      overflow: 'hidden',
+      marginBottom: theme.spacing[4],
+    },
+    tileDelete: {
+      position: 'absolute',
+      top: theme.spacing[3],
+      right: theme.spacing[3],
+      zIndex: 2,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: withOpacity(theme.colors.surface, 0.85),
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    tileMedia: {
+      width: '100%',
+      aspectRatio: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: withOpacity(theme.colors.primary, 0.06),
+    },
+    tileEmoji: {
+      fontSize: 44,
+    },
+    tileTitle: {
+      paddingHorizontal: theme.spacing[4],
+      paddingTop: theme.spacing[3],
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+    },
+    tileDate: {
+      paddingHorizontal: theme.spacing[4],
+      paddingBottom: theme.spacing[4],
+      marginTop: 4,
+      fontSize: theme.typography.fontSize.xs,
+      color: theme.colors.textMuted,
+    },
+    listRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: theme.radius.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.background,
+      padding: theme.spacing[4],
+    },
+    listMedia: {
+      width: 56,
+      height: 56,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: withOpacity(theme.colors.primary, 0.06),
+      marginRight: theme.spacing[4],
+    },
+    listEmoji: {
+      fontSize: 28,
+    },
+    listContent: {
+      flex: 1,
+      paddingRight: theme.spacing[3],
+    },
+    listTitle: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+    },
+    listDesc: {
+      marginTop: 2,
+      fontSize: theme.typography.fontSize.sm,
+      color: theme.colors.textMuted,
+    },
+    listDate: {
+      marginTop: theme.spacing[2],
+      fontSize: theme.typography.fontSize.xs,
+      color: theme.colors.textMuted,
+    },
+    iconBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: withOpacity('#000000', 0.45),
+      justifyContent: 'flex-end',
+    },
+    sheet: {
+      backgroundColor: theme.colors.surface,
+      borderTopLeftRadius: theme.radius.xl,
+      borderTopRightRadius: theme.radius.xl,
+      padding: theme.spacing[5],
+      ...theme.shadow.sm,
+    },
+    sheetHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: theme.spacing[4],
+    },
+    sheetTitle: {
+      fontSize: theme.typography.fontSize.lg,
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.textPrimary,
+    },
+    photoPlaceholder: {
+      height: 120,
+      borderRadius: theme.radius.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: withOpacity(theme.colors.secondary, 0.03),
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: theme.spacing[4],
+    },
+    photoPlaceholderText: {
+      marginTop: theme.spacing[2],
+      fontSize: theme.typography.fontSize.sm,
+      color: theme.colors.textMuted,
+    },
+    inputTitle: {
+      height: 48,
+      borderRadius: theme.radius.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.background,
+      paddingHorizontal: theme.spacing[4],
+      fontSize: theme.typography.fontSize.base,
+      color: theme.colors.textPrimary,
+      marginBottom: theme.spacing[3],
+    },
+    inputBody: {
+      borderRadius: theme.radius.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.background,
+      paddingHorizontal: theme.spacing[4],
+      paddingTop: theme.spacing[3],
+      paddingBottom: theme.spacing[3],
+      fontSize: theme.typography.fontSize.base,
+      color: theme.colors.textPrimary,
+      minHeight: 100,
+    },
+    modalCategorySection: {
+      marginTop: theme.spacing[4],
+    },
+    modalCategoryLabel: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+      marginBottom: theme.spacing[3],
+    },
+    modalChipRow: {
+      paddingRight: theme.spacing[2],
+    },
+    modalChip: {
+      height: 38,
+      borderRadius: 19,
+      paddingHorizontal: theme.spacing[4],
+      borderWidth: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing[2],
+      marginRight: theme.spacing[3],
+    },
+    modalChipText: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.medium,
+    },
+    primaryBtn: {
+      marginTop: theme.spacing[5],
+      height: 48,
+      borderRadius: theme.radius.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.primary,
+    },
+    primaryBtnDisabled: {
+      backgroundColor: withOpacity(theme.colors.primary, 0.45),
+    },
+    primaryBtnText: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.onPrimary,
+    },
+  });
