@@ -100,6 +100,14 @@ export default function DashboardScreen() {
               <Ionicons name="images" size={28} color="#9D6BFF" />
               <Text style={styles.actionText}>Memories</Text>
             </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.actionCard, { backgroundColor: '#E5FFEE' }]}
+              onPress={() => router.push('/(app)/expenses')}
+            >
+              <Ionicons name="wallet" size={28} color="#50C878" />
+              <Text style={styles.actionText}>Expenses</Text>
+            </TouchableOpacity>
           </View>
         </View>
 

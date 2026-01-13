@@ -15,6 +15,7 @@ export default function AppLayout() {
       <Stack.Screen name="notes" />
       <Stack.Screen name="memories" />
       <Stack.Screen name="profile" />
+      <Stack.Screen name="expenses" />
     </Stack>
   );
 }
