@@ -1,6 +1,7 @@
 import apiClient from './client';
 
 export interface Event {
+  user_id: string;
   id: string;
   title: string;
   description: string;

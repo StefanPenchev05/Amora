@@ -20,9 +20,11 @@ import IconCircleButton from '../../src/components/ui/IconCircleButton';
 import { withOpacity } from '../../src/components/form/color';
 import { lightTheme } from '../../src/styles/theme';
 import { eventService } from '../../src/services/api/events';
+import { relationshipService, type RelationshipStatusResponse } from '../../src/services/api/relationship';
 
 interface Event {
   id: string;
+  user_id: string;
   title: string;
   date: string;
   time: string;
@@ -35,6 +37,7 @@ export default function CalendarScreen() {
   const theme = lightTheme;
   const styles = useMemo(() => createStyles(theme), [theme]);
 
+  const [relationship, setRelationship] = useState<RelationshipStatusResponse | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [newEventTitle, setNewEventTitle] = useState('');
   const [newEventDescription, setNewEventDescription] = useState('');
@@ -47,13 +50,24 @@ export default function CalendarScreen() {
 
   useEffect(() => {
     loadEvents();
+    void loadRelationship();
   }, []);
+
+  const loadRelationship = async () => {
+    try {
+      const status = await relationshipService.getStatus();
+      setRelationship(status);
+    } catch {
+      setRelationship(null);
+    }
+  };
 
   const loadEvents = async () => {
     try {
       const apiEvents = await eventService.getAll();
       const mappedEvents = apiEvents.map(e => ({
         id: e.id,
+        user_id: e.user_id,
         title: e.title,
         description: e.description,
         date: e.event_date.split('T')[0],
@@ -66,6 +80,12 @@ export default function CalendarScreen() {
       console.error('Error loading events:', error);
     }
   };
+
+  const partnerConnected = relationship?.status === 'active';
+  const partnerName = relationship?.partner?.full_name || relationship?.partner?.username || 'Partner';
+  const partnerUserId = relationship?.partner?.user_id;
+  const isPartnerItem = (userId: string) => !!(partnerConnected && partnerUserId && userId === partnerUserId);
+  const ownerLabel = (userId: string) => (isPartnerItem(userId) ? partnerName : 'You');
 
   const getCategoryColor = (category: string) => {
     const colors: { [key: string]: string } = {
@@ -312,13 +332,15 @@ export default function CalendarScreen() {
                         </Text>
                       ) : null}
                     </View>
-                    <Pressable
-                      onPress={() => handleDeleteEvent(event.id)}
-                      hitSlop={10}
-                      style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
-                    >
-                      <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
-                    </Pressable>
+                    {isPartnerItem(event.user_id) ? null : (
+                      <Pressable
+                        onPress={() => handleDeleteEvent(event.id)}
+                        hitSlop={10}
+                        style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+                      >
+                        <Ionicons name="trash-outline" size={18} color={theme.colors.error} />
+                      </Pressable>
+                    )}
                   </View>
 
                   <View style={styles.eventMetaRow}>
@@ -327,6 +349,30 @@ export default function CalendarScreen() {
                     <View style={{ width: theme.spacing[3] }} />
                     <Ionicons name="time-outline" size={14} color={theme.colors.textMuted} />
                     <Text style={styles.eventMetaText}>{event.time}</Text>
+
+                    <View style={{ width: theme.spacing[3] }} />
+                    <View
+                      style={[
+                        styles.ownerPill,
+                        {
+                          backgroundColor: isPartnerItem(event.user_id)
+                            ? withOpacity(theme.colors.accent, 0.12)
+                            : withOpacity(theme.colors.primary, 0.12),
+                          borderColor: isPartnerItem(event.user_id)
+                            ? withOpacity(theme.colors.accent, 0.22)
+                            : withOpacity(theme.colors.primary, 0.2),
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.ownerPillText,
+                          { color: isPartnerItem(event.user_id) ? theme.colors.accent : theme.colors.primary },
+                        ]}
+                      >
+                        {ownerLabel(event.user_id)}
+                      </Text>
+                    </View>
                   </View>
                 </View>
               </View>
@@ -588,6 +634,19 @@ const createStyles = (theme: typeof lightTheme) =>
       marginLeft: 6,
       fontSize: theme.typography.fontSize.sm,
       color: theme.colors.textMuted,
+    },
+    ownerPill: {
+      paddingHorizontal: theme.spacing[3],
+      height: 24,
+      borderRadius: 999,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      marginLeft: theme.spacing[2],
+    },
+    ownerPillText: {
+      fontSize: theme.typography.fontSize.xs,
+      fontFamily: theme.typography.fontFamily.medium,
     },
     iconBtn: {
       width: 36,

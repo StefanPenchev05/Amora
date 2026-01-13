@@ -9,16 +9,17 @@ import AppHeader from '../../src/components/layout/AppHeader';
 import Card from '../../src/components/ui/Card';
 import IconCircleButton from '../../src/components/ui/IconCircleButton';
 import { lightTheme } from '../../src/styles/theme';
-import { relationshipService } from '../../src/services/api/relationship';
+import { relationshipService, type RelationshipStatusResponse } from '../../src/services/api/relationship';
 import { withOpacity } from '../../src/components/form/color';
 
-const normalizeInviteCode = (value: string) => value.replace(/[^a-z0-9]/gi, '').toUpperCase();
+const normalizeInviteCode = (value: string) => value.replaceAll(/[^a-z0-9]/gi, '').toUpperCase();
 const formatInviteCode = (value: string) => {
   const code = normalizeInviteCode(value);
   if (code.length <= 4) return code;
   return `${code.slice(0, 4)} ${code.slice(4, 8)}`;
 };
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export default function PartnerConnectScreen() {
   const router = useRouter();
   const theme = lightTheme;
@@ -39,6 +40,14 @@ export default function PartnerConnectScreen() {
   >(undefined);
   const [connectedSince, setConnectedSince] = useState<string | undefined>(undefined);
   const [daysConnected, setDaysConnected] = useState<number | undefined>(undefined);
+  const [stats, setStats] = useState<RelationshipStatusResponse['stats'] | undefined>(undefined);
+
+  const isActive = status === 'active';
+
+  const formatAmount = (value: number | undefined) => {
+    if (typeof value !== 'number' || Number.isNaN(value)) return '0.00';
+    return value.toFixed(2);
+  };
 
   const refresh = async () => {
     const res = await relationshipService.getStatus();
@@ -47,6 +56,7 @@ export default function PartnerConnectScreen() {
     setPartner(res.partner);
     setConnectedSince(res.connected_since);
     setDaysConnected(res.days_connected);
+    setStats(res.stats);
   };
 
   useEffect(() => {
@@ -74,6 +84,7 @@ export default function PartnerConnectScreen() {
       setPartner(res.partner);
       setConnectedSince(res.connected_since);
       setDaysConnected(res.days_connected);
+      setStats(res.stats);
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'Failed to create invite');
     } finally {
@@ -90,6 +101,7 @@ export default function PartnerConnectScreen() {
       setPartner(res.partner);
       setConnectedSince(res.connected_since);
       setDaysConnected(res.days_connected);
+      setStats(res.stats);
       if (res.invite_code) Alert.alert('New code', 'Invite code regenerated.');
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'Failed to regenerate invite');
@@ -140,6 +152,7 @@ export default function PartnerConnectScreen() {
       setPartner(res.partner);
       setConnectedSince(res.connected_since);
       setDaysConnected(res.days_connected);
+      setStats(res.stats);
       Alert.alert('Connected', 'You are now connected.');
       router.back();
     } catch (e: any) {
@@ -168,6 +181,7 @@ export default function PartnerConnectScreen() {
               setPartner(undefined);
               setConnectedSince(undefined);
               setDaysConnected(undefined);
+              setStats(undefined);
             } catch (e: any) {
               Alert.alert('Error', e?.message ?? 'Failed to break up');
             } finally {
@@ -179,8 +193,8 @@ export default function PartnerConnectScreen() {
     );
   };
 
-  const headline = status === 'active' ? 'Partner connected' : 'Connect your partner';
-  const subtitle = status === 'active'
+  const headline = isActive ? 'Partner connected' : 'Connect your partner';
+  const subtitle = isActive
     ? 'Your shared space is ready.'
     : 'Invite your partner or enter a code you received.';
 
@@ -193,7 +207,7 @@ export default function PartnerConnectScreen() {
       <AppHeader title={headline} subtitle={subtitle} onBack={() => router.back()} theme={theme} />
 
       <View style={styles.stack}>
-        {status === 'active' ? (
+        {isActive ? (
           <>
             <Card theme={theme} style={styles.card}>
               <View style={styles.row}>
@@ -218,6 +232,45 @@ export default function PartnerConnectScreen() {
                 <View style={styles.statItem}>
                   <Text style={styles.statValue}>{connectedSinceLabel ?? '—'}</Text>
                   <Text style={styles.statLabel}>Connected since</Text>
+                </View>
+              </View>
+            </Card>
+
+            <Card theme={theme} style={styles.card}>
+              <View style={styles.row}>
+                <View style={styles.iconWrap}>
+                  <Ionicons name="stats-chart" size={18} color={theme.colors.primary} />
+                </View>
+                <View style={styles.flex}>
+                  <Text style={styles.cardTitle}>Together stats</Text>
+                  <Text style={styles.cardSub}>A quick snapshot of your shared activity.</Text>
+                </View>
+              </View>
+
+              <View style={styles.statsGrid}>
+                <View style={styles.statsTile}>
+                  <Text style={styles.statsTileValue}>{stats?.moods_last_7_days ?? 0}</Text>
+                  <Text style={styles.statsTileLabel}>Moods (7d)</Text>
+                </View>
+                <View style={styles.statsTile}>
+                  <Text style={styles.statsTileValue}>{stats?.events_next_7_days ?? 0}</Text>
+                  <Text style={styles.statsTileLabel}>Events (next 7d)</Text>
+                </View>
+                <View style={styles.statsTile}>
+                  <Text style={styles.statsTileValue}>{stats?.memories_total ?? 0}</Text>
+                  <Text style={styles.statsTileLabel}>Memories</Text>
+                </View>
+                <View style={styles.statsTile}>
+                  <Text style={styles.statsTileValue}>{stats?.notes_total ?? 0}</Text>
+                  <Text style={styles.statsTileLabel}>Notes</Text>
+                </View>
+                <View style={styles.statsTile}>
+                  <Text style={styles.statsTileValue}>{formatAmount(stats?.expenses_unsettled)}</Text>
+                  <Text style={styles.statsTileLabel}>Unsettled</Text>
+                </View>
+                <View style={styles.statsTile}>
+                  <Text style={styles.statsTileValue}>{stats?.expenses_unsettled_count ?? 0}</Text>
+                  <Text style={styles.statsTileLabel}>To settle</Text>
                 </View>
               </View>
             </Card>
@@ -263,7 +316,7 @@ export default function PartnerConnectScreen() {
           </>
         ) : null}
 
-        {status !== 'active' ? (
+        {isActive ? null : (
           <>
             <Card theme={theme} style={styles.card}>
           <View style={styles.row}>
@@ -331,7 +384,7 @@ export default function PartnerConnectScreen() {
           <Text style={styles.hintText}>Tip: you can paste codes with spaces or dashes.</Text>
             </Card>
           </>
-        ) : null}
+        )}
       </View>
     </Screen>
   );
@@ -454,6 +507,33 @@ const createStyles = (theme: typeof lightTheme) =>
     },
     actionIcon: {
       marginRight: theme.spacing[2],
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      marginTop: theme.spacing[2],
+    },
+    statsTile: {
+      width: '48%',
+      borderRadius: theme.radius.lg,
+      backgroundColor: theme.colors.background,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      paddingHorizontal: theme.spacing[4],
+      paddingVertical: theme.spacing[4],
+      marginBottom: theme.spacing[3],
+    },
+    statsTileValue: {
+      fontSize: theme.typography.fontSize.lg,
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.textPrimary,
+    },
+    statsTileLabel: {
+      marginTop: 2,
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.regular,
+      color: theme.colors.textMuted,
     },
     acceptRow: {
       flexDirection: 'row',

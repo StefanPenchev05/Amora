@@ -4,24 +4,53 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"sort"
 
 	"github.com/StefanPenchev05/Amora/backend/internal/domain/memory"
 	"github.com/StefanPenchev05/Amora/backend/internal/infrastructure/persistence/mysql"
+	"github.com/StefanPenchev05/Amora/backend/internal/infrastructure/persistence/mysql/models"
 	"github.com/StefanPenchev05/Amora/backend/internal/presentation/http/dto"
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 )
 
 type MemoryHandler struct {
+	db     *gorm.DB
 	repo   memory.Repository
 	logger *slog.Logger
 }
 
 func NewMemoryHandler(db *gorm.DB, logger *slog.Logger) *MemoryHandler {
 	return &MemoryHandler{
+		db:     db,
 		repo:   mysql.NewMemoryRepository(db),
 		logger: logger,
 	}
+}
+
+func (h *MemoryHandler) sharedUserIDs(userID string) []string {
+	var profile models.Profile
+	if err := h.db.First(&profile, "user_id = ?", userID).Error; err != nil {
+		return []string{userID}
+	}
+	if profile.RelationshipID == nil || *profile.RelationshipID == "" {
+		return []string{userID}
+	}
+
+	var rel models.Relationship
+	if err := h.db.First(&rel, "id = ?", *profile.RelationshipID).Error; err != nil {
+		return []string{userID}
+	}
+	if rel.Status != models.RelationshipActive || rel.UserBID == nil || *rel.UserBID == "" {
+		return []string{userID}
+	}
+	if rel.UserAID != userID && *rel.UserBID != userID {
+		return []string{userID}
+	}
+	if rel.UserAID == *rel.UserBID {
+		return []string{rel.UserAID}
+	}
+	return []string{rel.UserAID, *rel.UserBID}
 }
 
 // CreateMemory creates a new memory
@@ -87,26 +116,31 @@ func (h *MemoryHandler) GetMemories(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check for category filter
 	categoryStr := r.URL.Query().Get("category")
-
+	userIDs := h.sharedUserIDs(userID)
 	var memories []*memory.Memory
-	var err error
-
-	if categoryStr != "" {
-		memories, err = h.repo.GetByUserIDAndCategory(r.Context(), userID, memory.MemoryCategory(categoryStr))
-	} else {
-		memories, err = h.repo.GetByUserID(r.Context(), userID)
+	for _, uid := range userIDs {
+		var items []*memory.Memory
+		var err error
+		if categoryStr != "" {
+			items, err = h.repo.GetByUserIDAndCategory(r.Context(), uid, memory.MemoryCategory(categoryStr))
+		} else {
+			items, err = h.repo.GetByUserID(r.Context(), uid)
+		}
+		if err != nil {
+			h.logger.Error("Failed to get memories", "error", err)
+			respondJSON(w, http.StatusInternalServerError, dto.ErrorResponse{
+				Error:   "retrieval_failed",
+				Message: "Failed to get memories",
+			})
+			return
+		}
+		memories = append(memories, items...)
 	}
 
-	if err != nil {
-		h.logger.Error("Failed to get memories", "error", err)
-		respondJSON(w, http.StatusInternalServerError, dto.ErrorResponse{
-			Error:   "retrieval_failed",
-			Message: "Failed to get memories",
-		})
-		return
-	}
+	sort.Slice(memories, func(i, j int) bool {
+		return memories[i].MemoryDate.After(memories[j].MemoryDate)
+	})
 
 	response := make([]dto.MemoryResponse, len(memories))
 	for i, m := range memories {

@@ -4,24 +4,53 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"sort"
 
 	"github.com/StefanPenchev05/Amora/backend/internal/domain/note"
 	"github.com/StefanPenchev05/Amora/backend/internal/infrastructure/persistence/mysql"
+	"github.com/StefanPenchev05/Amora/backend/internal/infrastructure/persistence/mysql/models"
 	"github.com/StefanPenchev05/Amora/backend/internal/presentation/http/dto"
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 )
 
 type NoteHandler struct {
+	db     *gorm.DB
 	repo   note.Repository
 	logger *slog.Logger
 }
 
 func NewNoteHandler(db *gorm.DB, logger *slog.Logger) *NoteHandler {
 	return &NoteHandler{
+		db:     db,
 		repo:   mysql.NewNoteRepository(db),
 		logger: logger,
 	}
+}
+
+func (h *NoteHandler) sharedUserIDs(userID string) []string {
+	var profile models.Profile
+	if err := h.db.First(&profile, "user_id = ?", userID).Error; err != nil {
+		return []string{userID}
+	}
+	if profile.RelationshipID == nil || *profile.RelationshipID == "" {
+		return []string{userID}
+	}
+
+	var rel models.Relationship
+	if err := h.db.First(&rel, "id = ?", *profile.RelationshipID).Error; err != nil {
+		return []string{userID}
+	}
+	if rel.Status != models.RelationshipActive || rel.UserBID == nil || *rel.UserBID == "" {
+		return []string{userID}
+	}
+	if rel.UserAID != userID && *rel.UserBID != userID {
+		return []string{userID}
+	}
+	if rel.UserAID == *rel.UserBID {
+		return []string{rel.UserAID}
+	}
+	return []string{rel.UserAID, *rel.UserBID}
 }
 
 // CreateNote creates a new note
@@ -86,15 +115,27 @@ func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	notes, err := h.repo.GetByUserID(r.Context(), userID)
-	if err != nil {
-		h.logger.Error("Failed to get notes", "error", err)
-		respondJSON(w, http.StatusInternalServerError, dto.ErrorResponse{
-			Error:   "retrieval_failed",
-			Message: "Failed to get notes",
-		})
-		return
+	userIDs := h.sharedUserIDs(userID)
+	var notes []*note.Note
+	for _, uid := range userIDs {
+		items, err := h.repo.GetByUserID(r.Context(), uid)
+		if err != nil {
+			h.logger.Error("Failed to get notes", "error", err)
+			respondJSON(w, http.StatusInternalServerError, dto.ErrorResponse{
+				Error:   "retrieval_failed",
+				Message: "Failed to get notes",
+			})
+			return
+		}
+		notes = append(notes, items...)
 	}
+
+	sort.Slice(notes, func(i, j int) bool {
+		if notes[i].IsPinned != notes[j].IsPinned {
+			return notes[i].IsPinned
+		}
+		return notes[i].UpdatedAt.After(notes[j].UpdatedAt)
+	})
 
 	response := make([]dto.NoteResponse, len(notes))
 	for i, n := range notes {

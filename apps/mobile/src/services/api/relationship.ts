@@ -8,6 +8,18 @@ export type RelationshipStatusResponse = {
   invite_code?: string;
   connected_since?: string;
   days_connected?: number;
+  stats?: {
+    moods_total: number;
+    moods_last_7_days: number;
+    events_total: number;
+    events_upcoming: number;
+    events_next_7_days: number;
+    notes_total: number;
+    memories_total: number;
+    expenses_total: number;
+    expenses_unsettled: number;
+    expenses_unsettled_count: number;
+  };
   partner?: {
     user_id: string;
     email: string;

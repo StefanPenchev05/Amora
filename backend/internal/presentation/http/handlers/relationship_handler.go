@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"math/big"
 	"net/http"
-	"time"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/StefanPenchev05/Amora/backend/internal/infrastructure/persistence/mysql/models"
@@ -43,6 +43,18 @@ type RelationshipStatusResponse struct {
 	InviteCode     *string `json:"invite_code,omitempty"`
 	ConnectedSince *string `json:"connected_since,omitempty"`
 	DaysConnected  *int    `json:"days_connected,omitempty"`
+	Stats          *struct {
+		MoodsTotal           int     `json:"moods_total"`
+		MoodsLast7Days       int     `json:"moods_last_7_days"`
+		EventsTotal          int     `json:"events_total"`
+		EventsUpcoming       int     `json:"events_upcoming"`
+		EventsNext7Days      int     `json:"events_next_7_days"`
+		NotesTotal           int     `json:"notes_total"`
+		MemoriesTotal        int     `json:"memories_total"`
+		ExpensesTotal        float64 `json:"expenses_total"`
+		ExpensesUnsettled    float64 `json:"expenses_unsettled"`
+		ExpensesUnsettledCnt int     `json:"expenses_unsettled_count"`
+	} `json:"stats,omitempty"`
 	Partner        *struct {
 		UserID   string `json:"user_id"`
 		Email    string `json:"email"`
@@ -183,6 +195,114 @@ func (h *RelationshipHandler) partnerInfo(rel *models.Relationship, userID strin
 	}{UserID: row.ID, Email: row.Email, Username: row.Username, FullName: row.FullName}
 }
 
+func (h *RelationshipHandler) relationshipUserIDs(rel *models.Relationship) []string {
+	ids := []string{rel.UserAID}
+	if rel.UserBID != nil && *rel.UserBID != "" {
+		ids = append(ids, *rel.UserBID)
+	}
+	return ids
+}
+
+func (h *RelationshipHandler) relationshipStats(userIDs []string) (*struct {
+	MoodsTotal           int     `json:"moods_total"`
+	MoodsLast7Days       int     `json:"moods_last_7_days"`
+	EventsTotal          int     `json:"events_total"`
+	EventsUpcoming       int     `json:"events_upcoming"`
+	EventsNext7Days      int     `json:"events_next_7_days"`
+	NotesTotal           int     `json:"notes_total"`
+	MemoriesTotal        int     `json:"memories_total"`
+	ExpensesTotal        float64 `json:"expenses_total"`
+	ExpensesUnsettled    float64 `json:"expenses_unsettled"`
+	ExpensesUnsettledCnt int     `json:"expenses_unsettled_count"`
+}, error) {
+	if len(userIDs) == 0 {
+		return nil, nil
+	}
+
+	now := time.Now().UTC()
+	weekAgo := now.AddDate(0, 0, -7)
+	weekAhead := now.AddDate(0, 0, 7)
+
+	var moodsTotal int64
+	if err := h.db.Model(&models.Mood{}).Where("user_id IN ?", userIDs).Count(&moodsTotal).Error; err != nil {
+		return nil, err
+	}
+	var moodsLast7 int64
+	if err := h.db.Model(&models.Mood{}).Where("user_id IN ? AND mood_date >= ?", userIDs, weekAgo).Count(&moodsLast7).Error; err != nil {
+		return nil, err
+	}
+
+	var eventsTotal int64
+	if err := h.db.Model(&models.Event{}).Where("user_id IN ?", userIDs).Count(&eventsTotal).Error; err != nil {
+		return nil, err
+	}
+	var eventsUpcoming int64
+	if err := h.db.Model(&models.Event{}).Where("user_id IN ? AND event_date >= ?", userIDs, now).Count(&eventsUpcoming).Error; err != nil {
+		return nil, err
+	}
+	var eventsNext7 int64
+	if err := h.db.Model(&models.Event{}).
+		Where("user_id IN ? AND event_date >= ? AND event_date < ?", userIDs, now, weekAhead).
+		Count(&eventsNext7).Error; err != nil {
+		return nil, err
+	}
+
+	var notesTotal int64
+	if err := h.db.Model(&models.Note{}).Where("user_id IN ?", userIDs).Count(&notesTotal).Error; err != nil {
+		return nil, err
+	}
+	var memoriesTotal int64
+	if err := h.db.Model(&models.Memory{}).Where("user_id IN ?", userIDs).Count(&memoriesTotal).Error; err != nil {
+		return nil, err
+	}
+
+	type sumRow struct {
+		Total float64 `gorm:"column:total"`
+	}
+	var totalExpenses sumRow
+	if err := h.db.Model(&models.Expense{}).
+		Select("COALESCE(SUM(amount),0) as total").
+		Where("user_id IN ?", userIDs).
+		Scan(&totalExpenses).Error; err != nil {
+		return nil, err
+	}
+	var unsettledExpenses sumRow
+	if err := h.db.Model(&models.Expense{}).
+		Select("COALESCE(SUM(amount),0) as total").
+		Where("user_id IN ? AND is_settled = ?", userIDs, false).
+		Scan(&unsettledExpenses).Error; err != nil {
+		return nil, err
+	}
+	var unsettledCount int64
+	if err := h.db.Model(&models.Expense{}).Where("user_id IN ? AND is_settled = ?", userIDs, false).Count(&unsettledCount).Error; err != nil {
+		return nil, err
+	}
+
+	return &struct {
+		MoodsTotal           int     `json:"moods_total"`
+		MoodsLast7Days       int     `json:"moods_last_7_days"`
+		EventsTotal          int     `json:"events_total"`
+		EventsUpcoming       int     `json:"events_upcoming"`
+		EventsNext7Days      int     `json:"events_next_7_days"`
+		NotesTotal           int     `json:"notes_total"`
+		MemoriesTotal        int     `json:"memories_total"`
+		ExpensesTotal        float64 `json:"expenses_total"`
+		ExpensesUnsettled    float64 `json:"expenses_unsettled"`
+		ExpensesUnsettledCnt int     `json:"expenses_unsettled_count"`
+	}{
+		MoodsTotal:           int(moodsTotal),
+		MoodsLast7Days:       int(moodsLast7),
+		EventsTotal:          int(eventsTotal),
+		EventsUpcoming:       int(eventsUpcoming),
+		EventsNext7Days:      int(eventsNext7),
+		NotesTotal:           int(notesTotal),
+		MemoriesTotal:        int(memoriesTotal),
+		ExpensesTotal:        totalExpenses.Total,
+		ExpensesUnsettled:    unsettledExpenses.Total,
+		ExpensesUnsettledCnt: int(unsettledCount),
+	}, nil
+}
+
 func (h *RelationshipHandler) clearRelationshipTransaction(rel *models.Relationship) error {
 	return h.db.Transaction(func(tx *gorm.DB) error {
 		// Clear profiles first.
@@ -249,6 +369,13 @@ func (h *RelationshipHandler) GetStatus(w http.ResponseWriter, r *http.Request) 
 			days = 0
 		}
 		resp.DaysConnected = &days
+
+		stats, statsErr := h.relationshipStats(h.relationshipUserIDs(rel))
+		if statsErr != nil {
+			h.logger.Error("Failed to compute relationship stats", "error", statsErr)
+		} else {
+			resp.Stats = stats
+		}
 	}
 
 	respondJSON(w, http.StatusOK, resp)

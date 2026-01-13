@@ -18,6 +18,7 @@ type UpdateEventRequest struct {
 }
 
 type EventResponse struct {
+	UserID      string    `json:"user_id"`
 	ID          string    `json:"id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
@@ -40,6 +41,7 @@ type UpdateMoodRequest struct {
 }
 
 type MoodResponse struct {
+	UserID    string    `json:"user_id"`
 	ID        string    `json:"id"`
 	Level     int       `json:"level"`
 	Note      string    `json:"note"`
