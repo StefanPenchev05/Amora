@@ -8,6 +8,9 @@ type CreateEventRequest struct {
 	Description string    `json:"description"`
 	Category    string    `json:"category" binding:"required"`
 	EventDate   time.Time `json:"event_date" binding:"required"`
+	EndDate     *time.Time `json:"end_date,omitempty"`
+	AllDay      bool      `json:"all_day"`
+	Location    string    `json:"location"`
 }
 
 type UpdateEventRequest struct {
@@ -15,6 +18,9 @@ type UpdateEventRequest struct {
 	Description string    `json:"description"`
 	Category    string    `json:"category" binding:"required"`
 	EventDate   time.Time `json:"event_date" binding:"required"`
+	EndDate     *time.Time `json:"end_date,omitempty"`
+	AllDay      bool      `json:"all_day"`
+	Location    string    `json:"location"`
 }
 
 type EventResponse struct {
@@ -24,6 +30,9 @@ type EventResponse struct {
 	Description string    `json:"description"`
 	Category    string    `json:"category"`
 	EventDate   time.Time `json:"event_date"`
+	EndDate     *time.Time `json:"end_date,omitempty"`
+	AllDay      bool      `json:"all_day"`
+	Location    string    `json:"location"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

@@ -13,8 +13,22 @@ type Event struct {
 	Description string
 	Category    EventCategory
 	EventDate   time.Time
+	EndDate     *time.Time
+	AllDay      bool
+	Location    string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+}
+
+type NewEventParams struct {
+	UserID      string
+	Title       string
+	Description string
+	Category    EventCategory
+	EventDate   time.Time
+	EndDate     *time.Time
+	AllDay      bool
+	Location    string
 }
 
 type EventCategory string
@@ -28,7 +42,16 @@ const (
 )
 
 // NewEvent creates a new event with validation
-func NewEvent(userID, title, description string, category EventCategory, eventDate time.Time) (*Event, error) {
+func NewEvent(params NewEventParams) (*Event, error) {
+	userID := params.UserID
+	title := params.Title
+	description := params.Description
+	category := params.Category
+	eventDate := params.EventDate
+	endDate := params.EndDate
+	allDay := params.AllDay
+	location := params.Location
+
 	if userID == "" {
 		return nil, errors.New("user ID is required")
 	}
@@ -45,6 +68,13 @@ func NewEvent(userID, title, description string, category EventCategory, eventDa
 		return nil, errors.New("description cannot exceed 1000 characters")
 	}
 
+	if len(location) > 200 {
+		return nil, errors.New("location cannot exceed 200 characters")
+	}
+	if endDate != nil && endDate.Before(eventDate) {
+		return nil, errors.New("end date cannot be before start date")
+	}
+
 	if !isValidCategory(category) {
 		return nil, errors.New("invalid category")
 	}
@@ -56,13 +86,16 @@ func NewEvent(userID, title, description string, category EventCategory, eventDa
 		Description: description,
 		Category:    category,
 		EventDate:   eventDate,
+		EndDate:     endDate,
+		AllDay:      allDay,
+		Location:    location,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}, nil
 }
 
 // Update updates the event fields with validation
-func (e *Event) Update(title, description string, category EventCategory, eventDate time.Time) error {
+func (e *Event) Update(title, description string, category EventCategory, eventDate time.Time, endDate *time.Time, allDay bool, location string) error {
 	if title == "" {
 		return errors.New("title is required")
 	}
@@ -75,6 +108,13 @@ func (e *Event) Update(title, description string, category EventCategory, eventD
 		return errors.New("description cannot exceed 1000 characters")
 	}
 
+	if len(location) > 200 {
+		return errors.New("location cannot exceed 200 characters")
+	}
+	if endDate != nil && endDate.Before(eventDate) {
+		return errors.New("end date cannot be before start date")
+	}
+
 	if !isValidCategory(category) {
 		return errors.New("invalid category")
 	}
@@ -83,6 +123,9 @@ func (e *Event) Update(title, description string, category EventCategory, eventD
 	e.Description = description
 	e.Category = category
 	e.EventDate = eventDate
+	e.EndDate = endDate
+	e.AllDay = allDay
+	e.Location = location
 	e.UpdatedAt = time.Now()
 
 	return nil

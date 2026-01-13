@@ -55,7 +55,7 @@ type RelationshipStatusResponse struct {
 		ExpensesUnsettled    float64 `json:"expenses_unsettled"`
 		ExpensesUnsettledCnt int     `json:"expenses_unsettled_count"`
 	} `json:"stats,omitempty"`
-	Partner        *struct {
+	Partner *struct {
 		UserID   string `json:"user_id"`
 		Email    string `json:"email"`
 		Username string `json:"username"`

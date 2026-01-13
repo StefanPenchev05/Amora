@@ -20,6 +20,8 @@ type EventHandler struct {
 	logger *slog.Logger
 }
 
+const userNotAuthenticatedMessage = "User not authenticated"
+
 func NewEventHandler(db *gorm.DB, logger *slog.Logger) *EventHandler {
 	return &EventHandler{
 		db:     db,
@@ -69,7 +71,7 @@ func (h *EventHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 	if !ok || userID == "" {
 		respondJSON(w, http.StatusUnauthorized, dto.ErrorResponse{
 			Error:   "unauthorized",
-			Message: "User not authenticated",
+			Message: userNotAuthenticatedMessage,
 		})
 		return
 	}
@@ -83,7 +85,16 @@ func (h *EventHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	domainEvent, err := event.NewEvent(userID, req.Title, req.Description, event.EventCategory(req.Category), req.EventDate)
+	domainEvent, err := event.NewEvent(event.NewEventParams{
+		UserID:      userID,
+		Title:       req.Title,
+		Description: req.Description,
+		Category:    event.EventCategory(req.Category),
+		EventDate:   req.EventDate,
+		EndDate:     req.EndDate,
+		AllDay:      req.AllDay,
+		Location:    req.Location,
+	})
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, dto.ErrorResponse{
 			Error:   "validation_error",
@@ -108,6 +119,9 @@ func (h *EventHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		Description: domainEvent.Description,
 		Category:    string(domainEvent.Category),
 		EventDate:   domainEvent.EventDate,
+		EndDate:     domainEvent.EndDate,
+		AllDay:      domainEvent.AllDay,
+		Location:    domainEvent.Location,
 		CreatedAt:   domainEvent.CreatedAt,
 		UpdatedAt:   domainEvent.UpdatedAt,
 	})
@@ -120,7 +134,7 @@ func (h *EventHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	if !ok || userID == "" {
 		respondJSON(w, http.StatusUnauthorized, dto.ErrorResponse{
 			Error:   "unauthorized",
-			Message: "User not authenticated",
+			Message: userNotAuthenticatedMessage,
 		})
 		return
 	}
@@ -168,6 +182,9 @@ func (h *EventHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 			Description: e.Description,
 			Category:    string(e.Category),
 			EventDate:   e.EventDate,
+			EndDate:     e.EndDate,
+			AllDay:      e.AllDay,
+			Location:    e.Location,
 			CreatedAt:   e.CreatedAt,
 			UpdatedAt:   e.UpdatedAt,
 		}
@@ -183,7 +200,7 @@ func (h *EventHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	if !ok || userID == "" {
 		respondJSON(w, http.StatusUnauthorized, dto.ErrorResponse{
 			Error:   "unauthorized",
-			Message: "User not authenticated",
+			Message: userNotAuthenticatedMessage,
 		})
 		return
 	}
@@ -215,7 +232,7 @@ func (h *EventHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := domainEvent.Update(req.Title, req.Description, event.EventCategory(req.Category), req.EventDate); err != nil {
+	if err := domainEvent.Update(req.Title, req.Description, event.EventCategory(req.Category), req.EventDate, req.EndDate, req.AllDay, req.Location); err != nil {
 		respondJSON(w, http.StatusBadRequest, dto.ErrorResponse{
 			Error:   "validation_error",
 			Message: err.Error(),
@@ -239,6 +256,9 @@ func (h *EventHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		Description: domainEvent.Description,
 		Category:    string(domainEvent.Category),
 		EventDate:   domainEvent.EventDate,
+		EndDate:     domainEvent.EndDate,
+		AllDay:      domainEvent.AllDay,
+		Location:    domainEvent.Location,
 		CreatedAt:   domainEvent.CreatedAt,
 		UpdatedAt:   domainEvent.UpdatedAt,
 	})
@@ -251,7 +271,7 @@ func (h *EventHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	if !ok || userID == "" {
 		respondJSON(w, http.StatusUnauthorized, dto.ErrorResponse{
 			Error:   "unauthorized",
-			Message: "User not authenticated",
+			Message: userNotAuthenticatedMessage,
 		})
 		return
 	}

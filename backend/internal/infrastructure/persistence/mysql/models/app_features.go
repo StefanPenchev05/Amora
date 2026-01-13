@@ -9,6 +9,9 @@ type Event struct {
 	Description string    `gorm:"column:description;size:1000" json:"description"`
 	Category    string    `gorm:"column:category;size:50;not null;index" json:"category"`
 	EventDate   time.Time `gorm:"column:event_date;not null;index" json:"event_date"`
+	EndDate     *time.Time `gorm:"column:end_date;index" json:"end_date,omitempty"`
+	AllDay      bool      `gorm:"column:all_day;not null;default:false;index" json:"all_day"`
+	Location    string    `gorm:"column:location;size:200" json:"location"`
 	CreatedAt   time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"created_at"`
 	UpdatedAt   time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updated_at"`
 

@@ -7,6 +7,9 @@ export interface Event {
   description: string;
   category: 'date' | 'fun' | 'milestone' | 'task' | 'activity';
   event_date: string;
+  end_date?: string | null;
+  all_day?: boolean;
+  location?: string;
   created_at: string;
   updated_at: string;
 }
@@ -16,6 +19,9 @@ export interface CreateEventRequest {
   description: string;
   category: string;
   event_date: string;
+  end_date?: string | null;
+  all_day?: boolean;
+  location?: string;
 }
 
 export interface UpdateEventRequest {
@@ -23,6 +29,9 @@ export interface UpdateEventRequest {
   description: string;
   category: string;
   event_date: string;
+  end_date?: string | null;
+  all_day?: boolean;
+  location?: string;
 }
 
 export const eventService = {

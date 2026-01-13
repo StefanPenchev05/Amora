@@ -89,7 +89,7 @@ func (h *MoodHandler) CreateMood(w http.ResponseWriter, r *http.Request) {
 
 	respondJSON(w, http.StatusCreated, dto.MoodResponse{
 		UserID: domainMood.UserID,
-		ID: domainMood.ID, Level: int(domainMood.Level), Note: domainMood.Note,
+		ID:     domainMood.ID, Level: int(domainMood.Level), Note: domainMood.Note,
 		MoodDate: domainMood.MoodDate, CreatedAt: domainMood.CreatedAt, UpdatedAt: domainMood.UpdatedAt,
 	})
 }
@@ -133,7 +133,7 @@ func (h *MoodHandler) GetMoods(w http.ResponseWriter, r *http.Request) {
 	for i, m := range combined {
 		responses[i] = dto.MoodResponse{
 			UserID: m.UserID,
-			ID: m.ID, Level: int(m.Level), Note: m.Note, MoodDate: m.MoodDate, CreatedAt: m.CreatedAt, UpdatedAt: m.UpdatedAt,
+			ID:     m.ID, Level: int(m.Level), Note: m.Note, MoodDate: m.MoodDate, CreatedAt: m.CreatedAt, UpdatedAt: m.UpdatedAt,
 		}
 	}
 
@@ -177,7 +177,7 @@ func (h *MoodHandler) UpdateMood(w http.ResponseWriter, r *http.Request) {
 
 	respondJSON(w, http.StatusOK, dto.MoodResponse{
 		UserID: domainMood.UserID,
-		ID: domainMood.ID, Level: int(domainMood.Level), Note: domainMood.Note,
+		ID:     domainMood.ID, Level: int(domainMood.Level), Note: domainMood.Note,
 		MoodDate: domainMood.MoodDate, CreatedAt: domainMood.CreatedAt, UpdatedAt: domainMood.UpdatedAt,
 	})
 }
