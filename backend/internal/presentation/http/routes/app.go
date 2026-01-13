@@ -7,6 +7,7 @@ import (
 )
 
 type AppRoutes struct {
+	relationshipHandler *handlers.RelationshipHandler
 	eventHandler   *handlers.EventHandler
 	moodHandler    *handlers.MoodHandler
 	noteHandler    *handlers.NoteHandler
@@ -16,6 +17,7 @@ type AppRoutes struct {
 }
 
 func NewAppRoutes(
+	relationshipHandler *handlers.RelationshipHandler,
 	eventHandler *handlers.EventHandler,
 	moodHandler *handlers.MoodHandler,
 	noteHandler *handlers.NoteHandler,
@@ -24,6 +26,7 @@ func NewAppRoutes(
 	authMiddleware httpInfra.Middleware,
 ) *AppRoutes {
 	return &AppRoutes{
+		relationshipHandler: relationshipHandler,
 		eventHandler:   eventHandler,
 		moodHandler:    moodHandler,
 		noteHandler:    noteHandler,
@@ -42,6 +45,12 @@ func (a *AppRoutes) RegisterRoutes(router httpInfra.Router) {
 		if a.authMiddleware != nil {
 			r.Use(a.authMiddleware.Handle)
 		}
+
+		// Relationship routes
+		r.Get("/relationship", a.relationshipHandler.GetStatus)
+		r.Post("/relationship/invite", a.relationshipHandler.CreateInvite)
+		r.Post("/relationship/accept", a.relationshipHandler.AcceptInvite)
+
 		// Event routes
 		r.Post("/events", a.eventHandler.CreateEvent)
 		r.Get("/events", a.eventHandler.GetEvents)

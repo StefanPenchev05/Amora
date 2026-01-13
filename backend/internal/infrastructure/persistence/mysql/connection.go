@@ -74,6 +74,7 @@ func NewGormConnectionWithConfig(dsn string, cfg *ConnectionConfig) (*gorm.DB, e
 
 func autoMigrate(db *gorm.DB) error {
 	models := []interface{}{
+		&models.Relationship{},
 		&models.User{},
 		&models.Credentials{},
 		&models.Profile{},

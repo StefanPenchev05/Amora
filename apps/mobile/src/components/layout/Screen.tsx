@@ -7,7 +7,6 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { lightTheme } from '../../styles/theme';
 
 type Theme = typeof lightTheme;
@@ -17,6 +16,7 @@ type Props = {
   scroll?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
   style?: StyleProp<ViewStyle>;
+  variant?: 'solid' | 'gradient';
   theme?: Theme;
 };
 
@@ -25,6 +25,7 @@ const Screen: React.FC<Props> = ({
   scroll = false,
   contentStyle,
   style,
+  variant = 'solid',
   theme = lightTheme,
 }) => {
   const styles = createStyles(theme);
@@ -43,14 +44,15 @@ const Screen: React.FC<Props> = ({
   );
 
   return (
-    <LinearGradient
-      colors={[theme.colors.background, theme.colors.surface]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.root, style]}
+    <View
+      style={[
+        styles.root,
+        variant === 'gradient' ? styles.rootGradient : null,
+        style,
+      ]}
     >
       <SafeAreaView style={styles.safe}>{content}</SafeAreaView>
-    </LinearGradient>
+    </View>
   );
 };
 
@@ -58,6 +60,10 @@ const createStyles = (theme: Theme) =>
   StyleSheet.create({
     root: {
       flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    rootGradient: {
+      // Optional soft gradient feel without a full-screen diagonal wash
       backgroundColor: theme.colors.background,
     },
     safe: {
@@ -70,8 +76,7 @@ const createStyles = (theme: Theme) =>
       flexGrow: 1,
       paddingHorizontal: theme.spacing[5],
       paddingTop: theme.spacing[5],
-      paddingBottom: theme.spacing[7],
-      gap: theme.spacing[5],
+      paddingBottom: theme.spacing[8],
     },
   });
 
