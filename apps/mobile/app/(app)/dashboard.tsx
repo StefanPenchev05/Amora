@@ -168,53 +168,6 @@ export default function DashboardScreen() {
     return `${parts[0].slice(0, 1)}${parts[1].slice(0, 1)}`.toUpperCase();
   };
 
-  const actions = useMemo(
-    () =>
-      [
-      {
-        key: 'calendar',
-        title: 'Calendar',
-        route: '/(app)/calendar',
-        icon: 'calendar' as const,
-        bg: withOpacity(theme.colors.primary, 0.06),
-        iconBg: withOpacity(theme.colors.primary, 0.08),
-      },
-      {
-        key: 'mood',
-        title: 'Mood',
-        route: '/(app)/mood',
-        icon: 'happy' as const,
-        bg: withOpacity(theme.colors.accent, 0.08),
-        iconBg: withOpacity(theme.colors.accent, 0.12),
-      },
-      {
-        key: 'notes',
-        title: 'Notes',
-        route: '/(app)/notes',
-        icon: 'heart' as const,
-        bg: withOpacity(theme.colors.primary, 0.04),
-        iconBg: withOpacity(theme.colors.primary, 0.06),
-      },
-      {
-        key: 'memories',
-        title: 'Memories',
-        route: '/(app)/memories',
-        icon: 'images' as const,
-        bg: withOpacity(theme.colors.secondary, 0.05),
-        iconBg: withOpacity(theme.colors.secondary, 0.08),
-      },
-      {
-        key: 'expenses',
-        title: 'Expenses',
-        route: '/(app)/expenses',
-        icon: 'wallet' as const,
-        bg: withOpacity(theme.colors.accent, 0.06),
-        iconBg: withOpacity(theme.colors.accent, 0.1),
-      },
-    ] as const,
-    [theme.colors.accent, theme.colors.primary, theme.colors.secondary],
-  );
-
   const renderMemories = () => {
     if (loadingData) {
       return (
@@ -309,37 +262,6 @@ export default function DashboardScreen() {
           </View>
         </Card>
       )}
-
-      <Card theme={theme} style={styles.card}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <Text style={styles.sectionHint}>Swipe</Text>
-        </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.quickActionsRow}
-        >
-          {actions.map((a) => (
-            <Pressable
-              key={a.key}
-              onPress={() => router.push(a.route)}
-              style={({ pressed }) => [
-                styles.quickActionItem,
-                pressed && styles.actionPressed,
-              ]}
-            >
-              <View style={[styles.quickActionCircle, { backgroundColor: a.iconBg, borderColor: withOpacity(theme.colors.border, 0.9) }]}>
-                <Ionicons name={a.icon} size={22} color={theme.colors.primary} />
-              </View>
-              <Text style={styles.quickActionTitle} numberOfLines={1}>
-                {a.title}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </Card>
 
       <Card theme={theme} style={styles.card}>
         <View style={styles.sectionHeader}>
@@ -534,32 +456,6 @@ const createStyles = (theme: typeof lightTheme) =>
       fontSize: theme.typography.fontSize.sm,
       fontFamily: theme.typography.fontFamily.medium,
       color: theme.colors.primary,
-    },
-    quickActionsRow: {
-      paddingTop: theme.spacing[2],
-      paddingBottom: theme.spacing[1],
-      paddingRight: theme.spacing[2],
-      gap: theme.spacing[3],
-    },
-    quickActionItem: {
-      width: 88,
-      alignItems: 'center',
-    },
-    quickActionCircle: {
-      width: 64,
-      height: 64,
-      borderRadius: 32,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      backgroundColor: theme.colors.surface,
-      ...theme.shadow.xs,
-    },
-    quickActionTitle: {
-      marginTop: theme.spacing[2],
-      fontSize: theme.typography.fontSize.sm,
-      fontFamily: theme.typography.fontFamily.medium,
-      color: theme.colors.textPrimary,
     },
     actionPressed: {
       opacity: 0.92,
