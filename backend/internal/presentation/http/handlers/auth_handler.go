@@ -2,11 +2,20 @@ package handlers
 
 import (
 	"encoding/json"
+	"bytes"
+	"errors"
+	"io"
 	"log/slog"
+	"mime"
+	"mime/multipart"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/StefanPenchev05/Amora/backend/internal/container"
 	dtoUser "github.com/StefanPenchev05/Amora/backend/internal/presentation/http/dto/user"
+	"github.com/google/uuid"
 )
 
 type AuthHandler struct {
@@ -15,6 +24,11 @@ type AuthHandler struct {
 }
 
 const invalidRequestBodyMessage = "Invalid request body"
+
+const (
+	maxRegisterBodyBytes = 12 << 20 // 12MB total request
+	maxAvatarBytes       = 5 << 20  // 5MB avatar file
+)
 
 func NewAuthHandler(container *container.Container, logger *slog.Logger) *AuthHandler {
 	return &AuthHandler{
@@ -26,10 +40,10 @@ func NewAuthHandler(container *container.Container, logger *slog.Logger) *AuthHa
 // Register handles user registration
 // POST /auth/register
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
-	var req dtoUser.CreateUserRequest
+	r.Body = http.MaxBytesReader(w, r.Body, maxRegisterBodyBytes)
 
-	// Parse and validate request
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	req, err := parseCreateUserRequest(r)
+	if err != nil {
 		h.logger.Error("Invalid registration request", "error", err)
 		respondJSON(w, http.StatusBadRequest, dtoUser.ErrorResponse{
 			Error:   "invalid_request",
@@ -51,7 +65,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	// Execute the use case
 	useCase := h.container.GetCreateUserUseCase()
-	output, err := useCase.Execute(r.Context(), req)
+	output, err := useCase.Execute(r.Context(), *req)
 	if err != nil {
 		h.logger.Error("Registration failed", "error", err)
 
@@ -84,6 +98,113 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	)
 
 	respondJSON(w, http.StatusCreated, output)
+}
+
+func parseCreateUserRequest(r *http.Request) (*dtoUser.CreateUserRequest, error) {
+	ct := r.Header.Get("Content-Type")
+	if strings.HasPrefix(strings.ToLower(ct), "multipart/form-data") {
+		return parseMultipartCreateUserRequest(r)
+	}
+
+	var req dtoUser.CreateUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, err
+	}
+	return &req, nil
+}
+
+func parseMultipartCreateUserRequest(r *http.Request) (*dtoUser.CreateUserRequest, error) {
+	// Parse form fields and optional file.
+	if err := r.ParseMultipartForm(maxRegisterBodyBytes); err != nil {
+		return nil, err
+	}
+
+	req := &dtoUser.CreateUserRequest{
+		Email:     strings.TrimSpace(r.FormValue("email")),
+		Username:  strings.TrimSpace(r.FormValue("username")),
+		FirstName: strings.TrimSpace(r.FormValue("first_name")),
+		LastName:  strings.TrimSpace(r.FormValue("last_name")),
+		Password:  r.FormValue("password"),
+	}
+
+	file, header, err := r.FormFile("avatar")
+	if err != nil {
+		if errors.Is(err, http.ErrMissingFile) {
+			return req, nil
+		}
+		return nil, err
+	}
+	defer file.Close()
+
+	avatarPhotoID, err := saveAvatarUpload(file, header)
+	if err != nil {
+		return nil, err
+	}
+	req.AvatarPhotoID = &avatarPhotoID
+
+	return req, nil
+}
+
+func saveAvatarUpload(file multipart.File, header *multipart.FileHeader) (string, error) {
+	// Read first bytes to detect content type.
+	head := make([]byte, 512)
+	n, err := io.ReadFull(file, head)
+	if err != nil && !errors.Is(err, io.ErrUnexpectedEOF) {
+		return "", err
+	}
+	head = head[:n]
+	contentType := http.DetectContentType(head)
+
+	// Allow only common image types.
+	var ext string
+	switch contentType {
+	case "image/jpeg":
+		ext = ".jpg"
+	case "image/png":
+		ext = ".png"
+	case "image/webp":
+		ext = ".webp"
+	default:
+		// Try using the provided filename extension if content type was ambiguous.
+		if header != nil {
+			if parsedExt := strings.ToLower(filepath.Ext(header.Filename)); parsedExt != "" {
+				if mt := mime.TypeByExtension(parsedExt); strings.HasPrefix(mt, "image/") {
+					ext = parsedExt
+				}
+			}
+		}
+		if ext == "" {
+			return "", errors.New("unsupported avatar image type")
+		}
+	}
+
+	reader := io.MultiReader(bytes.NewReader(head), file)
+
+	if err := os.MkdirAll("uploads/avatars", 0o755); err != nil {
+		return "", err
+	}
+
+	filename := uuid.NewString() + ext
+	outPath := filepath.Join("uploads", "avatars", filename)
+
+	out, err := os.OpenFile(outPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	if err != nil {
+		return "", err
+	}
+	defer out.Close()
+
+	// Enforce file size.
+	limited := io.LimitReader(reader, maxAvatarBytes+1)
+	written, err := io.Copy(out, limited)
+	if err != nil {
+		return "", err
+	}
+	if written > maxAvatarBytes {
+		_ = os.Remove(outPath)
+		return "", errors.New("avatar file too large")
+	}
+
+	return filename, nil
 }
 
 // Login handles user authentication

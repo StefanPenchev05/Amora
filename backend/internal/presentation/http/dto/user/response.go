@@ -11,6 +11,8 @@ type CreateUserResponse struct {
 	Username  string `json:"username"`
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
+	AvatarPhotoID *string `json:"avatar_photo_id,omitempty"`
+	AvatarURL     *string `json:"avatar_url,omitempty"`
 	CreatedAt string `json:"created_at"`
 }
 
@@ -51,6 +53,7 @@ type UserProfile struct {
 	IsVerified     bool    `json:"is_verified"`
 	MfaEnabled     bool    `json:"mfa_enabled"`
 	AvatarPhotoID  *string `json:"avatar_photo_id"`
+	AvatarURL      *string `json:"avatar_url,omitempty"`
 	RelationshipID *string `json:"relationship_id,omitempty"`
 	Locale         string  `json:"locale"`
 	Timezone       string  `json:"timezone"`
@@ -70,6 +73,7 @@ func NewUserProfile(domainUser *domainUser.User) UserProfile {
 		IsVerified:     domainUser.IsEmailVerified(),
 		MfaEnabled:     domainUser.Credentials.MfaEnabled,
 		AvatarPhotoID:  domainUser.Profile.AvatarPhotoID,
+		AvatarURL:      AvatarURLFromPhotoID(domainUser.Profile.AvatarPhotoID),
 		RelationshipID: domainUser.Profile.RelationshipID,
 		Locale:         domainUser.Profile.Locale,
 		Timezone:       domainUser.Profile.Timezone,

@@ -2,6 +2,8 @@ package http
 
 import (
 	"log/slog"
+	"net/http"
+	"os"
 
 	"github.com/StefanPenchev05/Amora/backend/internal/config"
 	"github.com/StefanPenchev05/Amora/backend/internal/container"
@@ -50,6 +52,11 @@ func (c *HTTPContainer) buildRouter() httpInfra.Router {
 }
 
 func (c *HTTPContainer) registerRoutes(router httpInfra.Router) {
+	// Ensure upload directory exists (used for avatar uploads).
+	_ = os.MkdirAll("uploads/avatars", 0o755)
+	// Serve uploaded files at /uploads/**
+	router.Mount("/uploads", http.StripPrefix("/uploads", http.FileServer(http.Dir("uploads"))))
+
 	// Register health routes
 	healthRoutes := routes.NewHealthRoutes()
 	router.RegisterRoutes(healthRoutes)
