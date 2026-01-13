@@ -21,7 +21,7 @@ func NewNoteRepository(db *gorm.DB) *NoteRepository {
 
 func (r *NoteRepository) Create(ctx context.Context, domainNote *note.Note) error {
 	domainNote.ID = uuid.New().String()
-	
+
 	model := &models.Note{
 		ID:        domainNote.ID,
 		UserID:    domainNote.UserID,
@@ -32,42 +32,42 @@ func (r *NoteRepository) Create(ctx context.Context, domainNote *note.Note) erro
 		CreatedAt: domainNote.CreatedAt,
 		UpdatedAt: domainNote.UpdatedAt,
 	}
-	
+
 	if err := r.db.WithContext(ctx).Create(model).Error; err != nil {
 		return fmt.Errorf("failed to create note: %w", err)
 	}
-	
+
 	return nil
 }
 
 func (r *NoteRepository) GetByID(ctx context.Context, id string) (*note.Note, error) {
 	var model models.Note
-	
+
 	if err := r.db.WithContext(ctx).First(&model, "id = ?", id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("note not found")
 		}
 		return nil, fmt.Errorf("failed to get note: %w", err)
 	}
-	
+
 	return r.modelToDomain(&model), nil
 }
 
 func (r *NoteRepository) GetByUserID(ctx context.Context, userID string) ([]*note.Note, error) {
 	var models []models.Note
-	
+
 	if err := r.db.WithContext(ctx).
 		Where("user_id = ?", userID).
 		Order("is_pinned DESC, updated_at DESC").
 		Find(&models).Error; err != nil {
 		return nil, fmt.Errorf("failed to get notes: %w", err)
 	}
-	
+
 	notes := make([]*note.Note, len(models))
 	for i, m := range models {
 		notes[i] = r.modelToDomain(&m)
 	}
-	
+
 	return notes, nil
 }
 
@@ -81,25 +81,25 @@ func (r *NoteRepository) Update(ctx context.Context, domainNote *note.Note) erro
 		IsPinned:  domainNote.IsPinned,
 		UpdatedAt: domainNote.UpdatedAt,
 	}
-	
+
 	if err := r.db.WithContext(ctx).Save(model).Error; err != nil {
 		return fmt.Errorf("failed to update note: %w", err)
 	}
-	
+
 	return nil
 }
 
 func (r *NoteRepository) Delete(ctx context.Context, id string) error {
 	result := r.db.WithContext(ctx).Delete(&models.Note{}, "id = ?", id)
-	
+
 	if result.Error != nil {
 		return fmt.Errorf("failed to delete note: %w", result.Error)
 	}
-	
+
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("note not found")
 	}
-	
+
 	return nil
 }
 

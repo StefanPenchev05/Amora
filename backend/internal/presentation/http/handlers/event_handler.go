@@ -35,7 +35,7 @@ func (h *EventHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	var req dto.CreateEventRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondJSON(w, http.StatusBadRequest, dto.ErrorResponse{
@@ -44,7 +44,7 @@ func (h *EventHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	domainEvent, err := event.NewEvent(userID, req.Title, req.Description, event.EventCategory(req.Category), req.EventDate)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, dto.ErrorResponse{
@@ -53,7 +53,7 @@ func (h *EventHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	if err := h.repo.Create(r.Context(), domainEvent); err != nil {
 		h.logger.Error("Failed to create event", "error", err)
 		respondJSON(w, http.StatusInternalServerError, dto.ErrorResponse{
@@ -62,7 +62,7 @@ func (h *EventHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	respondJSON(w, http.StatusCreated, dto.EventResponse{
 		ID:          domainEvent.ID,
 		Title:       domainEvent.Title,
@@ -85,14 +85,14 @@ func (h *EventHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	// Check for date range query params
 	startDateStr := r.URL.Query().Get("start_date")
 	endDateStr := r.URL.Query().Get("end_date")
-	
+
 	var events []*event.Event
 	var err error
-	
+
 	if startDateStr != "" && endDateStr != "" {
 		startDate, _ := time.Parse("2006-01-02", startDateStr)
 		endDate, _ := time.Parse("2006-01-02", endDateStr)
@@ -100,7 +100,7 @@ func (h *EventHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	} else {
 		events, err = h.repo.GetByUserID(r.Context(), userID)
 	}
-	
+
 	if err != nil {
 		h.logger.Error("Failed to get events", "error", err)
 		respondJSON(w, http.StatusInternalServerError, dto.ErrorResponse{
@@ -109,7 +109,7 @@ func (h *EventHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	responses := make([]dto.EventResponse, len(events))
 	for i, e := range events {
 		responses[i] = dto.EventResponse{
@@ -122,7 +122,7 @@ func (h *EventHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 			UpdatedAt:   e.UpdatedAt,
 		}
 	}
-	
+
 	respondJSON(w, http.StatusOK, responses)
 }
 
@@ -130,7 +130,7 @@ func (h *EventHandler) GetEvents(w http.ResponseWriter, r *http.Request) {
 // PUT /api/events/{id}
 func (h *EventHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	eventID := r.PathValue("id")
-	
+
 	var req dto.UpdateEventRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondJSON(w, http.StatusBadRequest, dto.ErrorResponse{
@@ -139,7 +139,7 @@ func (h *EventHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	domainEvent, err := h.repo.GetByID(r.Context(), eventID)
 	if err != nil {
 		respondJSON(w, http.StatusNotFound, dto.ErrorResponse{
@@ -148,7 +148,7 @@ func (h *EventHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	if err := domainEvent.Update(req.Title, req.Description, event.EventCategory(req.Category), req.EventDate); err != nil {
 		respondJSON(w, http.StatusBadRequest, dto.ErrorResponse{
 			Error:   "validation_error",
@@ -156,7 +156,7 @@ func (h *EventHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	if err := h.repo.Update(r.Context(), domainEvent); err != nil {
 		h.logger.Error("Failed to update event", "error", err)
 		respondJSON(w, http.StatusInternalServerError, dto.ErrorResponse{
@@ -165,7 +165,7 @@ func (h *EventHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	respondJSON(w, http.StatusOK, dto.EventResponse{
 		ID:          domainEvent.ID,
 		Title:       domainEvent.Title,
@@ -181,7 +181,7 @@ func (h *EventHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 // DELETE /api/events/{id}
 func (h *EventHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 	eventID := r.PathValue("id")
-	
+
 	if err := h.repo.Delete(r.Context(), eventID); err != nil {
 		h.logger.Error("Failed to delete event", "error", err)
 		respondJSON(w, http.StatusInternalServerError, dto.ErrorResponse{
@@ -190,6 +190,6 @@ func (h *EventHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	w.WriteHeader(http.StatusNoContent)
 }

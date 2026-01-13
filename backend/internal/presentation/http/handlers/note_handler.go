@@ -35,7 +35,7 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	var req dto.CreateNoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondJSON(w, http.StatusBadRequest, dto.ErrorResponse{
@@ -44,7 +44,7 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	domainNote, err := note.NewNote(userID, req.Title, req.Content, note.NoteColor(req.Color))
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, dto.ErrorResponse{
@@ -53,7 +53,7 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	if err := h.repo.Create(r.Context(), domainNote); err != nil {
 		h.logger.Error("Failed to create note", "error", err)
 		respondJSON(w, http.StatusInternalServerError, dto.ErrorResponse{
@@ -62,7 +62,7 @@ func (h *NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	respondJSON(w, http.StatusCreated, dto.NoteResponse{
 		ID:        domainNote.ID,
 		Title:     domainNote.Title,
@@ -85,7 +85,7 @@ func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	notes, err := h.repo.GetByUserID(r.Context(), userID)
 	if err != nil {
 		h.logger.Error("Failed to get notes", "error", err)
@@ -95,7 +95,7 @@ func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	response := make([]dto.NoteResponse, len(notes))
 	for i, n := range notes {
 		response[i] = dto.NoteResponse{
@@ -108,7 +108,7 @@ func (h *NoteHandler) GetNotes(w http.ResponseWriter, r *http.Request) {
 			UpdatedAt: n.UpdatedAt,
 		}
 	}
-	
+
 	respondJSON(w, http.StatusOK, response)
 }
 
@@ -123,9 +123,9 @@ func (h *NoteHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	noteID := chi.URLParam(r, "id")
-	
+
 	existingNote, err := h.repo.GetByID(r.Context(), noteID)
 	if err != nil {
 		respondJSON(w, http.StatusNotFound, dto.ErrorResponse{
@@ -134,7 +134,7 @@ func (h *NoteHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	if existingNote.UserID != userID {
 		respondJSON(w, http.StatusForbidden, dto.ErrorResponse{
 			Error:   "forbidden",
@@ -142,7 +142,7 @@ func (h *NoteHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	var req dto.UpdateNoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondJSON(w, http.StatusBadRequest, dto.ErrorResponse{
@@ -151,7 +151,7 @@ func (h *NoteHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	if err := existingNote.Update(req.Title, req.Content, note.NoteColor(req.Color)); err != nil {
 		respondJSON(w, http.StatusBadRequest, dto.ErrorResponse{
 			Error:   "validation_error",
@@ -159,7 +159,7 @@ func (h *NoteHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	if err := h.repo.Update(r.Context(), existingNote); err != nil {
 		h.logger.Error("Failed to update note", "error", err)
 		respondJSON(w, http.StatusInternalServerError, dto.ErrorResponse{
@@ -168,7 +168,7 @@ func (h *NoteHandler) UpdateNote(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	respondJSON(w, http.StatusOK, dto.NoteResponse{
 		ID:        existingNote.ID,
 		Title:     existingNote.Title,
@@ -191,9 +191,9 @@ func (h *NoteHandler) TogglePin(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	noteID := chi.URLParam(r, "id")
-	
+
 	existingNote, err := h.repo.GetByID(r.Context(), noteID)
 	if err != nil {
 		respondJSON(w, http.StatusNotFound, dto.ErrorResponse{
@@ -202,7 +202,7 @@ func (h *NoteHandler) TogglePin(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	if existingNote.UserID != userID {
 		respondJSON(w, http.StatusForbidden, dto.ErrorResponse{
 			Error:   "forbidden",
@@ -210,9 +210,9 @@ func (h *NoteHandler) TogglePin(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	existingNote.TogglePin()
-	
+
 	if err := h.repo.Update(r.Context(), existingNote); err != nil {
 		h.logger.Error("Failed to toggle pin", "error", err)
 		respondJSON(w, http.StatusInternalServerError, dto.ErrorResponse{
@@ -221,7 +221,7 @@ func (h *NoteHandler) TogglePin(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	respondJSON(w, http.StatusOK, dto.NoteResponse{
 		ID:        existingNote.ID,
 		Title:     existingNote.Title,
@@ -244,9 +244,9 @@ func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	noteID := chi.URLParam(r, "id")
-	
+
 	existingNote, err := h.repo.GetByID(r.Context(), noteID)
 	if err != nil {
 		respondJSON(w, http.StatusNotFound, dto.ErrorResponse{
@@ -255,7 +255,7 @@ func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	if existingNote.UserID != userID {
 		respondJSON(w, http.StatusForbidden, dto.ErrorResponse{
 			Error:   "forbidden",
@@ -263,7 +263,7 @@ func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	if err := h.repo.Delete(r.Context(), noteID); err != nil {
 		h.logger.Error("Failed to delete note", "error", err)
 		respondJSON(w, http.StatusInternalServerError, dto.ErrorResponse{
@@ -272,6 +272,6 @@ func (h *NoteHandler) DeleteNote(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	w.WriteHeader(http.StatusNoContent)
 }

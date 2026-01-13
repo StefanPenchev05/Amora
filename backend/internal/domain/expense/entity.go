@@ -43,27 +43,27 @@ func NewExpense(userID string, amount float64, description string, category Expe
 	if userID == "" {
 		return nil, errors.New("user ID is required")
 	}
-	
+
 	if amount <= 0 {
 		return nil, errors.New("amount must be greater than zero")
 	}
-	
+
 	if description == "" {
 		return nil, errors.New("description is required")
 	}
-	
+
 	if len(description) > 200 {
 		return nil, errors.New("description cannot exceed 200 characters")
 	}
-	
+
 	if !isValidCategory(category) {
 		return nil, errors.New("invalid category")
 	}
-	
+
 	if !isValidPaidBy(paidBy) {
 		return nil, errors.New("invalid paid by value")
 	}
-	
+
 	now := time.Now()
 	return &Expense{
 		UserID:      userID,
@@ -83,30 +83,30 @@ func (e *Expense) Update(amount float64, description string, category ExpenseCat
 	if amount <= 0 {
 		return errors.New("amount must be greater than zero")
 	}
-	
+
 	if description == "" {
 		return errors.New("description is required")
 	}
-	
+
 	if len(description) > 200 {
 		return errors.New("description cannot exceed 200 characters")
 	}
-	
+
 	if !isValidCategory(category) {
 		return errors.New("invalid category")
 	}
-	
+
 	if !isValidPaidBy(paidBy) {
 		return errors.New("invalid paid by value")
 	}
-	
+
 	e.Amount = amount
 	e.Description = description
 	e.Category = category
 	e.PaidBy = paidBy
 	e.ExpenseDate = expenseDate
 	e.UpdatedAt = time.Now()
-	
+
 	return nil
 }
 

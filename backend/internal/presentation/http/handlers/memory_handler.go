@@ -35,7 +35,7 @@ func (h *MemoryHandler) CreateMemory(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	var req dto.CreateMemoryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondJSON(w, http.StatusBadRequest, dto.ErrorResponse{
@@ -44,7 +44,7 @@ func (h *MemoryHandler) CreateMemory(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	domainMemory, err := memory.NewMemory(userID, req.Title, req.Description, memory.MemoryCategory(req.Category), req.PhotoURL, req.MemoryDate)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, dto.ErrorResponse{
@@ -53,7 +53,7 @@ func (h *MemoryHandler) CreateMemory(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	if err := h.repo.Create(r.Context(), domainMemory); err != nil {
 		h.logger.Error("Failed to create memory", "error", err)
 		respondJSON(w, http.StatusInternalServerError, dto.ErrorResponse{
@@ -62,7 +62,7 @@ func (h *MemoryHandler) CreateMemory(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	respondJSON(w, http.StatusCreated, dto.MemoryResponse{
 		ID:          domainMemory.ID,
 		Title:       domainMemory.Title,
@@ -86,19 +86,19 @@ func (h *MemoryHandler) GetMemories(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	// Check for category filter
 	categoryStr := r.URL.Query().Get("category")
-	
+
 	var memories []*memory.Memory
 	var err error
-	
+
 	if categoryStr != "" {
 		memories, err = h.repo.GetByUserIDAndCategory(r.Context(), userID, memory.MemoryCategory(categoryStr))
 	} else {
 		memories, err = h.repo.GetByUserID(r.Context(), userID)
 	}
-	
+
 	if err != nil {
 		h.logger.Error("Failed to get memories", "error", err)
 		respondJSON(w, http.StatusInternalServerError, dto.ErrorResponse{
@@ -107,7 +107,7 @@ func (h *MemoryHandler) GetMemories(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	response := make([]dto.MemoryResponse, len(memories))
 	for i, m := range memories {
 		response[i] = dto.MemoryResponse{
@@ -121,7 +121,7 @@ func (h *MemoryHandler) GetMemories(w http.ResponseWriter, r *http.Request) {
 			UpdatedAt:   m.UpdatedAt,
 		}
 	}
-	
+
 	respondJSON(w, http.StatusOK, response)
 }
 
@@ -136,9 +136,9 @@ func (h *MemoryHandler) UpdateMemory(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	memoryID := chi.URLParam(r, "id")
-	
+
 	existingMemory, err := h.repo.GetByID(r.Context(), memoryID)
 	if err != nil {
 		respondJSON(w, http.StatusNotFound, dto.ErrorResponse{
@@ -147,7 +147,7 @@ func (h *MemoryHandler) UpdateMemory(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	if existingMemory.UserID != userID {
 		respondJSON(w, http.StatusForbidden, dto.ErrorResponse{
 			Error:   "forbidden",
@@ -155,7 +155,7 @@ func (h *MemoryHandler) UpdateMemory(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	var req dto.UpdateMemoryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondJSON(w, http.StatusBadRequest, dto.ErrorResponse{
@@ -164,7 +164,7 @@ func (h *MemoryHandler) UpdateMemory(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	if err := existingMemory.Update(req.Title, req.Description, memory.MemoryCategory(req.Category), req.PhotoURL, req.MemoryDate); err != nil {
 		respondJSON(w, http.StatusBadRequest, dto.ErrorResponse{
 			Error:   "validation_error",
@@ -172,7 +172,7 @@ func (h *MemoryHandler) UpdateMemory(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	if err := h.repo.Update(r.Context(), existingMemory); err != nil {
 		h.logger.Error("Failed to update memory", "error", err)
 		respondJSON(w, http.StatusInternalServerError, dto.ErrorResponse{
@@ -181,7 +181,7 @@ func (h *MemoryHandler) UpdateMemory(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	respondJSON(w, http.StatusOK, dto.MemoryResponse{
 		ID:          existingMemory.ID,
 		Title:       existingMemory.Title,
@@ -205,9 +205,9 @@ func (h *MemoryHandler) DeleteMemory(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	memoryID := chi.URLParam(r, "id")
-	
+
 	existingMemory, err := h.repo.GetByID(r.Context(), memoryID)
 	if err != nil {
 		respondJSON(w, http.StatusNotFound, dto.ErrorResponse{
@@ -216,7 +216,7 @@ func (h *MemoryHandler) DeleteMemory(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	if existingMemory.UserID != userID {
 		respondJSON(w, http.StatusForbidden, dto.ErrorResponse{
 			Error:   "forbidden",
@@ -224,7 +224,7 @@ func (h *MemoryHandler) DeleteMemory(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	if err := h.repo.Delete(r.Context(), memoryID); err != nil {
 		h.logger.Error("Failed to delete memory", "error", err)
 		respondJSON(w, http.StatusInternalServerError, dto.ErrorResponse{
@@ -233,6 +233,6 @@ func (h *MemoryHandler) DeleteMemory(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	w.WriteHeader(http.StatusNoContent)
 }

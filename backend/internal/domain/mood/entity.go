@@ -31,15 +31,15 @@ func NewMood(userID string, level MoodLevel, note string, moodDate time.Time) (*
 	if userID == "" {
 		return nil, errors.New("user ID is required")
 	}
-	
+
 	if !isValidMoodLevel(level) {
 		return nil, errors.New("invalid mood level")
 	}
-	
+
 	if len(note) > 500 {
 		return nil, errors.New("note cannot exceed 500 characters")
 	}
-	
+
 	now := time.Now()
 	return &Mood{
 		UserID:    userID,
@@ -56,15 +56,15 @@ func (m *Mood) Update(level MoodLevel, note string) error {
 	if !isValidMoodLevel(level) {
 		return errors.New("invalid mood level")
 	}
-	
+
 	if len(note) > 500 {
 		return errors.New("note cannot exceed 500 characters")
 	}
-	
+
 	m.Level = level
 	m.Note = note
 	m.UpdatedAt = time.Now()
-	
+
 	return nil
 }
 

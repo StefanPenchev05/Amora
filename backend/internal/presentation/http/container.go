@@ -58,7 +58,7 @@ func (c *HTTPContainer) registerRoutes(router httpInfra.Router) {
 	authHandler := c.buildAuthHandler()
 	authRoutes := routes.NewAuthRoutes(authHandler)
 	router.RegisterRoutes(authRoutes)
-	
+
 	// Register app routes (events, moods, notes, memories, expenses)
 	appRoutes := c.buildAppRoutes()
 	router.RegisterRoutes(appRoutes)
@@ -72,7 +72,7 @@ func (c *HTTPContainer) buildAppRoutes() *routes.AppRoutes {
 	// Get DB connection from container
 	db := c.dependecyContainer.GetDB()
 	jwtService := c.dependecyContainer.GetJWTService()
-	
+
 	// Build handlers
 	eventHandler := handlers.NewEventHandler(db, c.logger)
 	moodHandler := handlers.NewMoodHandler(db, c.logger)
@@ -80,6 +80,6 @@ func (c *HTTPContainer) buildAppRoutes() *routes.AppRoutes {
 	memoryHandler := handlers.NewMemoryHandler(db, c.logger)
 	expenseHandler := handlers.NewExpenseHandler(db, c.logger)
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
-	
+
 	return routes.NewAppRoutes(eventHandler, moodHandler, noteHandler, memoryHandler, expenseHandler, authMiddleware)
 }

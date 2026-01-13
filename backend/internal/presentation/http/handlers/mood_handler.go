@@ -35,19 +35,19 @@ func (h *MoodHandler) CreateMood(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: "Invalid request body"})
 		return
 	}
-	
+
 	domainMood, err := mood.NewMood(userID, mood.MoodLevel(req.Level), req.Note, req.MoodDate)
 	if err != nil {
 		respondJSON(w, http.StatusBadRequest, dto.ErrorResponse{Error: "validation_error", Message: err.Error()})
 		return
 	}
-	
+
 	if err := h.repo.Create(r.Context(), domainMood); err != nil {
 		h.logger.Error("Failed to create mood", "error", err)
 		respondJSON(w, http.StatusInternalServerError, dto.ErrorResponse{Error: "creation_failed", Message: "Failed to create mood"})
 		return
 	}
-	
+
 	respondJSON(w, http.StatusCreated, dto.MoodResponse{
 		ID: domainMood.ID, Level: int(domainMood.Level), Note: domainMood.Note,
 		MoodDate: domainMood.MoodDate, CreatedAt: domainMood.CreatedAt, UpdatedAt: domainMood.UpdatedAt,
@@ -61,10 +61,10 @@ func (h *MoodHandler) GetMoods(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	startDateStr, endDateStr := r.URL.Query().Get("start_date"), r.URL.Query().Get("end_date")
-	
+
 	var moods []*mood.Mood
 	var err error
-	
+
 	if startDateStr != "" && endDateStr != "" {
 		startDate, _ := time.Parse("2006-01-02", startDateStr)
 		endDate, _ := time.Parse("2006-01-02", endDateStr)
@@ -72,20 +72,20 @@ func (h *MoodHandler) GetMoods(w http.ResponseWriter, r *http.Request) {
 	} else {
 		moods, err = h.repo.GetByUserID(r.Context(), userID)
 	}
-	
+
 	if err != nil {
 		h.logger.Error("Failed to get moods", "error", err)
 		respondJSON(w, http.StatusInternalServerError, dto.ErrorResponse{Error: "fetch_failed", Message: "Failed to fetch moods"})
 		return
 	}
-	
+
 	responses := make([]dto.MoodResponse, len(moods))
 	for i, m := range moods {
 		responses[i] = dto.MoodResponse{
 			ID: m.ID, Level: int(m.Level), Note: m.Note, MoodDate: m.MoodDate, CreatedAt: m.CreatedAt, UpdatedAt: m.UpdatedAt,
 		}
 	}
-	
+
 	respondJSON(w, http.StatusOK, responses)
 }
 
@@ -96,24 +96,24 @@ func (h *MoodHandler) UpdateMood(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusBadRequest, dto.ErrorResponse{Error: "invalid_request", Message: "Invalid request body"})
 		return
 	}
-	
+
 	domainMood, err := h.repo.GetByID(r.Context(), moodID)
 	if err != nil {
 		respondJSON(w, http.StatusNotFound, dto.ErrorResponse{Error: "not_found", Message: "Mood not found"})
 		return
 	}
-	
+
 	if err := domainMood.Update(mood.MoodLevel(req.Level), req.Note); err != nil {
 		respondJSON(w, http.StatusBadRequest, dto.ErrorResponse{Error: "validation_error", Message: err.Error()})
 		return
 	}
-	
+
 	if err := h.repo.Update(r.Context(), domainMood); err != nil {
 		h.logger.Error("Failed to update mood", "error", err)
 		respondJSON(w, http.StatusInternalServerError, dto.ErrorResponse{Error: "update_failed", Message: "Failed to update mood"})
 		return
 	}
-	
+
 	respondJSON(w, http.StatusOK, dto.MoodResponse{
 		ID: domainMood.ID, Level: int(domainMood.Level), Note: domainMood.Note,
 		MoodDate: domainMood.MoodDate, CreatedAt: domainMood.CreatedAt, UpdatedAt: domainMood.UpdatedAt,

@@ -32,23 +32,23 @@ func NewEvent(userID, title, description string, category EventCategory, eventDa
 	if userID == "" {
 		return nil, errors.New("user ID is required")
 	}
-	
+
 	if title == "" {
 		return nil, errors.New("title is required")
 	}
-	
+
 	if len(title) > 200 {
 		return nil, errors.New("title cannot exceed 200 characters")
 	}
-	
+
 	if len(description) > 1000 {
 		return nil, errors.New("description cannot exceed 1000 characters")
 	}
-	
+
 	if !isValidCategory(category) {
 		return nil, errors.New("invalid category")
 	}
-	
+
 	now := time.Now()
 	return &Event{
 		UserID:      userID,
@@ -66,25 +66,25 @@ func (e *Event) Update(title, description string, category EventCategory, eventD
 	if title == "" {
 		return errors.New("title is required")
 	}
-	
+
 	if len(title) > 200 {
 		return errors.New("title cannot exceed 200 characters")
 	}
-	
+
 	if len(description) > 1000 {
 		return errors.New("description cannot exceed 1000 characters")
 	}
-	
+
 	if !isValidCategory(category) {
 		return errors.New("invalid category")
 	}
-	
+
 	e.Title = title
 	e.Description = description
 	e.Category = category
 	e.EventDate = eventDate
 	e.UpdatedAt = time.Now()
-	
+
 	return nil
 }
 

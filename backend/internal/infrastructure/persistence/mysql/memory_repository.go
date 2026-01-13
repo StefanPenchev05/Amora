@@ -21,7 +21,7 @@ func NewMemoryRepository(db *gorm.DB) *MemoryRepository {
 
 func (r *MemoryRepository) Create(ctx context.Context, domainMemory *memory.Memory) error {
 	domainMemory.ID = uuid.New().String()
-	
+
 	model := &models.Memory{
 		ID:          domainMemory.ID,
 		UserID:      domainMemory.UserID,
@@ -33,60 +33,60 @@ func (r *MemoryRepository) Create(ctx context.Context, domainMemory *memory.Memo
 		CreatedAt:   domainMemory.CreatedAt,
 		UpdatedAt:   domainMemory.UpdatedAt,
 	}
-	
+
 	if err := r.db.WithContext(ctx).Create(model).Error; err != nil {
 		return fmt.Errorf("failed to create memory: %w", err)
 	}
-	
+
 	return nil
 }
 
 func (r *MemoryRepository) GetByID(ctx context.Context, id string) (*memory.Memory, error) {
 	var model models.Memory
-	
+
 	if err := r.db.WithContext(ctx).First(&model, "id = ?", id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("memory not found")
 		}
 		return nil, fmt.Errorf("failed to get memory: %w", err)
 	}
-	
+
 	return r.modelToDomain(&model), nil
 }
 
 func (r *MemoryRepository) GetByUserID(ctx context.Context, userID string) ([]*memory.Memory, error) {
 	var models []models.Memory
-	
+
 	if err := r.db.WithContext(ctx).
 		Where("user_id = ?", userID).
 		Order("memory_date DESC").
 		Find(&models).Error; err != nil {
 		return nil, fmt.Errorf("failed to get memories: %w", err)
 	}
-	
+
 	memories := make([]*memory.Memory, len(models))
 	for i, m := range models {
 		memories[i] = r.modelToDomain(&m)
 	}
-	
+
 	return memories, nil
 }
 
 func (r *MemoryRepository) GetByUserIDAndCategory(ctx context.Context, userID string, category memory.MemoryCategory) ([]*memory.Memory, error) {
 	var models []models.Memory
-	
+
 	if err := r.db.WithContext(ctx).
 		Where("user_id = ? AND category = ?", userID, string(category)).
 		Order("memory_date DESC").
 		Find(&models).Error; err != nil {
 		return nil, fmt.Errorf("failed to get memories: %w", err)
 	}
-	
+
 	memories := make([]*memory.Memory, len(models))
 	for i, m := range models {
 		memories[i] = r.modelToDomain(&m)
 	}
-	
+
 	return memories, nil
 }
 
@@ -101,25 +101,25 @@ func (r *MemoryRepository) Update(ctx context.Context, domainMemory *memory.Memo
 		MemoryDate:  domainMemory.MemoryDate,
 		UpdatedAt:   domainMemory.UpdatedAt,
 	}
-	
+
 	if err := r.db.WithContext(ctx).Save(model).Error; err != nil {
 		return fmt.Errorf("failed to update memory: %w", err)
 	}
-	
+
 	return nil
 }
 
 func (r *MemoryRepository) Delete(ctx context.Context, id string) error {
 	result := r.db.WithContext(ctx).Delete(&models.Memory{}, "id = ?", id)
-	
+
 	if result.Error != nil {
 		return fmt.Errorf("failed to delete memory: %w", result.Error)
 	}
-	
+
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("memory not found")
 	}
-	
+
 	return nil
 }
 

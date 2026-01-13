@@ -11,7 +11,7 @@ type Event struct {
 	EventDate   time.Time `gorm:"column:event_date;not null;index" json:"event_date"`
 	CreatedAt   time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"created_at"`
 	UpdatedAt   time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updated_at"`
-	
+
 	User User `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
@@ -23,7 +23,7 @@ type Mood struct {
 	MoodDate  time.Time `gorm:"column:mood_date;not null;index" json:"mood_date"`
 	CreatedAt time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"created_at"`
 	UpdatedAt time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updated_at"`
-	
+
 	User User `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
@@ -36,7 +36,7 @@ type Note struct {
 	IsPinned  bool      `gorm:"column:is_pinned;not null;default:false;index" json:"is_pinned"`
 	CreatedAt time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"created_at"`
 	UpdatedAt time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updated_at"`
-	
+
 	User User `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
@@ -50,7 +50,7 @@ type Memory struct {
 	MemoryDate  time.Time `gorm:"column:memory_date;not null;index" json:"memory_date"`
 	CreatedAt   time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"created_at"`
 	UpdatedAt   time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updated_at"`
-	
+
 	User User `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
@@ -65,6 +65,6 @@ type Expense struct {
 	ExpenseDate time.Time `gorm:"column:expense_date;not null;index" json:"expense_date"`
 	CreatedAt   time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"created_at"`
 	UpdatedAt   time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updated_at"`
-	
+
 	User User `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE" json:"-"`
 }
