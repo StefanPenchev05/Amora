@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 
 import { lightTheme } from '../../styles/theme';
 import { withOpacity } from '../form/color';
@@ -59,6 +60,8 @@ const QuickActionsFooter: React.FC<Props> = ({ theme = lightTheme }) => {
 
   return (
     <View style={[styles.root, { paddingBottom: Math.max(insets.bottom, theme.spacing[2]) }]}>
+      <BlurView intensity={18} tint="light" style={StyleSheet.absoluteFill} />
+      <View style={styles.tint} pointerEvents="none" />
       <View style={styles.bar}>
         {actions.map((a) => {
           const active = pathname === a.route;
@@ -95,10 +98,14 @@ const QuickActionsFooter: React.FC<Props> = ({ theme = lightTheme }) => {
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     root: {
-      backgroundColor: theme.colors.surface,
+      backgroundColor: 'transparent',
       width: '100%',
       borderTopWidth: 1,
       borderTopColor: withOpacity(theme.colors.border, 0.9),
+    },
+    tint: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: withOpacity(theme.colors.surface, 0.72),
     },
     bar: {
       flexDirection: 'row',
