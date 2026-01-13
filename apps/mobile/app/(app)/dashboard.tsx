@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -76,10 +76,16 @@ export default function DashboardScreen() {
 
         if (cancelled) return;
 
-        const sortedEvents = [...eventsRes].sort((a, b) => a.event_date.localeCompare(b.event_date));
+        const now = new Date();
+        const upcomingEvents = eventsRes
+          .filter((e) => {
+            const dt = new Date(e.event_date);
+            return !Number.isNaN(dt.getTime()) && dt >= now;
+          })
+          .sort((a, b) => a.event_date.localeCompare(b.event_date));
         const sortedMemories = [...memoriesRes].sort((a, b) => b.memory_date.localeCompare(a.memory_date));
 
-        setEvents(sortedEvents.slice(0, 3));
+        setEvents(upcomingEvents.slice(0, 3));
         setMemories(sortedMemories.slice(0, 6));
       } finally {
         if (!cancelled) setLoadingData(false);
@@ -95,7 +101,21 @@ export default function DashboardScreen() {
   const formatShortDateTime = (iso: string): string => {
     const date = new Date(iso);
     if (Number.isNaN(date.getTime())) return iso;
-    return date.toLocaleString();
+
+    const today = new Date();
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const startOfTomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    const startOfDayAfterTomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2);
+
+    let dayLabel = date.toLocaleDateString();
+    if (date >= startOfToday && date < startOfTomorrow) {
+      dayLabel = 'Today';
+    } else if (date >= startOfTomorrow && date < startOfDayAfterTomorrow) {
+      dayLabel = 'Tomorrow';
+    }
+
+    const timeLabel = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `${dayLabel} · ${timeLabel}`;
   };
 
   const formatShortDate = (iso: string): string => {
@@ -137,6 +157,62 @@ export default function DashboardScreen() {
       </TouchableOpacity>
     ));
   };
+
+  const partnerConnected = relationship?.status === 'active';
+  const partnerName = relationship?.partner?.full_name || relationship?.partner?.username || 'Partner';
+  const stats = relationship?.stats;
+  const daysConnected = relationship?.days_connected;
+
+  const actions = useMemo(
+    () => [
+      {
+        key: 'calendar',
+        title: 'Calendar',
+        sub: 'Plan dates & events',
+        icon: 'calendar' as const,
+        route: '/(app)/calendar',
+        bg: withOpacity(theme.colors.primary, 0.06),
+        iconBg: withOpacity(theme.colors.primary, 0.08),
+      },
+      {
+        key: 'mood',
+        title: 'Mood',
+        sub: 'Track how you feel',
+        icon: 'happy' as const,
+        route: '/(app)/mood',
+        bg: withOpacity(theme.colors.accent, 0.08),
+        iconBg: withOpacity(theme.colors.accent, 0.12),
+      },
+      {
+        key: 'notes',
+        title: 'Notes',
+        sub: 'Save little things',
+        icon: 'heart' as const,
+        route: '/(app)/notes',
+        bg: withOpacity(theme.colors.primary, 0.04),
+        iconBg: withOpacity(theme.colors.primary, 0.06),
+      },
+      {
+        key: 'memories',
+        title: 'Memories',
+        sub: 'Capture moments',
+        icon: 'images' as const,
+        route: '/(app)/memories',
+        bg: withOpacity(theme.colors.secondary, 0.05),
+        iconBg: withOpacity(theme.colors.secondary, 0.08),
+      },
+      {
+        key: 'expenses',
+        title: 'Expenses',
+        sub: 'Track spending',
+        icon: 'wallet' as const,
+        route: '/(app)/expenses',
+        bg: withOpacity(theme.colors.accent, 0.06),
+        iconBg: withOpacity(theme.colors.accent, 0.1),
+      },
+    ],
+    [router, theme.colors.accent, theme.colors.primary, theme.colors.secondary],
+  );
 
   const renderMemories = () => {
     if (loadingData) {
@@ -222,64 +298,118 @@ export default function DashboardScreen() {
       )}
 
       <Card theme={theme} style={styles.card}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.quickActions}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={styles.sectionHint}>Swipe</Text>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.quickActionsRow}
+          snapToInterval={styles.actionTile.width + theme.spacing[3]}
+          decelerationRate="fast"
+        >
+          {actions.map((a) => (
+            <Pressable
+              key={a.key}
+              onPress={() => router.push(a.route)}
+              style={({ pressed }) => [
+                styles.actionTile,
+                { backgroundColor: a.bg },
+                pressed && styles.actionPressed,
+              ]}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: a.iconBg }]}>
+                <Ionicons name={a.icon} size={18} color={theme.colors.primary} />
+              </View>
+              <Text style={styles.actionTitle}>{a.title}</Text>
+              <Text style={styles.actionSub}>{a.sub}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </Card>
+
+      <Card theme={theme} style={styles.card}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>At a glance</Text>
+          <TouchableOpacity onPress={() => router.push('/(app)/calendar')}>
+            <Text style={styles.link}>Open</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.glanceGrid}>
           <Pressable
             onPress={() => router.push('/(app)/calendar')}
-            style={({ pressed }) => [styles.actionTile, styles.actionCalendar, pressed && styles.actionPressed]}
+            style={({ pressed }) => [styles.glanceTile, pressed && styles.actionPressed]}
           >
-            <View style={[styles.actionIcon, styles.actionIconCalendar]}>
-              <Ionicons name="calendar" size={18} color={theme.colors.primary} />
+            <View style={styles.glanceIcon}>
+              <Ionicons name="time" size={18} color={theme.colors.primary} />
             </View>
-            <Text style={styles.actionTitle}>Calendar</Text>
-            <Text style={styles.actionSub}>Plan dates & events</Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => router.push('/(app)/mood')}
-            style={({ pressed }) => [styles.actionTile, styles.actionMood, pressed && styles.actionPressed]}
-          >
-            <View style={[styles.actionIcon, styles.actionIconMood]}>
-              <Ionicons name="happy" size={18} color={theme.colors.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.glanceTitle}>Next up</Text>
+              <Text style={styles.glanceSub} numberOfLines={1}>
+                {events[0] ? `${events[0].title} · ${formatShortDateTime(events[0].event_date)}` : 'No upcoming events'}
+              </Text>
             </View>
-            <Text style={styles.actionTitle}>Mood</Text>
-            <Text style={styles.actionSub}>Track how you feel</Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => router.push('/(app)/notes')}
-            style={({ pressed }) => [styles.actionTile, styles.actionNotes, pressed && styles.actionPressed]}
-          >
-            <View style={[styles.actionIcon, styles.actionIconNotes]}>
-              <Ionicons name="heart" size={18} color={theme.colors.primary} />
-            </View>
-            <Text style={styles.actionTitle}>Notes</Text>
-            <Text style={styles.actionSub}>Save little things</Text>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
           </Pressable>
 
           <Pressable
             onPress={() => router.push('/(app)/memories')}
-            style={({ pressed }) => [styles.actionTile, styles.actionMemories, pressed && styles.actionPressed]}
+            style={({ pressed }) => [styles.glanceTile, pressed && styles.actionPressed]}
           >
-            <View style={[styles.actionIcon, styles.actionIconMemories]}>
-              <Ionicons name="images" size={18} color={theme.colors.primary} />
+            <View style={styles.glanceIcon}>
+              <Ionicons name="sparkles" size={18} color={theme.colors.primary} />
             </View>
-            <Text style={styles.actionTitle}>Memories</Text>
-            <Text style={styles.actionSub}>Capture moments</Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => router.push('/(app)/expenses')}
-            style={({ pressed }) => [styles.actionTile, styles.actionExpenses, pressed && styles.actionPressed]}
-          >
-            <View style={[styles.actionIcon, styles.actionIconExpenses]}>
-              <Ionicons name="wallet" size={18} color={theme.colors.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.glanceTitle}>Capture a memory</Text>
+              <Text style={styles.glanceSub} numberOfLines={1}>
+                Add a small moment you loved today
+              </Text>
             </View>
-            <Text style={styles.actionTitle}>Expenses</Text>
-            <Text style={styles.actionSub}>Track spending</Text>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
           </Pressable>
         </View>
       </Card>
+
+      {partnerConnected && stats ? (
+        <Card theme={theme} style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Together</Text>
+            <TouchableOpacity onPress={() => router.push('/(app)/partner')}>
+              <Text style={styles.link}>{partnerName}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {typeof daysConnected === 'number' ? (
+            <Text style={styles.togetherMeta}>Connected {daysConnected} day{daysConnected === 1 ? '' : 's'}</Text>
+          ) : null}
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.togetherRow}>
+            <View style={styles.statChip}>
+              <Text style={styles.statValue}>{stats.moods_last_7_days}</Text>
+              <Text style={styles.statLabel}>Moods (7d)</Text>
+            </View>
+            <View style={styles.statChip}>
+              <Text style={styles.statValue}>{stats.events_next_7_days}</Text>
+              <Text style={styles.statLabel}>Events (7d)</Text>
+            </View>
+            <View style={styles.statChip}>
+              <Text style={styles.statValue}>{stats.notes_total}</Text>
+              <Text style={styles.statLabel}>Notes</Text>
+            </View>
+            <View style={styles.statChip}>
+              <Text style={styles.statValue}>{stats.memories_total}</Text>
+              <Text style={styles.statLabel}>Memories</Text>
+            </View>
+            <View style={styles.statChip}>
+              <Text style={styles.statValue}>{stats.expenses_unsettled_count}</Text>
+              <Text style={styles.statLabel}>Unsettled</Text>
+            </View>
+          </ScrollView>
+        </Card>
+      ) : null}
 
       <Card theme={theme} style={styles.card}>
         <View style={styles.sectionHeader}>
@@ -323,48 +453,42 @@ const createStyles = (theme: typeof lightTheme) =>
       fontFamily: theme.typography.fontFamily.bold,
       color: theme.colors.textPrimary,
     },
+    sectionHint: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textMuted,
+    },
     link: {
       fontSize: theme.typography.fontSize.sm,
       fontFamily: theme.typography.fontFamily.medium,
       color: theme.colors.primary,
     },
-    quickActions: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
-      marginTop: theme.spacing[3],
+    quickActionsRow: {
+      paddingTop: theme.spacing[2],
+      paddingBottom: theme.spacing[1],
+      paddingRight: theme.spacing[2],
+      gap: theme.spacing[3],
     },
     actionTile: {
-      width: '48%',
+      // used by snapToInterval above
+      width: 170,
       padding: theme.spacing[4],
       borderRadius: theme.radius.xl,
       borderWidth: 1,
       borderColor: theme.colors.border,
-      marginBottom: theme.spacing[3],
     },
     actionPressed: {
       opacity: 0.92,
       transform: [{ scale: 0.99 }],
     },
-    actionCalendar: { backgroundColor: withOpacity(theme.colors.primary, 0.06) },
-    actionMood: { backgroundColor: withOpacity(theme.colors.accent, 0.08) },
-    actionNotes: { backgroundColor: withOpacity(theme.colors.primary, 0.04) },
-    actionMemories: { backgroundColor: withOpacity(theme.colors.secondary, 0.05) },
-    actionExpenses: { backgroundColor: withOpacity(theme.colors.accent, 0.06) },
     actionIcon: {
       width: 32,
       height: 32,
       borderRadius: 16,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: theme.colors.surface,
       marginBottom: theme.spacing[3],
     },
-    actionIconCalendar: { backgroundColor: withOpacity(theme.colors.primary, 0.08) },
-    actionIconMood: { backgroundColor: withOpacity(theme.colors.accent, 0.12) },
-    actionIconNotes: { backgroundColor: withOpacity(theme.colors.primary, 0.06) },
-    actionIconMemories: { backgroundColor: withOpacity(theme.colors.secondary, 0.08) },
-    actionIconExpenses: { backgroundColor: withOpacity(theme.colors.accent, 0.1) },
     actionTitle: {
       fontSize: theme.typography.fontSize.base,
       fontFamily: theme.typography.fontFamily.medium,
@@ -432,6 +556,70 @@ const createStyles = (theme: typeof lightTheme) =>
       flexDirection: 'row',
       flexWrap: 'wrap',
       justifyContent: 'space-between',
+    },
+
+    glanceGrid: {
+      gap: theme.spacing[3],
+    },
+    glanceTile: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: theme.radius.lg,
+      backgroundColor: theme.colors.background,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      padding: theme.spacing[4],
+      gap: theme.spacing[3],
+    },
+    glanceIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: withOpacity(theme.colors.primary, 0.08),
+    },
+    glanceTitle: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+    },
+    glanceSub: {
+      marginTop: 2,
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.regular,
+      color: theme.colors.textMuted,
+    },
+
+    togetherMeta: {
+      marginTop: -theme.spacing[2],
+      marginBottom: theme.spacing[3],
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.regular,
+      color: theme.colors.textMuted,
+    },
+    togetherRow: {
+      paddingRight: theme.spacing[2],
+      gap: theme.spacing[3],
+    },
+    statChip: {
+      minWidth: 120,
+      borderRadius: theme.radius.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.background,
+      padding: theme.spacing[4],
+    },
+    statValue: {
+      fontSize: theme.typography.fontSize.xl,
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.textPrimary,
+    },
+    statLabel: {
+      marginTop: 4,
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textMuted,
     },
     memoryCard: {
       width: '48%',
