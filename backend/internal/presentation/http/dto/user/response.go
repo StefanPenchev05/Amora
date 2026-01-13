@@ -24,6 +24,14 @@ type AuthenticateUserResponse struct {
 	Bootstrap    *AuthBootstrap `json:"bootstrap,omitempty"`
 }
 
+// RefreshTokenResponse represents the output after refreshing an access token.
+type RefreshTokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token,omitempty"`
+	ExpiresIn    int    `json:"exp"`
+	TokenType    string `json:"token_type"`
+}
+
 // AuthBootstrap contains initial data needed by the client application
 type AuthBootstrap struct {
 	Permissions []string               `json:"permissions"`
@@ -43,6 +51,7 @@ type UserProfile struct {
 	IsVerified    bool    `json:"is_verified"`
 	MfaEnabled    bool    `json:"mfa_enabled"`
 	AvatarPhotoID *string `json:"avatar_photo_id"`
+	RelationshipID *string `json:"relationship_id,omitempty"`
 	Locale        string  `json:"locale"`
 	Timezone      string  `json:"timezone"`
 	CreatedAt     string  `json:"created_at"`
@@ -61,6 +70,7 @@ func NewUserProfile(domainUser *domainUser.User) UserProfile {
 		IsVerified:    domainUser.IsEmailVerified(),
 		MfaEnabled:    domainUser.Credentials.MfaEnabled,
 		AvatarPhotoID: domainUser.Profile.AvatarPhotoID,
+		RelationshipID: domainUser.Profile.RelationshipID,
 		Locale:        domainUser.Profile.Locale,
 		Timezone:      domainUser.Profile.Timezone,
 		CreatedAt:     domainUser.CreatedAt.Format("2006-01-02T15:04:05Z"),

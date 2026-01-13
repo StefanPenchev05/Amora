@@ -74,6 +74,7 @@ func (c *HTTPContainer) buildAppRoutes() *routes.AppRoutes {
 	jwtService := c.dependecyContainer.GetJWTService()
 
 	// Build handlers
+	relationshipHandler := handlers.NewRelationshipHandler(db, c.logger)
 	eventHandler := handlers.NewEventHandler(db, c.logger)
 	moodHandler := handlers.NewMoodHandler(db, c.logger)
 	noteHandler := handlers.NewNoteHandler(db, c.logger)
@@ -81,5 +82,5 @@ func (c *HTTPContainer) buildAppRoutes() *routes.AppRoutes {
 	expenseHandler := handlers.NewExpenseHandler(db, c.logger)
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 
-	return routes.NewAppRoutes(eventHandler, moodHandler, noteHandler, memoryHandler, expenseHandler, authMiddleware)
+	return routes.NewAppRoutes(relationshipHandler, eventHandler, moodHandler, noteHandler, memoryHandler, expenseHandler, authMiddleware)
 }

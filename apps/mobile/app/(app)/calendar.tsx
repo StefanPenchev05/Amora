@@ -13,7 +13,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { eventService, Event as ApiEvent } from '../../src/services/api/events';
+import { eventService } from '../../src/services/api/events';
 
 interface Event {
   id: string;
@@ -35,7 +35,6 @@ export default function CalendarScreen() {
   const [events, setEvents] = useState<Event[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadEvents();
@@ -43,7 +42,6 @@ export default function CalendarScreen() {
 
   const loadEvents = async () => {
     try {
-      setRefreshing(true);
       const apiEvents = await eventService.getAll();
       const mappedEvents = apiEvents.map(e => ({
         id: e.id,
@@ -57,8 +55,6 @@ export default function CalendarScreen() {
     } catch (error) {
       Alert.alert('Error', 'Failed to load events');
       console.error('Error loading events:', error);
-    } finally {
-      setRefreshing(false);
     }
   };
 
@@ -202,15 +198,31 @@ export default function CalendarScreen() {
 
         {/* Calendar Grid */}
         <View style={styles.calendarGrid}>
-          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
-            <Text key={index} style={styles.weekDay}>{day}</Text>
+          {[
+            { key: 'sun', label: 'S' },
+            { key: 'mon', label: 'M' },
+            { key: 'tue', label: 'T' },
+            { key: 'wed', label: 'W' },
+            { key: 'thu', label: 'T' },
+            { key: 'fri', label: 'F' },
+            { key: 'sat', label: 'S' },
+          ].map((day) => (
+            <Text key={day.key} style={styles.weekDay}>{day.label}</Text>
           ))}
           {/* Empty cells for days before month starts */}
-          {[...Array(getFirstDayOfMonth(currentDate))].map((_, i) => (
-            <View key={`empty-${i}`} style={styles.dayCell} />
-          ))}
+          {(() => {
+            const firstDayOfMonth = getFirstDayOfMonth(currentDate);
+            const prevMonthLastDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
+            const prevMonthLastDay = prevMonthLastDate.getDate();
+
+            return Array.from({ length: firstDayOfMonth }, (_, offset) => {
+              const dayInPrevMonth = prevMonthLastDay - firstDayOfMonth + offset + 1;
+              const key = `${prevMonthLastDate.getFullYear()}-${String(prevMonthLastDate.getMonth() + 1).padStart(2, '0')}-${String(dayInPrevMonth).padStart(2, '0')}`;
+              return <View key={key} style={styles.dayCell} />;
+            });
+          })()}
           {/* Actual days of the month */}
-          {[...Array(getDaysInMonth(currentDate))].map((_, i) => {
+          {Array.from({ length: getDaysInMonth(currentDate) }, (_, i) => {
             const day = i + 1;
             const dayEvents = getEventsForDay(day);
             return (
@@ -228,9 +240,9 @@ export default function CalendarScreen() {
                 ]}>{day}</Text>
                 {dayEvents.length > 0 && (
                   <View style={styles.eventDotsContainer}>
-                    {dayEvents.slice(0, 3).map((event, idx) => (
+                    {dayEvents.slice(0, 3).map((event) => (
                       <View 
-                        key={idx} 
+                        key={event.id} 
                         style={[styles.eventDot, { backgroundColor: getCategoryColor(event.category) }]} 
                       />
                     ))}

@@ -1,18 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  Alert,
   ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Screen from '../../src/components/layout/Screen';
+import AppHeader from '../../src/components/layout/AppHeader';
+import Card from '../../src/components/ui/Card';
+import { withOpacity } from '../../src/components/form/color';
+import { lightTheme } from '../../src/styles/theme';
 import { authService } from '../../src/services/api/auth';
 import { eventService } from '../../src/services/api/events';
 import { memoryService } from '../../src/services/api/memories';
@@ -21,6 +24,9 @@ import { expenseService } from '../../src/services/api/expenses';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const theme = lightTheme;
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -63,6 +69,8 @@ export default function ProfileScreen() {
           notes: notes.length,
           expenses: expenses.length,
         });
+      } catch (error) {
+        console.error('Error loading profile:', error);
       } finally {
         if (!cancelled) setLoadingProfile(false);
       }
@@ -114,445 +122,330 @@ export default function ProfileScreen() {
     saveSettings('sound', value);
   };
 
-  const handleLogout = async () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel'
+  const handleLogout = () => {
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: async () => {
+          await authService.logout();
+          router.replace('/');
         },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            await authService.logout();
-            router.replace('/');
-          }
-        }
-      ]
-    );
+      },
+    ]);
   };
 
   return (
-    <LinearGradient
-      colors={['#FFE5E5', '#FFF0F5', '#FFFFFF']}
-      style={styles.container}
-    >
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Profile</Text>
-          <View style={{ width: 40 }} />
-        </View>
+    <Screen scroll theme={theme} contentStyle={styles.content}>
+      <AppHeader theme={theme} title="Profile" onBack={() => router.back()} />
 
-        {/* Profile Card */}
-        <View style={styles.profileCard}>
+      <Card theme={theme} style={styles.profileCard}>
+        <View style={styles.profileRow}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{(userName || 'U').slice(0, 1).toUpperCase()}</Text>
           </View>
-          {loadingProfile ? (
-            <ActivityIndicator color="#FF6B9D" />
-          ) : (
-            <>
-              <Text style={styles.userName}>{userName || '—'}</Text>
-              <Text style={styles.userEmail}>{userEmail || '—'}</Text>
-            </>
-          )}
+          <View style={styles.profileText}>
+            {loadingProfile ? (
+              <ActivityIndicator color={theme.colors.primary} />
+            ) : (
+              <>
+                <Text style={styles.userName}>{userName || '—'}</Text>
+                <Text style={styles.userEmail}>{userEmail || '—'}</Text>
+              </>
+            )}
+          </View>
         </View>
+      </Card>
 
-        {/* Stats */}
-        <View style={styles.relationshipCard}>
-          <View style={styles.relationshipHeader}>
-            <Ionicons name="stats-chart" size={24} color="#FF6B9D" />
-            <Text style={styles.relationshipTitle}>Your Activity</Text>
-          </View>
-          <View style={styles.statsRow}>
-            <View style={styles.statBox}>
-              <Text style={styles.statNumber}>{stats.memories}</Text>
-              <Text style={styles.statLabel}>Memories</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statNumber}>{stats.events}</Text>
-              <Text style={styles.statLabel}>Events</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statNumber}>{stats.notes}</Text>
-              <Text style={styles.statLabel}>Notes</Text>
-            </View>
-          </View>
-          <View style={styles.statsRow}>
-            <View style={styles.statBox}>
-              <Text style={styles.statNumber}>{stats.expenses}</Text>
-              <Text style={styles.statLabel}>Expenses</Text>
-            </View>
+      <Card theme={theme} style={styles.card}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Your activity</Text>
+          <View style={[styles.sectionBadge, { backgroundColor: withOpacity(theme.colors.primary, 0.12) }]}>
+            <Ionicons name="stats-chart" size={18} color={theme.colors.primary} />
           </View>
         </View>
 
-        {/* Settings Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Settings</Text>
-          
-          <View style={styles.settingsCard}>
-            <View style={styles.settingItem}>
-              <View style={styles.settingLeft}>
-                <Ionicons name="notifications" size={24} color="#4A90E2" />
-                <Text style={styles.settingText}>Notifications</Text>
-              </View>
-              <Switch
-                value={notificationsEnabled}
-                onValueChange={handleToggleNotifications}
-                trackColor={{ false: '#E0E0E0', true: '#FFB3D9' }}
-                thumbColor={notificationsEnabled ? '#FF6B9D' : '#f4f3f4'}
-              />
-            </View>
-
-            <View style={styles.settingDivider} />
-
-            <View style={styles.settingItem}>
-              <View style={styles.settingLeft}>
-                <Ionicons name="moon" size={24} color="#9D6BFF" />
-                <Text style={styles.settingText}>Dark Mode</Text>
-              </View>
-              <Switch
-                value={darkModeEnabled}
-                onValueChange={handleToggleDarkMode}
-                trackColor={{ false: '#E0E0E0', true: '#C9AFFF' }}
-                thumbColor={darkModeEnabled ? '#9D6BFF' : '#f4f3f4'}
-              />
-            </View>
-
-            <View style={styles.settingDivider} />
-
-            <View style={styles.settingItem}>
-              <View style={styles.settingLeft}>
-                <Ionicons name="volume-high" size={24} color="#50C878" />
-                <Text style={styles.settingText}>Sound Effects</Text>
-              </View>
-              <Switch
-                value={soundEnabled}
-                onValueChange={handleToggleSound}
-                trackColor={{ false: '#E0E0E0', true: '#A8E6CF' }}
-                thumbColor={soundEnabled ? '#50C878' : '#f4f3f4'}
-              />
-            </View>
+        <View style={styles.statsGrid}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats.memories}</Text>
+            <Text style={styles.statLabel}>Memories</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats.events}</Text>
+            <Text style={styles.statLabel}>Events</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats.notes}</Text>
+            <Text style={styles.statLabel}>Notes</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats.expenses}</Text>
+            <Text style={styles.statLabel}>Expenses</Text>
           </View>
         </View>
+      </Card>
 
-        {/* Account Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuLeft}>
-              <Ionicons name="person" size={24} color="#666" />
-              <Text style={styles.menuText}>Edit Profile</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
+      <Card theme={theme} style={styles.card}>
+        <Text style={styles.sectionTitle}>Settings</Text>
 
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuLeft}>
-              <Ionicons name="lock-closed" size={24} color="#666" />
-              <Text style={styles.menuText}>Privacy & Security</Text>
+        <View style={styles.settingItem}>
+          <View style={styles.settingLeft}>
+            <View style={[styles.settingIcon, { backgroundColor: withOpacity(theme.colors.primary, 0.12) }]}>
+              <Ionicons name="notifications" size={18} color={theme.colors.primary} />
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuLeft}>
-              <Ionicons name="language" size={24} color="#666" />
-              <Text style={styles.menuText}>Language</Text>
-            </View>
-            <View style={styles.menuRight}>
-              <Text style={styles.menuValue}>English</Text>
-              <Ionicons name="chevron-forward" size={20} color="#999" />
-            </View>
-          </TouchableOpacity>
+            <Text style={styles.settingText}>Notifications</Text>
+          </View>
+          <Switch
+            value={notificationsEnabled}
+            onValueChange={handleToggleNotifications}
+            trackColor={{ false: theme.colors.border, true: withOpacity(theme.colors.primary, 0.35) }}
+            thumbColor={notificationsEnabled ? theme.colors.primary : theme.colors.surface}
+            ios_backgroundColor={theme.colors.border}
+          />
         </View>
 
-        {/* Support Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Support</Text>
-          
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuLeft}>
-              <Ionicons name="help-circle" size={24} color="#666" />
-              <Text style={styles.menuText}>Help Center</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
+        <View style={styles.divider} />
 
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuLeft}>
-              <Ionicons name="document-text" size={24} color="#666" />
-              <Text style={styles.menuText}>Terms & Conditions</Text>
+        <View style={styles.settingItem}>
+          <View style={styles.settingLeft}>
+            <View style={[styles.settingIcon, { backgroundColor: withOpacity(theme.colors.secondary, 0.08) }]}>
+              <Ionicons name="moon" size={18} color={theme.colors.secondary} />
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuLeft}>
-              <Ionicons name="shield-checkmark" size={24} color="#666" />
-              <Text style={styles.menuText}>Privacy Policy</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuLeft}>
-              <Ionicons name="star" size={24} color="#666" />
-              <Text style={styles.menuText}>Rate Us</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
+            <Text style={styles.settingText}>Dark mode</Text>
+          </View>
+          <Switch
+            value={darkModeEnabled}
+            onValueChange={handleToggleDarkMode}
+            trackColor={{ false: theme.colors.border, true: withOpacity(theme.colors.secondary, 0.18) }}
+            thumbColor={darkModeEnabled ? theme.colors.secondary : theme.colors.surface}
+            ios_backgroundColor={theme.colors.border}
+          />
         </View>
 
-        {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out" size={24} color="#FF6B9D" />
-          <Text style={styles.logoutText}>Log Out</Text>
-        </TouchableOpacity>
+        <View style={styles.divider} />
 
-        <Text style={styles.version}>Version 1.0.0</Text>
+        <View style={styles.settingItem}>
+          <View style={styles.settingLeft}>
+            <View style={[styles.settingIcon, { backgroundColor: withOpacity(theme.colors.accent, 0.12) }]}>
+              <Ionicons name="volume-high" size={18} color={theme.colors.accent} />
+            </View>
+            <Text style={styles.settingText}>Sound effects</Text>
+          </View>
+          <Switch
+            value={soundEnabled}
+            onValueChange={handleToggleSound}
+            trackColor={{ false: theme.colors.border, true: withOpacity(theme.colors.accent, 0.25) }}
+            thumbColor={soundEnabled ? theme.colors.accent : theme.colors.surface}
+            ios_backgroundColor={theme.colors.border}
+          />
+        </View>
+      </Card>
 
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </LinearGradient>
+      <Card theme={theme} style={styles.card}>
+        <Text style={styles.sectionTitle}>Shortcuts</Text>
+
+        <Pressable onPress={() => router.push('/(app)/partner')} style={({ pressed }) => [styles.linkRow, pressed && styles.pressed]}>
+          <View style={[styles.linkIcon, { backgroundColor: withOpacity(theme.colors.primary, 0.12) }]}>
+            <Ionicons name="heart" size={18} color={theme.colors.primary} />
+          </View>
+          <View style={styles.linkText}>
+            <Text style={styles.linkTitle}>Partner</Text>
+            <Text style={styles.linkSubtitle}>Invites & connection status</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.textMuted} />
+        </Pressable>
+
+        <Pressable onPress={() => router.push('/(app)/notes')} style={({ pressed }) => [styles.linkRow, pressed && styles.pressed]}>
+          <View style={[styles.linkIcon, { backgroundColor: withOpacity(theme.colors.secondary, 0.08) }]}>
+            <Ionicons name="document-text" size={18} color={theme.colors.secondary} />
+          </View>
+          <View style={styles.linkText}>
+            <Text style={styles.linkTitle}>Notes</Text>
+            <Text style={styles.linkSubtitle}>Quick thoughts and reminders</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.textMuted} />
+        </Pressable>
+
+        <Pressable onPress={() => router.push('/(app)/memories')} style={({ pressed }) => [styles.linkRow, pressed && styles.pressed]}>
+          <View style={[styles.linkIcon, { backgroundColor: withOpacity(theme.colors.accent, 0.12) }]}>
+            <Ionicons name="images" size={18} color={theme.colors.accent} />
+          </View>
+          <View style={styles.linkText}>
+            <Text style={styles.linkTitle}>Memories</Text>
+            <Text style={styles.linkSubtitle}>Photos and moments together</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.textMuted} />
+        </Pressable>
+      </Card>
+
+      <Card theme={theme} style={styles.card}>
+        <Text style={styles.sectionTitle}>Account</Text>
+        <Pressable onPress={handleLogout} style={({ pressed }) => [styles.logoutRow, pressed && styles.pressed]}>
+          <View style={[styles.linkIcon, { backgroundColor: withOpacity(theme.colors.error, 0.1) }]}>
+            <Ionicons name="log-out-outline" size={18} color={theme.colors.error} />
+          </View>
+          <View style={styles.linkText}>
+            <Text style={styles.logoutTitle}>Log out</Text>
+            <Text style={styles.linkSubtitle}>Sign out of this device</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.textMuted} />
+        </Pressable>
+      </Card>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-    paddingTop: 60,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  profileCard: {
-    backgroundColor: 'white',
-    marginHorizontal: 20,
-    padding: 24,
-    borderRadius: 16,
-    alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#FF6B9D',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  avatarText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  userName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  userEmail: {
-    fontSize: 14,
-    color: '#666',
-  },
-  relationshipCard: {
-    backgroundColor: 'white',
-    marginHorizontal: 20,
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  relationshipHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  relationshipTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginLeft: 8,
-  },
-  partnerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  partnerAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#4A90E2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  partnerAvatarText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  partnerName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  relationshipSince: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 2,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-  },
-  statBox: {
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FF6B9D',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-  },
-  section: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-  },
-  settingsCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  settingItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-  },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  settingText: {
-    fontSize: 16,
-    color: '#333',
-    marginLeft: 12,
-  },
-  settingDivider: {
-    height: 1,
-    backgroundColor: '#F0F0F0',
-    marginHorizontal: 12,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  menuLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  menuText: {
-    fontSize: 16,
-    color: '#333',
-    marginLeft: 12,
-  },
-  menuRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  menuValue: {
-    fontSize: 14,
-    color: '#666',
-    marginRight: 8,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'white',
-    marginHorizontal: 20,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#FF6B9D',
-    marginBottom: 16,
-  },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FF6B9D',
-    marginLeft: 8,
-  },
-  version: {
-    textAlign: 'center',
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 8,
-  },
-});
+const createStyles = (theme: typeof lightTheme) =>
+  StyleSheet.create({
+        content: {
+          paddingTop: theme.spacing[4],
+        },
+        pressed: {
+          opacity: 0.92,
+          transform: [{ scale: 0.99 }],
+        },
+        card: {
+          marginTop: theme.spacing[4],
+        },
+        profileCard: {
+          marginTop: theme.spacing[4],
+        },
+        profileRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+        },
+        avatar: {
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: withOpacity(theme.colors.primary, 0.14),
+          borderWidth: 1,
+          borderColor: withOpacity(theme.colors.primary, 0.2),
+        },
+        avatarText: {
+          fontSize: theme.typography.fontSize.xl,
+          fontFamily: theme.typography.fontFamily.bold,
+          color: theme.colors.primary,
+        },
+        profileText: {
+          flex: 1,
+          paddingLeft: theme.spacing[4],
+        },
+        userName: {
+          fontSize: theme.typography.fontSize.lg,
+          fontFamily: theme.typography.fontFamily.bold,
+          color: theme.colors.textPrimary,
+        },
+        userEmail: {
+          marginTop: 2,
+          fontSize: theme.typography.fontSize.sm,
+          fontFamily: theme.typography.fontFamily.regular,
+          color: theme.colors.textMuted,
+        },
+        sectionHeaderRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: theme.spacing[4],
+        },
+        sectionTitle: {
+          fontSize: theme.typography.fontSize.base,
+          fontFamily: theme.typography.fontFamily.medium,
+          color: theme.colors.textPrimary,
+        },
+        sectionBadge: {
+          width: 34,
+          height: 34,
+          borderRadius: 17,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        statsGrid: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          marginHorizontal: -theme.spacing[2],
+          marginTop: -theme.spacing[2],
+        },
+        statItem: {
+          width: '50%',
+          paddingHorizontal: theme.spacing[2],
+          paddingTop: theme.spacing[2],
+        },
+        statValue: {
+          fontSize: theme.typography.fontSize['2xl'],
+          fontFamily: theme.typography.fontFamily.bold,
+          color: theme.colors.secondary,
+        },
+        statLabel: {
+          marginTop: 2,
+          fontSize: theme.typography.fontSize.sm,
+          color: theme.colors.textMuted,
+        },
+        settingItem: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingVertical: theme.spacing[3],
+        },
+        settingLeft: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          flex: 1,
+          paddingRight: theme.spacing[3],
+        },
+        settingIcon: {
+          width: 34,
+          height: 34,
+          borderRadius: 17,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        settingText: {
+          marginLeft: theme.spacing[3],
+          fontSize: theme.typography.fontSize.base,
+          color: theme.colors.textPrimary,
+        },
+        divider: {
+          height: 1,
+          backgroundColor: theme.colors.border,
+        },
+        linkRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingVertical: theme.spacing[3],
+        },
+        linkIcon: {
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        linkText: {
+          flex: 1,
+          paddingHorizontal: theme.spacing[3],
+        },
+        linkTitle: {
+          fontSize: theme.typography.fontSize.base,
+          fontFamily: theme.typography.fontFamily.medium,
+          color: theme.colors.textPrimary,
+        },
+        linkSubtitle: {
+          marginTop: 2,
+          fontSize: theme.typography.fontSize.sm,
+          color: theme.colors.textMuted,
+        },
+        logoutRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingVertical: theme.spacing[3],
+        },
+        logoutTitle: {
+          fontSize: theme.typography.fontSize.base,
+          fontFamily: theme.typography.fontFamily.medium,
+          color: theme.colors.error,
+        },
+      });

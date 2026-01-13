@@ -8,6 +8,8 @@ import AppHeader from '../../src/components/layout/AppHeader';
 import Card from '../../src/components/ui/Card';
 import IconCircleButton from '../../src/components/ui/IconCircleButton';
 import { lightTheme } from '../../src/styles/theme';
+import { withOpacity } from '../../src/components/form/color';
+import { relationshipService, type RelationshipStatusResponse } from '../../src/services/api/relationship';
 
 import { authService } from '../../src/services/api/auth';
 import { eventService, type Event } from '../../src/services/api/events';
@@ -25,6 +27,8 @@ export default function DashboardScreen() {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
+  const [relationship, setRelationship] = useState<RelationshipStatusResponse | null>(null);
+
   useEffect(() => {
     let cancelled = false;
     const loadUser = async () => {
@@ -41,6 +45,21 @@ export default function DashboardScreen() {
     };
 
     loadUser();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const rel = await relationshipService.getStatus();
+        if (!cancelled) setRelationship(rel);
+      } catch {
+        // Non-blocking: dashboard still works without relationship.
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -148,11 +167,20 @@ export default function DashboardScreen() {
     ));
   };
 
+  let headerTitle = 'Dashboard';
+  if (!loadingUser && userName) {
+    headerTitle = `Hi, ${userName}`;
+  }
+
   return (
-    <Screen scroll theme={theme}>
+    <Screen
+      scroll
+      theme={theme}
+      contentStyle={styles.screenContent}
+    >
       <AppHeader
-        title={loadingUser ? 'Dashboard' : userName ? `Hi, ${userName}` : 'Dashboard'}
-        subtitle="Your space, beautifully organized"
+        title={headerTitle}
+        subtitle="Plan, track and remember — together"
         right={
           <IconCircleButton
             icon="person"
@@ -163,47 +191,92 @@ export default function DashboardScreen() {
         theme={theme}
       />
 
-      <Card theme={theme}>
+      {relationship?.status === 'active' ? null : (
+        <Card theme={theme} style={styles.card}>
+          <View style={styles.partnerRow}>
+            <View style={styles.partnerIcon}>
+              <Ionicons name="people" size={18} color={theme.colors.primary} />
+            </View>
+            <View style={styles.partnerText}>
+              <Text style={styles.partnerTitle}>Connect your partner</Text>
+              <Text style={styles.partnerSub}>Invite them to unlock shared moods, memories and planning.</Text>
+            </View>
+          </View>
+
+          <View style={styles.partnerCtas}>
+            <TouchableOpacity
+              style={styles.primaryCta}
+              onPress={() => router.push('/(app)/partner')}
+            >
+              <Text style={styles.primaryCtaText}>Invite / Enter code</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.secondaryCta}
+              onPress={() => router.push('/(app)/partner')}
+            >
+              <Text style={styles.secondaryCtaText}>Learn more</Text>
+            </TouchableOpacity>
+          </View>
+        </Card>
+      )}
+
+      <Card theme={theme} style={styles.card}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.action} onPress={() => router.push('/(app)/calendar')}>
-            <View style={styles.actionIcon}>
+          <TouchableOpacity style={[styles.action, styles.actionCalendar]} onPress={() => router.push('/(app)/calendar')}>
+            <View style={[styles.actionIcon, styles.actionIconCalendar]}>
               <Ionicons name="calendar" size={18} color={theme.colors.primary} />
             </View>
-            <Text style={styles.actionText}>Calendar</Text>
+            <View style={styles.actionTextWrap}>
+              <Text style={styles.actionText}>Calendar</Text>
+              <Text style={styles.actionSub}>Plan dates & events</Text>
+            </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.action} onPress={() => router.push('/(app)/mood')}>
-            <View style={styles.actionIcon}>
+          <TouchableOpacity style={[styles.action, styles.actionMood]} onPress={() => router.push('/(app)/mood')}>
+            <View style={[styles.actionIcon, styles.actionIconMood]}>
               <Ionicons name="happy" size={18} color={theme.colors.primary} />
             </View>
-            <Text style={styles.actionText}>Mood</Text>
+            <View style={styles.actionTextWrap}>
+              <Text style={styles.actionText}>Mood</Text>
+              <Text style={styles.actionSub}>Track how you feel</Text>
+            </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.action} onPress={() => router.push('/(app)/notes')}>
-            <View style={styles.actionIcon}>
+          <TouchableOpacity style={[styles.action, styles.actionNotes]} onPress={() => router.push('/(app)/notes')}>
+            <View style={[styles.actionIcon, styles.actionIconNotes]}>
               <Ionicons name="heart" size={18} color={theme.colors.primary} />
             </View>
-            <Text style={styles.actionText}>Notes</Text>
+            <View style={styles.actionTextWrap}>
+              <Text style={styles.actionText}>Notes</Text>
+              <Text style={styles.actionSub}>Save little things</Text>
+            </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.action} onPress={() => router.push('/(app)/memories')}>
-            <View style={styles.actionIcon}>
+          <TouchableOpacity style={[styles.action, styles.actionMemories]} onPress={() => router.push('/(app)/memories')}>
+            <View style={[styles.actionIcon, styles.actionIconMemories]}>
               <Ionicons name="images" size={18} color={theme.colors.primary} />
             </View>
-            <Text style={styles.actionText}>Memories</Text>
+            <View style={styles.actionTextWrap}>
+              <Text style={styles.actionText}>Memories</Text>
+              <Text style={styles.actionSub}>Capture moments</Text>
+            </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.action} onPress={() => router.push('/(app)/expenses')}>
-            <View style={styles.actionIcon}>
+          <TouchableOpacity style={[styles.action, styles.actionExpenses]} onPress={() => router.push('/(app)/expenses')}>
+            <View style={[styles.actionIcon, styles.actionIconExpenses]}>
               <Ionicons name="wallet" size={18} color={theme.colors.primary} />
             </View>
-            <Text style={styles.actionText}>Expenses</Text>
+            <View style={styles.actionTextWrap}>
+              <Text style={styles.actionText}>Expenses</Text>
+              <Text style={styles.actionSub}>Track spending</Text>
+            </View>
           </TouchableOpacity>
         </View>
       </Card>
 
-      <Card theme={theme}>
+      <Card theme={theme} style={styles.card}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Upcoming Events</Text>
           <TouchableOpacity onPress={() => router.push('/(app)/calendar')}>
@@ -213,7 +286,7 @@ export default function DashboardScreen() {
         <View>{renderEvents()}</View>
       </Card>
 
-      <Card theme={theme}>
+      <Card theme={theme} style={styles.card}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Recent Memories</Text>
           <TouchableOpacity onPress={() => router.push('/(app)/memories')}>
@@ -228,6 +301,12 @@ export default function DashboardScreen() {
 
 const createStyles = (theme: typeof lightTheme) =>
   StyleSheet.create({
+    screenContent: {
+      paddingTop: theme.spacing[4],
+    },
+    card: {
+      marginTop: theme.spacing[3],
+    },
     sectionHeader: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -258,10 +337,13 @@ const createStyles = (theme: typeof lightTheme) =>
       paddingHorizontal: theme.spacing[4],
       borderRadius: theme.radius.lg,
       backgroundColor: theme.colors.background,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
       marginBottom: theme.spacing[3],
     },
+    actionCalendar: { backgroundColor: withOpacity(theme.colors.primary, 0.06) },
+    actionMood: { backgroundColor: withOpacity(theme.colors.accent, 0.08) },
+    actionNotes: { backgroundColor: withOpacity(theme.colors.primary, 0.04) },
+    actionMemories: { backgroundColor: withOpacity(theme.colors.secondary, 0.05) },
+    actionExpenses: { backgroundColor: withOpacity(theme.colors.accent, 0.06) },
     actionIcon: {
       width: 32,
       height: 32,
@@ -269,14 +351,24 @@ const createStyles = (theme: typeof lightTheme) =>
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: theme.colors.surface,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
       marginRight: theme.spacing[3],
     },
+    actionIconCalendar: { backgroundColor: withOpacity(theme.colors.primary, 0.08) },
+    actionIconMood: { backgroundColor: withOpacity(theme.colors.accent, 0.12) },
+    actionIconNotes: { backgroundColor: withOpacity(theme.colors.primary, 0.06) },
+    actionIconMemories: { backgroundColor: withOpacity(theme.colors.secondary, 0.08) },
+    actionIconExpenses: { backgroundColor: withOpacity(theme.colors.accent, 0.1) },
+    actionTextWrap: { flex: 1 },
     actionText: {
       fontSize: theme.typography.fontSize.base,
       fontFamily: theme.typography.fontFamily.medium,
       color: theme.colors.textPrimary,
+    },
+    actionSub: {
+      marginTop: 2,
+      fontSize: theme.typography.fontSize.xs,
+      fontFamily: theme.typography.fontFamily.regular,
+      color: theme.colors.textMuted,
     },
     loadingRow: {
       flexDirection: 'row',
@@ -338,8 +430,6 @@ const createStyles = (theme: typeof lightTheme) =>
     memoryCard: {
       width: '48%',
       borderRadius: theme.radius.lg,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
       backgroundColor: theme.colors.background,
       padding: theme.spacing[4],
       marginBottom: theme.spacing[3],
@@ -358,5 +448,64 @@ const createStyles = (theme: typeof lightTheme) =>
       fontSize: theme.typography.fontSize.xs,
       fontFamily: theme.typography.fontFamily.regular,
       color: theme.colors.textMuted,
+    },
+
+    partnerRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: theme.spacing[4],
+    },
+    partnerIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: withOpacity(theme.colors.primary, 0.08),
+      marginRight: theme.spacing[3],
+      marginTop: 2,
+    },
+    partnerText: { flex: 1 },
+    partnerTitle: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.textPrimary,
+    },
+    partnerSub: {
+      marginTop: 4,
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.regular,
+      color: theme.colors.textMuted,
+    },
+    partnerCtas: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    primaryCta: {
+      flex: 1,
+      height: 44,
+      borderRadius: theme.radius.lg,
+      backgroundColor: theme.colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: theme.spacing[3],
+    },
+    primaryCtaText: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.onPrimary,
+    },
+    secondaryCta: {
+      width: 120,
+      height: 44,
+      borderRadius: theme.radius.lg,
+      backgroundColor: withOpacity(theme.colors.primary, 0.1),
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    secondaryCtaText: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.primary,
     },
   });

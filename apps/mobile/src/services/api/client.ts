@@ -1,12 +1,26 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TokenService } from '../auth/token.service';
+import { Env } from '@/config/env';
+import { getFreshAccessToken } from './refresh';
 
-const API_URL = 'http://localhost:8000';
+const API_URL = Env.API_URL;
 const TOKEN_KEY = 'auth_token';
 
 interface ApiError {
   error: string;
   message: string;
+}
+
+async function parseApiError(response: Response): Promise<ApiError> {
+  const errorText = await response.text();
+  console.log('[API] Error response:', errorText);
+  try {
+    const parsed = JSON.parse(errorText) as ApiError;
+    console.log('[API] Parsed error:', parsed);
+    return parsed;
+  } catch {
+    return { error: 'unknown_error', message: errorText || 'Request failed' };
+  }
 }
 
 class ApiClient {
@@ -75,9 +89,14 @@ class ApiClient {
     return await AsyncStorage.getItem(TOKEN_KEY);
   }
 
-  async request<T>(
+  async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    return this.requestWithRetry<T>(endpoint, options, true);
+  }
+
+  private async requestWithRetry<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit,
+    allowRefreshRetry: boolean
   ): Promise<T> {
     const headers = await this.getHeaders();
     const config: RequestInit = {
@@ -96,23 +115,20 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-      
       console.log(`[API] Response status: ${response.status}`);
-      
+
       if (!response.ok) {
-        const errorText = await response.text();
-        console.log('[API] Error response:', errorText);
-        let error: ApiError;
-        try {
-          error = JSON.parse(errorText);
-          console.log('[API] Parsed error:', error);
-        } catch {
-          error = { error: 'unknown_error', message: errorText || 'Request failed' };
+        const error = await parseApiError(response);
+
+        if (response.status === 401) {
+          const retried = await this.tryRefreshAndRetry<T>(endpoint, options, allowRefreshRetry);
+          if (retried) return retried;
+          await this.removeToken();
         }
+
         throw new Error(error.message || 'Request failed');
       }
 
-      // Handle 204 No Content
       if (response.status === 204) {
         return {} as T;
       }
@@ -126,6 +142,26 @@ class ApiClient {
         throw error;
       }
       throw new Error('An unexpected error occurred');
+    }
+  }
+
+  private async tryRefreshAndRetry<T>(
+    endpoint: string,
+    options: RequestInit,
+    allowRefreshRetry: boolean
+  ): Promise<T | null> {
+    if (!allowRefreshRetry) return null;
+
+    try {
+      const newAccessToken = await getFreshAccessToken();
+      if (!newAccessToken) return null;
+
+      await this.setToken(newAccessToken);
+      return await this.requestWithRetry<T>(endpoint, options, false);
+    } catch (error_) {
+      console.warn('[API] Token refresh failed, clearing tokens', error_);
+      await this.removeToken();
+      return null;
     }
   }
 

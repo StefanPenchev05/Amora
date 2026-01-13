@@ -25,7 +25,7 @@ func (a *AuthRoutes) RegisterRoutes(router httpInfra.Router) {
 	router.Route(a.Path(), func(r chi.Router) {
 		r.Post("/register", a.authHandler.Register)
 		r.Post("/login", a.authHandler.Login)
-		// r.Post("/refresh", a.authHandler.RefreshToken) // TODO
+		r.Post("/refresh", a.authHandler.RefreshToken)
 		// r.Post("/logout", a.authHandler.Logout)        // TODO
 	})
 }

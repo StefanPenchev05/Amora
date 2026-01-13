@@ -23,6 +23,7 @@ export interface AuthResponse {
     email: string;
     first_name: string;
     last_name: string;
+    relationship_id?: string;
   };
   access_token: string;
   refresh_token: string;

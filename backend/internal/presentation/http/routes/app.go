@@ -8,12 +8,12 @@ import (
 
 type AppRoutes struct {
 	relationshipHandler *handlers.RelationshipHandler
-	eventHandler   *handlers.EventHandler
-	moodHandler    *handlers.MoodHandler
-	noteHandler    *handlers.NoteHandler
-	memoryHandler  *handlers.MemoryHandler
-	expenseHandler *handlers.ExpenseHandler
-	authMiddleware httpInfra.Middleware
+	eventHandler        *handlers.EventHandler
+	moodHandler         *handlers.MoodHandler
+	noteHandler         *handlers.NoteHandler
+	memoryHandler       *handlers.MemoryHandler
+	expenseHandler      *handlers.ExpenseHandler
+	authMiddleware      httpInfra.Middleware
 }
 
 func NewAppRoutes(
@@ -27,12 +27,12 @@ func NewAppRoutes(
 ) *AppRoutes {
 	return &AppRoutes{
 		relationshipHandler: relationshipHandler,
-		eventHandler:   eventHandler,
-		moodHandler:    moodHandler,
-		noteHandler:    noteHandler,
-		memoryHandler:  memoryHandler,
-		expenseHandler: expenseHandler,
-		authMiddleware: authMiddleware,
+		eventHandler:        eventHandler,
+		moodHandler:         moodHandler,
+		noteHandler:         noteHandler,
+		memoryHandler:       memoryHandler,
+		expenseHandler:      expenseHandler,
+		authMiddleware:      authMiddleware,
 	}
 }
 
