@@ -13,6 +13,7 @@ type AppRoutes struct {
 	noteHandler         *handlers.NoteHandler
 	memoryHandler       *handlers.MemoryHandler
 	expenseHandler      *handlers.ExpenseHandler
+	profileHandler      *handlers.ProfileHandler
 	authMiddleware      httpInfra.Middleware
 }
 
@@ -23,6 +24,7 @@ func NewAppRoutes(
 	noteHandler *handlers.NoteHandler,
 	memoryHandler *handlers.MemoryHandler,
 	expenseHandler *handlers.ExpenseHandler,
+	profileHandler *handlers.ProfileHandler,
 	authMiddleware httpInfra.Middleware,
 ) *AppRoutes {
 	return &AppRoutes{
@@ -32,6 +34,7 @@ func NewAppRoutes(
 		noteHandler:         noteHandler,
 		memoryHandler:       memoryHandler,
 		expenseHandler:      expenseHandler,
+		profileHandler:      profileHandler,
 		authMiddleware:      authMiddleware,
 	}
 }
@@ -48,6 +51,9 @@ func (a *AppRoutes) RegisterRoutes(router httpInfra.Router) {
 
 		// Relationship routes
 		r.Get("/relationship", a.relationshipHandler.GetStatus)
+
+		// Profile routes
+		r.Post("/profile/avatar", a.profileHandler.UpdateAvatar)
 		r.Post("/relationship/invite", a.relationshipHandler.CreateInvite)
 		r.Post("/relationship/invite/regenerate", a.relationshipHandler.RegenerateInvite)
 		r.Post("/relationship/accept", a.relationshipHandler.AcceptInvite)

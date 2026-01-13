@@ -51,6 +51,10 @@ func (uc *CreateUserCase) Execute(ctx context.Context, req dto.CreateUserRequest
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
+	if req.AvatarPhotoID != nil && *req.AvatarPhotoID != "" {
+		newUser.Profile.AvatarPhotoID = req.AvatarPhotoID
+	}
+
 	if err := uc.userRepo.Create(ctx, newUser); err != nil {
 		uc.logger.Error("Failed to save user to repository",
 			"user_id", newUser.ID,
@@ -70,11 +74,13 @@ func (uc *CreateUserCase) Execute(ctx context.Context, req dto.CreateUserRequest
 	)
 
 	return &dto.CreateUserResponse{
-		ID:        newUser.ID,
-		Email:     newUser.Credentials.Email.String(),
-		Username:  newUser.Credentials.Username.String(),
-		FirstName: newUser.Profile.FirstName,
-		LastName:  newUser.Profile.LastName,
-		CreatedAt: newUser.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		ID:            newUser.ID,
+		Email:         newUser.Credentials.Email.String(),
+		Username:      newUser.Credentials.Username.String(),
+		FirstName:     newUser.Profile.FirstName,
+		LastName:      newUser.Profile.LastName,
+		AvatarPhotoID: newUser.Profile.AvatarPhotoID,
+		AvatarURL:     dto.AvatarURLFromPhotoID(newUser.Profile.AvatarPhotoID),
+		CreatedAt:     newUser.CreatedAt.Format("2006-01-02T15:04:05Z"),
 	}, nil
 }

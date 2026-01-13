@@ -7,6 +7,9 @@ type CreateUserRequest struct {
 	FirstName string `json:"first_name" binding:"required,max=50"`
 	LastName  string `json:"last_name" binding:"required,max=50"`
 	Password  string `json:"password" binding:"required,min=8"`
+	// AvatarPhotoID is an optional stored filename/id for the user's avatar.
+	// It is typically set server-side when handling multipart uploads.
+	AvatarPhotoID *string `json:"avatar_photo_id,omitempty"`
 }
 
 // AuthenticateRequest represents the login input

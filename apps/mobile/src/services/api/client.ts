@@ -58,6 +58,10 @@ class ApiClient {
     return headers;
   }
 
+  private isFormDataBody(body: unknown): body is FormData {
+    return typeof FormData !== 'undefined' && body instanceof FormData;
+  }
+
   async setToken(token: string | undefined): Promise<void> {
     if (token) {
       // Store in SecureStore (preferred)
@@ -99,6 +103,13 @@ class ApiClient {
     allowRefreshRetry: boolean
   ): Promise<T> {
     const headers = await this.getHeaders();
+
+    // If we're sending multipart FormData, do not force JSON Content-Type.
+    // Let fetch set the correct boundary.
+    if (this.isFormDataBody(options.body)) {
+      delete (headers as any)['Content-Type'];
+    }
+
     const config: RequestInit = {
       ...options,
       headers: {
@@ -170,6 +181,12 @@ class ApiClient {
   }
 
   async post<T>(endpoint: string, data?: any): Promise<T> {
+    if (this.isFormDataBody(data)) {
+      return this.request<T>(endpoint, {
+        method: 'POST',
+        body: data,
+      });
+    }
     return this.request<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,

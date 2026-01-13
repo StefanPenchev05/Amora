@@ -1,33 +1,56 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import React, { useMemo, useState } from 'react';
+import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { authService } from '../../src/services/api/auth';
+import * as ImagePicker from 'expo-image-picker';
+import { authService, RegisterAvatar } from '../../src/services/api/auth';
+import Screen from '../../src/components/layout/Screen';
+import Card from '../../src/components/ui/Card';
+import AuthTextField from '../../src/components/form/AuthTextField';
+import AuthPasswordField from '../../src/components/form/AuthPasswordField';
+import { Button } from '../../src/components/Button';
+import { useTheme } from '../../src/providers/theme';
+import { withOpacity } from '../../src/components/form/color';
+import { lightTheme } from '../../src/styles/theme';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [avatar, setAvatar] = useState<RegisterAvatar | null>(null);
+
+  const pickAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please allow photo access to choose an avatar.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.9,
+    });
+
+    if (result.canceled) return;
+    const asset = result.assets?.[0];
+    if (!asset?.uri) return;
+
+    const type = asset.mimeType ?? 'image/jpeg';
+    const name = asset.fileName ?? `avatar.${type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg'}`;
+
+    setAvatar({ uri: asset.uri, name, type });
+  };
 
   const handleRegister = async () => {
     if (!firstName.trim() || !lastName.trim() || !username.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
@@ -40,25 +63,35 @@ export default function RegisterScreen() {
       return;
     }
 
+    if (!termsAccepted) {
+      Alert.alert('Terms required', 'Please accept the terms to continue');
+      return;
+    }
+
+    if (password.trim().length < 8) {
+      Alert.alert('Password too short', 'Use at least 8 characters');
+      return;
+    }
+
     setLoading(true);
     try {
-      await authService.register({
+      const payload = {
         username: username.trim(),
         email: email.trim(),
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         password: password.trim(),
-      });
-      Alert.alert(
-        'Success!',
-        'Your account has been created. Please login.',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.replace('/(tabs)/login')
-          }
-        ]
-      );
+      };
+
+      if (avatar) {
+        await authService.registerWithAvatar(payload, avatar);
+      } else {
+        await authService.register(payload);
+      }
+
+      Alert.alert('Account created', 'You can now log in.', [
+        { text: 'OK', onPress: () => router.replace('/(tabs)/login') },
+      ]);
     } catch (error) {
       Alert.alert('Registration Failed', error instanceof Error ? error.message : 'Please try again');
     } finally {
@@ -66,412 +99,373 @@ export default function RegisterScreen() {
     }
   };
 
-  const isFormValid = 
-    firstName.trim() && 
-    lastName.trim() && 
-    username.trim() && 
-    email.trim() && 
-    password.trim() && 
-    confirmPassword.trim() &&
-    termsAccepted;
+  const isFormValid = Boolean(
+    firstName.trim() &&
+      lastName.trim() &&
+      username.trim() &&
+      email.trim() &&
+      password.trim() &&
+      confirmPassword.trim() &&
+      termsAccepted,
+  );
 
   return (
-    <LinearGradient
-      colors={['#FFE5E5', '#FFF0F5', '#FFFFFF']}
-      style={styles.container}
-    >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+    <Screen scroll variant="gradient" contentStyle={styles.content}>
+      <View style={styles.headerRow}>
+        <Pressable
+          onPress={() => router.replace('/')}
+          hitSlop={10}
+          style={({ pressed }) => [styles.backBtn, pressed && styles.pressed]}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Text style={styles.logo}>💕</Text>
-            </View>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Start your love journey together</Text>
+          <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
+        </Pressable>
+        <View style={{ width: 40, height: 40 }} />
+      </View>
+
+      <View style={styles.hero}>
+        <View style={styles.heroIcon}>
+          <Ionicons name="sparkles" size={20} color={theme.colors.primary} />
+        </View>
+        <Text style={styles.title}>Create account</Text>
+        <Text style={styles.subtitle}>Start your journey together</Text>
+      </View>
+
+      <Card theme={theme} style={styles.card}>
+        <View style={styles.avatarRow}>
+          <Pressable
+            onPress={pickAvatar}
+            hitSlop={10}
+            style={({ pressed }) => [styles.avatarCircle, pressed && styles.pressed]}
+          >
+            {avatar ? (
+              <Image source={{ uri: avatar.uri }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Ionicons name="camera-outline" size={18} color={theme.colors.textMuted} />
+              </View>
+            )}
+          </Pressable>
+          <View style={{ flex: 1, gap: theme.spacing[1] }}>
+            <Text style={styles.avatarTitle}>Profile photo (optional)</Text>
+            <Text style={styles.avatarSubtitle}>Tap to choose an avatar.</Text>
+            {avatar ? (
+              <Pressable onPress={() => setAvatar(null)} hitSlop={10}>
+                <Text style={styles.avatarRemove}>Remove photo</Text>
+              </Pressable>
+            ) : null}
           </View>
+        </View>
 
-          {/* Form */}
-          <View style={styles.form}>
-            {/* First Name Input */}
-            <View style={styles.inputContainer}>
-              <View style={styles.inputIcon}>
-                <Ionicons name="person-outline" size={20} color="#666" />
-              </View>
-              <TextInput
-                style={styles.input}
-                placeholder="First Name"
-                placeholderTextColor="#999"
-                value={firstName}
-                onChangeText={setFirstName}
-                autoCapitalize="words"
-              />
-            </View>
-
-            {/* Last Name Input */}
-            <View style={styles.inputContainer}>
-              <View style={styles.inputIcon}>
-                <Ionicons name="person-outline" size={20} color="#666" />
-              </View>
-              <TextInput
-                style={styles.input}
-                placeholder="Last Name"
-                placeholderTextColor="#999"
-                value={lastName}
-                onChangeText={setLastName}
-                autoCapitalize="words"
-              />
-            </View>
-
-            {/* Username Input */}
-            <View style={styles.inputContainer}>
-              <View style={styles.inputIcon}>
-                <Ionicons name="at-outline" size={20} color="#666" />
-              </View>
-              <TextInput
-                style={styles.input}
-                placeholder="Username"
-                placeholderTextColor="#999"
-                value={username}
-                onChangeText={setUsername}
-                autoCapitalize="none"
-              />
-            </View>
-
-            {/* Email Input */}
-            <View style={styles.inputContainer}>
-              <View style={styles.inputIcon}>
-                <Ionicons name="mail-outline" size={20} color="#666" />
-              </View>
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                placeholderTextColor="#999"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
-            </View>
-
-            {/* Password Input */}
-            <View style={styles.inputContainer}>
-              <View style={styles.inputIcon}>
-                <Ionicons name="lock-closed-outline" size={20} color="#666" />
-              </View>
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor="#999"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity
-                style={styles.eyeIcon}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                <Ionicons
-                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                  size={20}
-                  color="#666"
-                />
-              </TouchableOpacity>
-            </View>
-            
-            {/* Password Requirements */}
-            <View style={styles.passwordHint}>
-              <Text style={styles.passwordHintText}>
-                Password must contain at least 8 characters with uppercase, lowercase, number, and special character
-              </Text>
-            </View>
-
-            {/* Confirm Password Input */}
-            <View style={styles.inputContainer}>
-              <View style={styles.inputIcon}>
-                <Ionicons name="lock-closed-outline" size={20} color="#666" />
-              </View>
-              <TextInput
-                style={styles.input}
-                placeholder="Confirm Password"
-                placeholderTextColor="#999"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={!showConfirmPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity
-                style={styles.eyeIcon}
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-              >
-                <Ionicons
-                  name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
-                  size={20}
-                  color="#666"
-                />
-              </TouchableOpacity>
-            </View>
-
-            {/* Terms and Conditions */}
-            <TouchableOpacity 
-              style={styles.termsContainer}
-              onPress={() => setTermsAccepted(!termsAccepted)}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
-                {termsAccepted && <Ionicons name="checkmark" size={18} color="#fff" />}
-              </View>
-              <Text style={styles.termsText}>
-                I agree to the{' '}
-                <Text style={styles.termsLink}>Terms & Conditions</Text> and{' '}
-                <Text style={styles.termsLink}>Privacy Policy</Text>
-              </Text>
-            </TouchableOpacity>
-
-            {/* Register Button */}
-            <TouchableOpacity
-              style={[styles.registerButton, (!isFormValid || loading) && styles.registerButtonDisabled]}
-              onPress={handleRegister}
-              disabled={!isFormValid || loading}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={isFormValid && !loading ? ['#FF6B9D', '#FF8FAB'] : ['#ccc', '#ddd']}
-                style={styles.registerGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.registerButtonText}>Sign Up</Text>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
-
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>OR</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Social Login Buttons */}
-            <TouchableOpacity style={styles.socialButton}>
-              <Ionicons name="logo-google" size={24} color="#DB4437" />
-              <Text style={styles.socialButtonText}>Continue with Google</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.socialButton}>
-              <Ionicons name="logo-apple" size={24} color="#000" />
-              <Text style={styles.socialButtonText}>Continue with Apple</Text>
-            </TouchableOpacity>
-
-            {/* Login Link */}
-            <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => router.push('/(tabs)/login')}>
-                <Text style={styles.loginLink}>Log In</Text>
-              </TouchableOpacity>
-            </View>
+        <View style={styles.nameRow}>
+          <View style={{ flex: 1 }}>
+            <AuthTextField
+              label="First name"
+              theme={theme}
+              value={firstName}
+              onChangeText={setFirstName}
+              autoCapitalize="words"
+              leadingIconName="person-outline"
+            />
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </LinearGradient>
+          <View style={{ flex: 1 }}>
+            <AuthTextField
+              label="Last name"
+              theme={theme}
+              value={lastName}
+              onChangeText={setLastName}
+              autoCapitalize="words"
+            />
+          </View>
+        </View>
+
+        <AuthTextField
+          label="Username"
+          theme={theme}
+          value={username}
+          onChangeText={setUsername}
+          autoCapitalize="none"
+          leadingIconName="at-outline"
+        />
+
+        <AuthTextField
+          label="Email"
+          theme={theme}
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+          leadingIconName="mail-outline"
+        />
+
+        <AuthPasswordField
+          label="Password"
+          theme={theme}
+          value={password}
+          onChangeText={setPassword}
+          autoCapitalize="none"
+          autoComplete="password"
+        />
+
+        <Text style={styles.passwordHint}>
+          Use at least 8 characters. Mix letters, numbers, and a symbol.
+        </Text>
+
+        <AuthPasswordField
+          label="Confirm password"
+          theme={theme}
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          autoCapitalize="none"
+          autoComplete="password"
+        />
+
+        <Pressable
+          onPress={() => setTermsAccepted((v) => !v)}
+          style={({ pressed }) => [styles.termsRow, pressed && styles.pressed]}
+        >
+          <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+            {termsAccepted ? (
+              <Ionicons name="checkmark" size={16} color={theme.colors.onPrimary} />
+            ) : null}
+          </View>
+          <Text style={styles.termsText}>
+            I agree to the <Text style={styles.termsLink}>Terms</Text> and{' '}
+            <Text style={styles.termsLink}>Privacy Policy</Text>.
+          </Text>
+        </Pressable>
+
+        <Button
+          title={loading ? 'Creating…' : 'Create account'}
+          variant="primary"
+          disabled={!isFormValid || loading}
+          onPress={handleRegister}
+        />
+
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <Pressable
+          onPress={() => Alert.alert('Google', 'Coming soon')}
+          style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed]}
+        >
+          <Ionicons name="logo-google" size={18} color={theme.colors.textPrimary} />
+          <Text style={styles.socialText}>Continue with Google</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => Alert.alert('Apple', 'Coming soon')}
+          style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed]}
+        >
+          <Ionicons name="logo-apple" size={18} color={theme.colors.textPrimary} />
+          <Text style={styles.socialText}>Continue with Apple</Text>
+        </Pressable>
+      </Card>
+
+      <View style={styles.footerRow}>
+        <Text style={styles.footerText}>Already have an account?</Text>
+        <Pressable onPress={() => router.push('/(tabs)/login')} hitSlop={10}>
+          <Text style={styles.footerLink}>Log in</Text>
+        </Pressable>
+      </View>
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingTop: 60,
-    paddingHorizontal: 30,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  logo: {
-    fontSize: 40,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-  },
-  form: {
-    width: '100%',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    height: 56,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
-  },
-  eyeIcon: {
-    padding: 8,
-  },
-  passwordHint: {
-    marginTop: -10,
-    marginBottom: 12,
-    paddingHorizontal: 8,
-  },
-  passwordHintText: {
-    fontSize: 12,
-    color: '#888',
-    lineHeight: 16,
-  },
-  termsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-    paddingHorizontal: 8,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#ddd',
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  checkboxChecked: {
-    backgroundColor: '#FF6B9D',
-    borderColor: '#FF6B9D',
-  },
-  termsText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#666',
-    lineHeight: 18,
-  },
-  termsLink: {
-    color: '#FF6B9D',
-    fontWeight: '600',
-  },
-  registerButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 24,
-    shadowColor: '#FF6B9D',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  registerButtonDisabled: {
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  registerGradient: {
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  registerButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E0E0E0',
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    fontSize: 14,
-    color: '#999',
-    fontWeight: '600',
-  },
-  socialButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    paddingVertical: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  socialButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginLeft: 12,
-  },
-  loginContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 40,
-  },
-  loginText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  loginLink: {
-    fontSize: 14,
-    color: '#FF6B9D',
-    fontWeight: 'bold',
-  },
-});
+const createStyles = (theme: typeof lightTheme) =>
+  StyleSheet.create({
+    content: {
+      paddingTop: theme.spacing[6],
+      paddingBottom: theme.spacing[8],
+      gap: theme.spacing[4],
+    },
+    headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    backBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: withOpacity(theme.colors.border, 0.9),
+      ...theme.shadow.xs,
+    },
+    pressed: {
+      opacity: 0.92,
+      transform: [{ scale: 0.98 }],
+    },
+    hero: {
+      alignItems: 'center',
+      gap: theme.spacing[2],
+      paddingTop: theme.spacing[1],
+    },
+    heroIcon: {
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: withOpacity(theme.colors.primary, 0.1),
+      borderWidth: 1,
+      borderColor: withOpacity(theme.colors.border, 0.9),
+    },
+    title: {
+      fontSize: theme.typography.fontSize['2xl'],
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.textPrimary,
+    },
+    subtitle: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.regular,
+      color: theme.colors.textMuted,
+    },
+    card: {
+      padding: theme.spacing[5],
+      gap: theme.spacing[4],
+    },
+    avatarRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing[3],
+    },
+    avatarCircle: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: theme.colors.background,
+      borderWidth: 1,
+      borderColor: withOpacity(theme.colors.border, 0.9),
+      overflow: 'hidden',
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...theme.shadow.xs,
+    },
+    avatarPlaceholder: {
+      width: '100%',
+      height: '100%',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: withOpacity(theme.colors.primary, 0.06),
+    },
+    avatarImage: {
+      width: '100%',
+      height: '100%',
+      resizeMode: 'cover',
+    },
+    avatarTitle: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+    },
+    avatarSubtitle: {
+      fontSize: theme.typography.fontSize.xs,
+      fontFamily: theme.typography.fontFamily.regular,
+      color: theme.colors.textMuted,
+    },
+    avatarRemove: {
+      fontSize: theme.typography.fontSize.xs,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+      textDecorationLine: 'underline',
+    },
+    nameRow: {
+      flexDirection: 'row',
+      gap: theme.spacing[3],
+    },
+    passwordHint: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.regular,
+      color: theme.colors.textMuted,
+      lineHeight: Math.round(theme.typography.fontSize.sm * theme.typography.lineHeight.relaxed),
+      marginTop: -theme.spacing[2],
+    },
+    termsRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: theme.spacing[3],
+      marginTop: theme.spacing[1],
+    },
+    checkbox: {
+      width: 22,
+      height: 22,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: withOpacity(theme.colors.border, 0.9),
+      backgroundColor: theme.colors.background,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkboxChecked: {
+      borderColor: theme.colors.primary,
+      backgroundColor: theme.colors.primary,
+    },
+    termsText: {
+      flex: 1,
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.regular,
+      color: theme.colors.textMuted,
+      lineHeight: Math.round(theme.typography.fontSize.sm * theme.typography.lineHeight.relaxed),
+    },
+    termsLink: {
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+    },
+    dividerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing[3],
+      marginTop: theme.spacing[1],
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: withOpacity(theme.colors.border, 0.9),
+    },
+    dividerText: {
+      fontSize: theme.typography.fontSize.xs,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textMuted,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    socialBtn: {
+      height: 52,
+      borderRadius: theme.radius.lg,
+      borderWidth: 1,
+      borderColor: withOpacity(theme.colors.border, 0.9),
+      backgroundColor: theme.colors.background,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.spacing[2],
+    },
+    socialText: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
+    },
+    footerRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: theme.spacing[1],
+      paddingTop: theme.spacing[1],
+    },
+    footerText: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.regular,
+      color: theme.colors.textMuted,
+    },
+    footerLink: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.textPrimary,
+    },
+  });
