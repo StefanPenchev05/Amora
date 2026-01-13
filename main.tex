@@ -35,7 +35,8 @@
   \country{Luxembourg}
 }
 
-\author{Prof. G. di Tollo}
+% Replace supervisor name/email when you have them
+\author{(Prof. G. di Tollo)}
 \affiliation{%
   \institution{University of Luxembourg}
   \city{Esch-sur-Alzette}
@@ -149,7 +150,7 @@ Sensitive configuration is managed through environment variables (godotenv) and 
 
 \begin{figure}[H]
   \centering
-  \fbox{\parbox{0.93\linewidth}{\centering\vspace{2.5cm}The authentication flow begins when users register or log in. The system verifies credentials using bcrypt, then generates two tokens: a short-lived access token for API requests and a long-lived refresh token for session renewal. On mobile devices, both tokens are stored securely using Expo SecureStore. For each API request, the middleware validates the access token and resolves the user context from the token claims.\vspace{2.5cm}}}
+  \fbox{\parbox{0.93\linewidth}{\centering\vspace{2.5cm}[Authentication Flow Diagram]\\User Registration/Login → bcrypt password verification → JWT access token (short-lived) + refresh token (long-lived) → Expo SecureStore storage → Middleware validation → User context resolution\vspace{2.5cm}}}
   \caption{JWT Dual-Token Authentication Flow: From registration through token validation and automatic refresh}
   \label{fig:auth-flow}
 \end{figure}
@@ -190,7 +191,7 @@ Amora’s framework connects two partners through a shared relationship space. T
 
 \begin{figure}[H]
   \centering
-  \fbox{\parbox{0.93\linewidth}{\centering\vspace{2cm}The framework operates through four interconnected cycles that support different aspects of the relationship. Shared Organization provides structure through calendars and milestones. Emotional Awareness enables mood tracking and affirmations for mutual support. Intentional Appreciation facilitates love notes and recognition of achievements. Memory Building preserves meaningful moments over time. These cycles work together to create a comprehensive relationship support system.\vspace{2cm}}}
+  \fbox{\parbox{0.93\linewidth}{\centering\vspace{2cm}[System Framework Diagram]\\Illustrating the four continuous cycles: Shared Organization, Emotional Awareness, Intentional Appreciation, and Memory Building\vspace{2cm}}}
   \caption{Amora System Framework: Four continuous cycles connecting partners through a unified relationship space}
   \label{fig:amora-system-overview}
 \end{figure}
@@ -200,7 +201,7 @@ Two users create accounts and establish a relationship link. This can be done us
 
 \begin{figure}[H]
   \centering
-  \fbox{\parbox{0.93\linewidth}{\centering\vspace{2cm}The pairing process starts when the first partner registers and creates an invitation code. The second partner then registers and enters this code, which updates the invitation status to pending. Once the second partner accepts, the system creates the relationship record with normalized partner ordering (ensuring partner\_a\_id is always less than partner\_b\_id). Both partners now share the same relationship\_id, which scopes all their content access.\vspace{2cm}}}
+  \fbox{\parbox{0.93\linewidth}{\centering\vspace{2cm}[Relationship Setup Flow]\\User A registers → creates invite → generates invite code → User B registers → enters invite code → RelationshipInvite status: sent → User B accepts → Relationship created with partner\_a\_id < partner\_b\_id → both users share relationship\_id\vspace{2cm}}}
   \caption{Relationship Pairing Flow: Secure invitation system with status tracking and normalized partner ordering}
   \label{fig:relationship-setup}
 \end{figure}
@@ -218,7 +219,7 @@ Memories combine notes and optional media references to create a relationship ti
 
 \begin{figure}[H]
   \centering
-  \fbox{\parbox{0.93\linewidth}{\centering\vspace{3.5cm}The architecture consists of three main layers. The presentation layer includes a React web client built with Vite and a React Native mobile app using Expo. Both clients communicate with the backend through a REST API. The application layer contains the Go backend with a Chi router, implementing domain services, use cases, and HTTP handlers. The middleware pipeline handles CORS, logging, authentication, and error recovery. The infrastructure layer includes JWT authentication services, GORM repositories for database access, and a MySQL database for data persistence. The mobile client also maintains a local SQLite cache for offline functionality.\vspace{3.5cm}}}
+  \fbox{\parbox{0.93\linewidth}{\centering\vspace{3.5cm}[Complete System Architecture]\\React Web Client (Vite) ↔ REST API ↔ Go Backend (Chi Router) ↔ MySQL Database\\React Native Mobile (Expo) ↔ REST API (with SQLite cache)\\Components: JWT Auth Service, GORM Repositories, Domain Services, Use Cases, HTTP Handlers, Middleware Pipeline (CORS, Logging, Auth, Recovery)\vspace{3.5cm}}}
   \caption{Complete System Architecture: Multi-client platform with clean separation between presentation, application, and infrastructure layers}
   \label{fig:system-architecture}
 \end{figure}
@@ -241,7 +242,7 @@ The platform implements a clean architecture pattern with clear separation betwe
 
 \begin{figure}[H]
   \centering
-  \fbox{\parbox{0.93\linewidth}{\centering\vspace{3cm}Both backend and mobile follow clean architecture principles with clear dependency direction. In the backend, the domain layer contains entities, value objects, and domain events. The application layer defines use cases and interfaces. The infrastructure layer implements these interfaces using GORM for database access, JWT for authentication, and HTTP utilities. The presentation layer handles HTTP requests through handlers, DTOs, and route configuration. The mobile app follows a similar pattern: the domain layer defines entities and repository interfaces, use cases orchestrate business logic, infrastructure provides HTTP clients and SQLite caching, and the presentation layer manages ViewModels and screen components.\vspace{3cm}}}
+  \fbox{\parbox{0.93\linewidth}{\centering\vspace{3cm}[Clean Architecture Diagram]\\Backend: Domain Layer (Entities, Value Objects, Events) ← Application Layer (Use Cases, Interfaces) ← Infrastructure Layer (GORM, JWT, HTTP) ← Presentation Layer (Handlers, DTOs, Routes)\\Mobile: Domain (Entities, VOs, Repos) ← Use Cases ← Infrastructure (HTTP Client, SQLite) ← Presentation (ViewModels, Screens)\vspace{3cm}}}
   \caption{Multi-Layer Architecture: Domain-Driven Design in backend, Clean Architecture in mobile with dependency inversion}
   \label{fig:clean-architecture}
 \end{figure}
@@ -284,7 +285,7 @@ The schema includes 40+ indexes for optimized query performance on relationship-
 
 \begin{figure}[H]
   \centering
-  \fbox{\parbox{0.93\linewidth}{\centering\vspace{3cm}The database schema centers around the Relationship table, which connects two User records. The Users table stores credentials, profiles, and settings. RelationshipInvites manages the pairing flow between partners. Content tables like CalendarEvents, MoodCheck, CoupleNote, Posts, and MediaFiles all reference the Relationship table through foreign keys. CHECK constraints enforce data integrity, including the normalized partner ordering rule. The schema includes over 40 composite indexes optimized for relationship-scoped queries and time-range filtering.\vspace{3cm}}}
+  \includegraphics[width=1.10\linewidth]{database-schema.png}
   \caption{Amora Relational Database Schema: Comprehensive entity relationships with 40+ performance indexes}
   \label{fig:database-schema}
 \end{figure}
@@ -337,24 +338,33 @@ The platform provides intuitive interfaces for both web and mobile users:
 
 \begin{figure}[H]
   \centering
-  \fbox{\parbox{0.93\linewidth}{\centering\vspace{2cm}The mobile registration interface features animated text fields that provide real-time feedback as users type. A password strength indicator helps users create secure credentials by showing strength levels based on character variety and length. The design uses gradient buttons and glass-morphism effects for a modern, approachable aesthetic. Behind the interface, the ViewModel pattern manages form state and validation logic, separating presentation concerns from business logic.\vspace{2cm}}}
+  \fbox{
+    \includegraphics[height=0.6\textheight]{mobile_registration_phone.png}
+  }
   \caption{Mobile App Registration Interface: Clean Architecture with ViewModel pattern, animated form validation, and real-time password strength feedback}
   \label{fig:mobile-registration}
 \end{figure}
 
+
 \begin{figure}[H]
   \centering
-  \fbox{\parbox{0.93\linewidth}{\centering\vspace{2cm}The calendar interface displays events that both partners can see and edit. Events are color-coded by category (dates, appointments, anniversaries, tasks) for quick visual parsing. Recurring events show special indicators and follow the RFC 5545 RRULE standard, supporting complex patterns like weekly date nights or monthly celebrations. All times are displayed in the user's local timezone while being stored in UTC, ensuring consistency when partners are in different locations.\vspace{2cm}}}
+  \fbox{
+    \includegraphics[height=0.6\textheight]{calendar_view_phone.png}
+  }
   \caption{Shared Calendar Interface: Supporting RFC 5545 RRULE recurring events with visual category classification}
   \label{fig:calendar-view}
 \end{figure}
 
+
 \begin{figure}[H]
   \centering
-  \fbox{\parbox{0.93\linewidth}{\centering\vspace{2cm}The mood tracking interface uses a simple 1-5 scale for logging emotional state, with optional notes for additional context. Users can view their historical mood patterns through visualization charts, helping them identify trends over time. Privacy controls let each partner decide whether to share their current mood with the other or keep it private. The design avoids gamification elements like streaks or comparisons that might create pressure or anxiety.\vspace{2cm}}}
+  \fbox{
+    \includegraphics[height=0.6\textheight]{mood_tracking_phone.png}
+  }
   \caption{Mood Tracking Feature: Privacy-conscious emotional awareness with optional sharing and historical trends}
   \label{fig:mood-tracking}
 \end{figure}
+
 
 \subsection{Performance and Scalability}
 The implementation prioritizes performance through strategic optimizations:
