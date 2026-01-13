@@ -168,45 +168,40 @@ export default function DashboardScreen() {
       {
         key: 'calendar',
         title: 'Calendar',
-        sub: 'Plan dates & events',
-        icon: 'calendar' as const,
         route: '/(app)/calendar',
+        icon: 'calendar' as const,
         bg: withOpacity(theme.colors.primary, 0.06),
         iconBg: withOpacity(theme.colors.primary, 0.08),
       },
       {
         key: 'mood',
         title: 'Mood',
-        sub: 'Track how you feel',
-        icon: 'happy' as const,
         route: '/(app)/mood',
+        icon: 'happy' as const,
         bg: withOpacity(theme.colors.accent, 0.08),
         iconBg: withOpacity(theme.colors.accent, 0.12),
       },
       {
         key: 'notes',
         title: 'Notes',
-        sub: 'Save little things',
-        icon: 'heart' as const,
         route: '/(app)/notes',
+        icon: 'heart' as const,
         bg: withOpacity(theme.colors.primary, 0.04),
         iconBg: withOpacity(theme.colors.primary, 0.06),
       },
       {
         key: 'memories',
         title: 'Memories',
-        sub: 'Capture moments',
-        icon: 'images' as const,
         route: '/(app)/memories',
+        icon: 'images' as const,
         bg: withOpacity(theme.colors.secondary, 0.05),
         iconBg: withOpacity(theme.colors.secondary, 0.08),
       },
       {
         key: 'expenses',
         title: 'Expenses',
-        sub: 'Track spending',
-        icon: 'wallet' as const,
         route: '/(app)/expenses',
+        icon: 'wallet' as const,
         bg: withOpacity(theme.colors.accent, 0.06),
         iconBg: withOpacity(theme.colors.accent, 0.1),
       },
@@ -307,24 +302,22 @@ export default function DashboardScreen() {
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.quickActionsRow}
-          snapToInterval={styles.actionTile.width + theme.spacing[3]}
-          decelerationRate="fast"
         >
           {actions.map((a) => (
             <Pressable
               key={a.key}
               onPress={() => router.push(a.route)}
               style={({ pressed }) => [
-                styles.actionTile,
-                { backgroundColor: a.bg },
+                styles.quickActionItem,
                 pressed && styles.actionPressed,
               ]}
             >
-              <View style={[styles.actionIcon, { backgroundColor: a.iconBg }]}>
-                <Ionicons name={a.icon} size={18} color={theme.colors.primary} />
+              <View style={[styles.quickActionCircle, { backgroundColor: a.iconBg, borderColor: withOpacity(theme.colors.border, 0.9) }]}>
+                <Ionicons name={a.icon} size={22} color={theme.colors.primary} />
               </View>
-              <Text style={styles.actionTitle}>{a.title}</Text>
-              <Text style={styles.actionSub}>{a.sub}</Text>
+              <Text style={styles.quickActionTitle} numberOfLines={1}>
+                {a.title}
+              </Text>
             </Pressable>
           ))}
         </ScrollView>
@@ -469,37 +462,31 @@ const createStyles = (theme: typeof lightTheme) =>
       paddingRight: theme.spacing[2],
       gap: theme.spacing[3],
     },
-    actionTile: {
-      // used by snapToInterval above
-      width: 170,
-      padding: theme.spacing[4],
-      borderRadius: theme.radius.xl,
+    quickActionItem: {
+      width: 88,
+      alignItems: 'center',
+    },
+    quickActionCircle: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
       borderWidth: 1,
-      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface,
+      ...theme.shadow.xs,
+    },
+    quickActionTitle: {
+      marginTop: theme.spacing[2],
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textPrimary,
     },
     actionPressed: {
       opacity: 0.92,
       transform: [{ scale: 0.99 }],
     },
-    actionIcon: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: theme.spacing[3],
-    },
-    actionTitle: {
-      fontSize: theme.typography.fontSize.base,
-      fontFamily: theme.typography.fontFamily.medium,
-      color: theme.colors.textPrimary,
-    },
-    actionSub: {
-      marginTop: 2,
-      fontSize: theme.typography.fontSize.xs,
-      fontFamily: theme.typography.fontFamily.regular,
-      color: theme.colors.textMuted,
-    },
+    // (keeping other dashboard styles unchanged)
     loadingRow: {
       flexDirection: 'row',
       alignItems: 'center',
