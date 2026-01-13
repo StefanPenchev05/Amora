@@ -1,12 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import Screen from '../../src/components/layout/Screen';
-import AppHeader from '../../src/components/layout/AppHeader';
 import Card from '../../src/components/ui/Card';
-import IconCircleButton from '../../src/components/ui/IconCircleButton';
 import { lightTheme } from '../../src/styles/theme';
 import { withOpacity } from '../../src/components/form/color';
 import { relationshipService, type RelationshipStatusResponse } from '../../src/services/api/relationship';
@@ -163,8 +161,16 @@ export default function DashboardScreen() {
   const stats = relationship?.stats;
   const daysConnected = relationship?.days_connected;
 
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return 'U';
+    if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
+    return `${parts[0].slice(0, 1)}${parts[1].slice(0, 1)}`.toUpperCase();
+  };
+
   const actions = useMemo(
-    () => [
+    () =>
+      [
       {
         key: 'calendar',
         title: 'Calendar',
@@ -205,8 +211,8 @@ export default function DashboardScreen() {
         bg: withOpacity(theme.colors.accent, 0.06),
         iconBg: withOpacity(theme.colors.accent, 0.1),
       },
-    ],
-    [router, theme.colors.accent, theme.colors.primary, theme.colors.secondary],
+    ] as const,
+    [theme.colors.accent, theme.colors.primary, theme.colors.secondary],
   );
 
   const renderMemories = () => {
@@ -238,29 +244,41 @@ export default function DashboardScreen() {
     ));
   };
 
-  let headerTitle = 'Dashboard';
-  if (!loadingUser && userName) {
-    headerTitle = `Hi, ${userName}`;
-  }
-
   return (
     <Screen
       scroll
       theme={theme}
       contentStyle={styles.screenContent}
     >
-      <AppHeader
-        title={headerTitle}
-        subtitle="Plan, track and remember — together"
-        right={
-          <IconCircleButton
-            icon="person"
-            onPress={() => router.push('/(app)/profile')}
-            theme={theme}
-          />
-        }
-        theme={theme}
-      />
+      <View style={styles.topBar}>
+        <Pressable
+          onPress={() => router.push('/(app)/profile')}
+          style={({ pressed }) => [styles.avatarBtn, pressed && styles.topBtnPressed]}
+        >
+          {loadingUser ? (
+            <ActivityIndicator size="small" color={theme.colors.primary} />
+          ) : (
+            <Text style={styles.avatarInitials}>{getInitials(userName || 'U')}</Text>
+          )}
+        </Pressable>
+
+        <View style={styles.topCenter}>
+          <Text style={styles.topLabel}>Current Location</Text>
+          <View style={styles.topLocationRow}>
+            <Ionicons name="location-outline" size={16} color={theme.colors.textMuted} />
+            <Text style={styles.topLocation} numberOfLines={1}>
+              Sterling, Brooklyn
+            </Text>
+          </View>
+        </View>
+
+        <Pressable
+          onPress={() => Alert.alert('Notifications', 'Coming soon')}
+          style={({ pressed }) => [styles.bellBtn, pressed && styles.topBtnPressed]}
+        >
+          <Ionicons name="notifications-outline" size={20} color={theme.colors.textPrimary} />
+        </Pressable>
+      </View>
 
       {relationship?.status === 'active' ? null : (
         <Card theme={theme} style={styles.card}>
@@ -430,7 +448,68 @@ export default function DashboardScreen() {
 const createStyles = (theme: typeof lightTheme) =>
   StyleSheet.create({
     screenContent: {
-      paddingTop: theme.spacing[4],
+      paddingTop: theme.spacing[3],
+    },
+    topBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: theme.spacing[2],
+      gap: theme.spacing[3],
+    },
+    avatarBtn: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: withOpacity(theme.colors.border, 0.9),
+      ...theme.shadow.xs,
+    },
+    avatarInitials: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.textPrimary,
+    },
+    bellBtn: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: withOpacity(theme.colors.border, 0.9),
+      ...theme.shadow.xs,
+    },
+    topBtnPressed: {
+      opacity: 0.92,
+      transform: [{ scale: 0.98 }],
+    },
+    topCenter: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: theme.spacing[2],
+    },
+    topLabel: {
+      fontSize: theme.typography.fontSize.xs,
+      fontFamily: theme.typography.fontFamily.medium,
+      color: theme.colors.textMuted,
+    },
+    topLocationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing[1],
+      marginTop: 2,
+    },
+    topLocation: {
+      fontSize: theme.typography.fontSize.base,
+      fontFamily: theme.typography.fontFamily.bold,
+      color: theme.colors.textPrimary,
+      maxWidth: '100%',
     },
     card: {
       marginTop: theme.spacing[3],
