@@ -4,37 +4,37 @@ import "time"
 
 // Event DTOs
 type CreateEventRequest struct {
-	Title       string    `json:"title" binding:"required"`
-	Description string    `json:"description"`
-	Category    string    `json:"category" binding:"required"`
-	EventDate   time.Time `json:"event_date" binding:"required"`
+	Title       string     `json:"title" binding:"required"`
+	Description string     `json:"description"`
+	Category    string     `json:"category" binding:"required"`
+	EventDate   time.Time  `json:"event_date" binding:"required"`
 	EndDate     *time.Time `json:"end_date,omitempty"`
-	AllDay      bool      `json:"all_day"`
-	Location    string    `json:"location"`
+	AllDay      bool       `json:"all_day"`
+	Location    string     `json:"location"`
 }
 
 type UpdateEventRequest struct {
-	Title       string    `json:"title" binding:"required"`
-	Description string    `json:"description"`
-	Category    string    `json:"category" binding:"required"`
-	EventDate   time.Time `json:"event_date" binding:"required"`
+	Title       string     `json:"title" binding:"required"`
+	Description string     `json:"description"`
+	Category    string     `json:"category" binding:"required"`
+	EventDate   time.Time  `json:"event_date" binding:"required"`
 	EndDate     *time.Time `json:"end_date,omitempty"`
-	AllDay      bool      `json:"all_day"`
-	Location    string    `json:"location"`
+	AllDay      bool       `json:"all_day"`
+	Location    string     `json:"location"`
 }
 
 type EventResponse struct {
-	UserID      string    `json:"user_id"`
-	ID          string    `json:"id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Category    string    `json:"category"`
-	EventDate   time.Time `json:"event_date"`
+	UserID      string     `json:"user_id"`
+	ID          string     `json:"id"`
+	Title       string     `json:"title"`
+	Description string     `json:"description"`
+	Category    string     `json:"category"`
+	EventDate   time.Time  `json:"event_date"`
 	EndDate     *time.Time `json:"end_date,omitempty"`
-	AllDay      bool      `json:"all_day"`
-	Location    string    `json:"location"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	AllDay      bool       `json:"all_day"`
+	Location    string     `json:"location"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
 // Mood DTOs

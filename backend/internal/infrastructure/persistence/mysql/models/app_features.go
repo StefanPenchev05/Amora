@@ -3,17 +3,17 @@ package models
 import "time"
 
 type Event struct {
-	ID          string    `gorm:"type:char(36);primaryKey;column:id;default:(uuid())" json:"id"`
-	UserID      string    `gorm:"type:char(36);not null;column:user_id;index" json:"user_id"`
-	Title       string    `gorm:"column:title;size:200;not null" json:"title"`
-	Description string    `gorm:"column:description;size:1000" json:"description"`
-	Category    string    `gorm:"column:category;size:50;not null;index" json:"category"`
-	EventDate   time.Time `gorm:"column:event_date;not null;index" json:"event_date"`
+	ID          string     `gorm:"type:char(36);primaryKey;column:id;default:(uuid())" json:"id"`
+	UserID      string     `gorm:"type:char(36);not null;column:user_id;index" json:"user_id"`
+	Title       string     `gorm:"column:title;size:200;not null" json:"title"`
+	Description string     `gorm:"column:description;size:1000" json:"description"`
+	Category    string     `gorm:"column:category;size:50;not null;index" json:"category"`
+	EventDate   time.Time  `gorm:"column:event_date;not null;index" json:"event_date"`
 	EndDate     *time.Time `gorm:"column:end_date;index" json:"end_date,omitempty"`
-	AllDay      bool      `gorm:"column:all_day;not null;default:false;index" json:"all_day"`
-	Location    string    `gorm:"column:location;size:200" json:"location"`
-	CreatedAt   time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"created_at"`
-	UpdatedAt   time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updated_at"`
+	AllDay      bool       `gorm:"column:all_day;not null;default:false;index" json:"all_day"`
+	Location    string     `gorm:"column:location;size:200" json:"location"`
+	CreatedAt   time.Time  `gorm:"column:created_at;not null;autoCreateTime" json:"created_at"`
+	UpdatedAt   time.Time  `gorm:"column:updated_at;not null;autoUpdateTime" json:"updated_at"`
 
 	User User `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE" json:"-"`
 }
