@@ -150,10 +150,13 @@ Sensitive configuration is managed through environment variables (godotenv) and 
 
 \begin{figure}[H]
   \centering
-  \fbox{\parbox{0.93\linewidth}{\centering\vspace{2.5cm}[Authentication Flow Diagram]\\User Registration/Login → bcrypt password verification → JWT access token (short-lived) + refresh token (long-lived) → Expo SecureStore storage → Middleware validation → User context resolution\vspace{2.5cm}}}
+  \fbox{
+    \includegraphics[width=0.93\linewidth]{auth_flow_diagram.png}
+  }
   \caption{JWT Dual-Token Authentication Flow: From registration through token validation and automatic refresh}
   \label{fig:auth-flow}
 \end{figure}
+
 
 \subsection{Implementation Challenges and Design Decisions}
 Several technical challenges shaped the architecture:
@@ -189,22 +192,23 @@ Amora’s framework connects two partners through a shared relationship space. T
     \item \textbf{Memory Building}: shared memories preserve long-term meaning.
 \end{enumerate}
 
-\begin{figure}[H]
-  \centering
-  \fbox{\parbox{0.93\linewidth}{\centering\vspace{2cm}[System Framework Diagram]\\Illustrating the four continuous cycles: Shared Organization, Emotional Awareness, Intentional Appreciation, and Memory Building\vspace{2cm}}}
-  \caption{Amora System Framework: Four continuous cycles connecting partners through a unified relationship space}
-  \label{fig:amora-system-overview}
-\end{figure}
-
 \subsection{Stage 1: Account and Relationship Setup}
 Two users create accounts and establish a relationship link. This can be done using an invitation code or a secure pairing flow. After pairing, both accounts share a single relationship identifier that scopes all content access.
 
 \begin{figure}[H]
   \centering
-  \fbox{\parbox{0.93\linewidth}{\centering\vspace{2cm}[Relationship Setup Flow]\\User A registers → creates invite → generates invite code → User B registers → enters invite code → RelationshipInvite status: sent → User B accepts → Relationship created with partner\_a\_id < partner\_b\_id → both users share relationship\_id\vspace{2cm}}}
+  \fbox{
+    \includegraphics[
+      width=0.93\linewidth,
+      height=0.5\textheight,
+      keepaspectratio
+    ]{relationship_setup_flow.png}
+  }
   \caption{Relationship Pairing Flow: Secure invitation system with status tracking and normalized partner ordering}
   \label{fig:relationship-setup}
 \end{figure}
+
+
 
 \subsection{Stage 2: Shared Calendar and Milestones}
 Calendar events allow couples to coordinate daily life (appointments, shared tasks, trips). Milestones (anniversaries, recurring celebrations) add relationship-specific meaning and help the system surface supportive reminders.
@@ -219,10 +223,13 @@ Memories combine notes and optional media references to create a relationship ti
 
 \begin{figure}[H]
   \centering
-  \fbox{\parbox{0.93\linewidth}{\centering\vspace{3.5cm}[Complete System Architecture]\\React Web Client (Vite) ↔ REST API ↔ Go Backend (Chi Router) ↔ MySQL Database\\React Native Mobile (Expo) ↔ REST API (with SQLite cache)\\Components: JWT Auth Service, GORM Repositories, Domain Services, Use Cases, HTTP Handlers, Middleware Pipeline (CORS, Logging, Auth, Recovery)\vspace{3.5cm}}}
+  \fbox{
+    \includegraphics[width=0.93\linewidth]{system_architecture.png}
+  }
   \caption{Complete System Architecture: Multi-client platform with clean separation between presentation, application, and infrastructure layers}
   \label{fig:system-architecture}
 \end{figure}
+
 
 \subsection{Technology Stack and Architecture}
 \subsubsection{Multi-Client Architecture}
@@ -242,10 +249,22 @@ The platform implements a clean architecture pattern with clear separation betwe
 
 \begin{figure}[H]
   \centering
-  \fbox{\parbox{0.93\linewidth}{\centering\vspace{3cm}[Clean Architecture Diagram]\\Backend: Domain Layer (Entities, Value Objects, Events) ← Application Layer (Use Cases, Interfaces) ← Infrastructure Layer (GORM, JWT, HTTP) ← Presentation Layer (Handlers, DTOs, Routes)\\Mobile: Domain (Entities, VOs, Repos) ← Use Cases ← Infrastructure (HTTP Client, SQLite) ← Presentation (ViewModels, Screens)\vspace{3cm}}}
-  \caption{Multi-Layer Architecture: Domain-Driven Design in backend, Clean Architecture in mobile with dependency inversion}
-  \label{fig:clean-architecture}
+  \fbox{
+    \includegraphics[width=0.93\linewidth]{clean_architecture_backend.png}
+  }
+  \caption{Backend Clean Architecture: Domain-Driven Design with application use cases and infrastructure adapters}
+  \label{fig:clean-architecture-backend}
 \end{figure}
+
+\begin{figure}[H]
+  \centering
+  \fbox{
+    \includegraphics[width=0.93\linewidth]{clean_architecture_mobile.png}
+  }
+  \caption{Mobile Clean Architecture: Use-case–centric design with ViewModel presentation and local persistence}
+  \label{fig:clean-architecture-mobile}
+\end{figure}
+
 
 \subsubsection{Repository Organization}
 The repository is organized into:
